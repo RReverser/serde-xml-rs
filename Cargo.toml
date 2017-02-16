@@ -1,0 +1,8 @@
+[package]
+authors = ["Ingvar Stepanyan <me@rreverser.com>"]
+name = "serde-xml-rs"
+version = "0.1.0"
+
+[dependencies]
+serde = "0.9.7"
+xml-rs = "0.3.6"
