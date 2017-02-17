@@ -26,6 +26,10 @@ pub struct Deserializer<R: Read> {
     is_map_value: bool
 }
 
+pub fn deserialize<R: Read, T: Deserialize>(reader: R) -> Result<T, Error> {
+    T::deserialize(&mut Deserializer::new_from_reader(reader))
+}
+
 impl<R: Read> Deserializer<R> {
     pub fn new(reader: EventReader<R>) -> Self {
         Deserializer {
@@ -44,10 +48,6 @@ impl<R: Read> Deserializer<R> {
             ignore_comments: true,
             coalesce_characters: true
         }))
-    }
-
-    pub fn deserialize<T: Deserialize>(reader: R) -> Result<T, Error> {
-        T::deserialize(&mut Deserializer::new_from_reader(reader))
     }
 
     fn peek(&mut self) -> Result<&XmlEvent, Error> {

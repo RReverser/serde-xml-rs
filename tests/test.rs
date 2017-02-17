@@ -1,11 +1,3 @@
-# serde-xml-rs
-xml-rs based deserializer for Serde (compatible with 0.9+)
-
-## Usage
-
-Use `serde_xml_rs::deserialize(...)` on any type that implements [`std::io::Read`](https://doc.rust-lang.org/std/io/trait.Read.html) as following:
-
-```rust
 #[macro_use] extern crate serde_derive;
 extern crate serde_xml_rs;
 
@@ -35,6 +27,3 @@ fn it_works() {
     let project: Project = deserialize(s.as_bytes()).unwrap();
     println!("{:#?}", project);
 }
-```
-
-Alternatively, you can use `serde_xml_rs::Deserializer` to create a deserializer from a preconfigured [`xml_rs::EventReader`](https://netvl.github.io/xml-rs/xml/reader/struct.EventReader.html).
