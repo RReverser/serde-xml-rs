@@ -26,6 +26,7 @@ impl<'a, R: 'a + Read> de::EnumVisitor for EnumVisitor<'a, R> {
         let name = expect!(self.de.peek()?, &XmlEvent::Characters(ref name) | &XmlEvent::StartElement { name: OwnedName { local_name: ref name, .. }, .. } => {
             seed.deserialize(name.as_str().into_deserializer())
         })?;
+        self.de.set_map_value();
         Ok((name, VariantVisitor::new(self.de)))
     }
 }
@@ -46,30 +47,31 @@ impl<'a, R: 'a + Read> de::VariantVisitor for VariantVisitor<'a, R> {
     type Error = Error;
 
     fn visit_unit(self) -> Result<(), Error> {
+        self.de.unset_map_value();
         match self.de.next()? {
-            XmlEvent::StartElement { attributes, .. } => {
+            XmlEvent::StartElement { name, attributes, .. } => {
                 if attributes.len() == 0 {
-                    self.de.expect_end_element()
+                    self.de.expect_end_element(name)
                 } else {
                     Err(Error::invalid_length(attributes.len(), &"0"))
                 }
             },
-            _ => Ok(())
+            XmlEvent::Characters(_) => {
+                Ok(())
+            }
+            _ => unreachable!()
         }
     }
 
     fn visit_newtype_seed<T: DeserializeSeed>(self, seed: T) -> Result<T::Value, Error> {
-        self.de.set_map_value();
         seed.deserialize(&mut *self.de)
     }
 
     fn visit_tuple<V: Visitor>(self, len: usize, visitor: V) -> VResult<V> {
-        self.de.set_map_value();
         self.de.deserialize_tuple(len, visitor)
     }
 
     fn visit_struct<V: Visitor>(self, _fields: &'static [&'static str], visitor: V) -> VResult<V> {
-        self.de.set_map_value();
         self.de.deserialize_map(visitor)
     }
 }
