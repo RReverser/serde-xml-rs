@@ -13,7 +13,7 @@ pub use xml::reader::{EventReader, ParserConfig};
 use error::VResult;
 use xml::reader::XmlEvent;
 use xml::name::OwnedName;
-use serde::de::{self, Visitor};
+use serde::de::{self, Visitor, Deserialize};
 use std::io::Read;
 use map::MapVisitor;
 use seq::SeqVisitor;
@@ -34,6 +34,20 @@ impl<R: Read> Deserializer<R> {
             peeked: None,
             is_map_value: false
         }
+    }
+
+    pub fn new_from_reader(reader: R) -> Self {
+        Self::new(EventReader::new_with_config(reader, ParserConfig {
+            trim_whitespace: true,
+            whitespace_to_characters: true,
+            cdata_to_characters: true,
+            ignore_comments: true,
+            coalesce_characters: true
+        }))
+    }
+
+    pub fn deserialize<T: Deserialize>(reader: R) -> Result<T, Error> {
+        T::deserialize(&mut Deserializer::new_from_reader(reader))
     }
 
     fn peek(&mut self) -> Result<&XmlEvent, Error> {
