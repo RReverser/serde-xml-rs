@@ -11,17 +11,11 @@ pub enum Error {
 
 pub type VResult<V: Visitor> = Result<V::Value, Error>;
 
-macro_rules! unexpected {
-    ($actual: expr, $($expected: pat)|+) => {
-        Err($crate::error::Error::Custom(format!("Expected token {}, found {:?}", stringify!($($expected)|+), $actual)))
-    }
-}
-
 macro_rules! expect {
     ($actual: expr, $($expected: pat)|+ => $if_ok: expr) => {
         match $actual {
             $($expected)|+ => $if_ok,
-            actual => unexpected!(actual, $($expected)|+)
+            actual => Err($crate::Error::Custom(format!("Expected token {}, found {:?}", stringify!($($expected)|+), actual)))
         }
     }
 }
