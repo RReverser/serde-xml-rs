@@ -1,4 +1,7 @@
 [package]
+description = "xml-rs based deserializer for Serde (compatible with 0.9+)"
+license = "MIT"
+repository = "https://github.com/RReverser/serde-xml-rs"
 authors = ["Ingvar Stepanyan <me@rreverser.com>"]
 name = "serde-xml-rs"
 version = "0.1.0"
