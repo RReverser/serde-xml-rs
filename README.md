@@ -38,3 +38,9 @@ fn it_works() {
 ```
 
 Alternatively, you can use `serde_xml_rs::Deserializer` to create a deserializer from a preconfigured [`xml_rs::EventReader`](https://netvl.github.io/xml-rs/xml/reader/struct.EventReader.html).
+
+## Parsed representations
+
+Deserializer tries to be as intuitive as possible.
+
+However, there are some edge cases where you might get unexpected errors, so it's best to check out [`tests`](tests/test.rs) for expectations.

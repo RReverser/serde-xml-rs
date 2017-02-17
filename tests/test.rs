@@ -3,27 +3,100 @@ extern crate serde_xml_rs;
 
 use serde_xml_rs::deserialize;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, PartialEq)]
 struct Item {
-    pub name: String,
-    pub source: String
-}
-
-#[derive(Debug, Deserialize)]
-struct Project {
-    pub name: String,
-
-    #[serde(rename = "Item", default)]
-    pub items: Vec<Item>
+    name: String,
+    source: String
 }
 
 #[test]
-fn it_works() {
+fn simple_struct_from_attributes() {
     let s = r##"
-        <Project name="my_project">
-            <Item name="hello" source="world.rs" />
-        </Project>
+        <item name="hello" source="world.rs" />
     "##;
+
+    let item: Item = deserialize(s.as_bytes()).unwrap();
+
+    assert_eq!(item, Item {
+        name: "hello".to_string(),
+        source: "world.rs".to_string()
+    });
+}
+
+#[test]
+fn simple_struct_from_attribute_and_child() {
+    let s = r##"
+        <item name="hello">
+            <source>world.rs</source>
+        </item>
+    "##;
+
+    let item: Item = deserialize(s.as_bytes()).unwrap();
+
+    assert_eq!(item, Item {
+        name: "hello".to_string(),
+        source: "world.rs".to_string()
+    });
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+struct Project {
+    name: String,
+
+    #[serde(rename = "item", default)]
+    items: Vec<Item>
+}
+
+#[test]
+fn nested_collection() {
+    let s = r##"
+        <project name="my_project">
+            <item name="hello1" source="world1.rs" />
+            <item name="hello2" source="world2.rs" />
+        </project>
+    "##;
+
     let project: Project = deserialize(s.as_bytes()).unwrap();
-    println!("{:#?}", project);
+
+    assert_eq!(project, Project {
+        name: "my_project".to_string(),
+        items: vec![
+            Item { name: "hello1".to_string(), source: "world1.rs".to_string() },
+            Item { name: "hello2".to_string(), source: "world2.rs".to_string() }
+        ]
+    });
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+enum MyEnum {
+    A(String),
+    B { name: String },
+    C
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+struct MyEnums {
+    #[serde(rename = "$value")]
+    items: Vec<MyEnum>
+}
+
+#[test]
+fn collection_of_enums() {
+    let s = r##"
+        <enums>
+            <A>test</A>
+            <B name="hello" />
+            <C />
+        </enums>
+    "##;
+
+    let project: MyEnums = deserialize(s.as_bytes()).unwrap();
+
+    assert_eq!(project, MyEnums {
+        items: vec![
+            MyEnum::A("test".to_string()),
+            MyEnum::B { name: "hello".to_string() },
+            MyEnum::C
+        ]
+    });
 }
