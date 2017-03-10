@@ -70,7 +70,7 @@ fn nested_collection() {
 #[derive(Debug, Deserialize, PartialEq)]
 enum MyEnum {
     A(String),
-    B { name: String },
+    B { name: String, flag: bool },
     C
 }
 
@@ -85,7 +85,7 @@ fn collection_of_enums() {
     let s = r##"
         <enums>
             <A>test</A>
-            <B name="hello" />
+            <B name="hello" flag="t" />
             <C />
         </enums>
     "##;
@@ -95,7 +95,7 @@ fn collection_of_enums() {
     assert_eq!(project, MyEnums {
         items: vec![
             MyEnum::A("test".to_string()),
-            MyEnum::B { name: "hello".to_string() },
+            MyEnum::B { name: "hello".to_string(), flag: true },
             MyEnum::C
         ]
     });

@@ -89,7 +89,7 @@ impl de::Deserializer for AttrValueDeserializer {
     }
 
     fn deserialize_bool<V: Visitor>(self, visitor: V) -> VResult<V> {
-        visitor.visit_bool(self.0.is_empty())
+        visitor.visit_bool(!self.0.is_empty())
     }
 
     forward_to_deserialize! {
