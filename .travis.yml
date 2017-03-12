@@ -4,3 +4,6 @@ rust:
   - beta
   - nightly
 cache: cargo
+env:
+  global:
+    - RUST_BACKTRACE=1
