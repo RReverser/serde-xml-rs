@@ -1,4 +1,7 @@
 # serde-xml-rs
+
+[![Build Status](https://travis-ci.org/RReverser/serde-xml-rs.svg?branch=master)](https://travis-ci.org/RReverser/serde-xml-rs)
+
 xml-rs based deserializer for Serde (compatible with 0.9+)
 
 ## Usage
