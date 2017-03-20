@@ -9,7 +9,7 @@ pub enum Error {
     Custom(String)
 }
 
-pub type VResult<V: Visitor> = Result<V::Value, Error>;
+pub type VResult<V> = Result<<V as Visitor>::Value, Error>;
 
 macro_rules! expect {
     ($actual: expr, $($expected: pat)|+ => $if_ok: expr) => {
