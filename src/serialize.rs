@@ -4,6 +4,11 @@ use serde::ser::{self, Impossible, Serialize};
 use error::Error;
 
 
+pub fn serialize<W: Write, S: Serialize>(value: S, writer: W) -> Result<(), Error> {
+    let mut ser = Serializer::new(writer);
+    value.serialize(&mut ser)
+}
+
 /// An XML Serializer.
 pub struct Serializer<W>
     where W: Write
@@ -22,6 +27,13 @@ impl<W> Serializer<W>
         write!(self.writer, "{}", primitive)
             .map(|_| ())
             .map_err(|e| e.into())
+    }
+
+    fn write_wrapped<S: Serialize>(&mut self, tag: &str, value: S) -> Result<(), Error> {
+        write!(self.writer, "<{}>", tag)?;
+        value.serialize(&mut *self)?;
+        write!(self.writer, "</{}>", tag)?;
+        Ok(())
     }
 }
 
@@ -118,9 +130,7 @@ impl<'w, W> ser::Serializer for &'w mut Serializer<W>
     }
 
     fn serialize_unit_struct(self, name: &'static str) -> Result<Self::Ok, Self::Error> {
-        write!(self.writer, "<{0}></{0}>", name)
-            .map(|_| ())
-            .map_err(|e| e.into())
+        self.write_wrapped(name, ())
     }
 
     fn serialize_unit_variant(self,
@@ -144,7 +154,7 @@ impl<'w, W> ser::Serializer for &'w mut Serializer<W>
                                                         variant: &'static str,
                                                         value: &T)
                                                         -> Result<Self::Ok, Self::Error> {
-        Err(Error::UnsupportedOperation("serialize_newtype_variant".to_string()))
+        self.write_wrapped(name, value)
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
@@ -244,7 +254,7 @@ impl<'w, W> ser::SerializeMap for Map<'w, W>
     type Error = Error;
 
     fn serialize_key<T: ?Sized + Serialize>(&mut self, _: &T) -> Result<(), Self::Error> {
-        panic!("impossible to serialize just the key, please use serialize_entry()")
+        panic!("impossible to serialize the key on its own, please use serialize_entry()")
     }
 
     fn serialize_value<T: ?Sized + Serialize>(&mut self, value: &T) -> Result<(), Self::Error> {
@@ -362,6 +372,28 @@ mod tests {
             let mut map = Map { parent: &mut ser };
             map.serialize_entry("name", "Bob").unwrap();
             map.serialize_entry("age", "5").unwrap();
+        }
+
+        let got = String::from_utf8(buffer).unwrap();
+        assert_eq!(got, should_be);
+    }
+
+    #[test]
+    fn test_serialize_enum() {
+        #[derive(Serialize)]
+        enum Node {
+            Boolean(bool),
+            Number(f64),
+            String(String),
+        }
+
+        let mut buffer = Vec::new();
+        let should_be = "<Boolean>true</Boolean>";
+
+        {
+            let mut ser = Serializer::new(&mut buffer);
+            let node = Node::Boolean(true);
+            node.serialize(&mut ser).unwrap();
         }
 
         let got = String::from_utf8(buffer).unwrap();
