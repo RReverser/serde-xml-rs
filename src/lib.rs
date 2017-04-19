@@ -13,7 +13,7 @@ mod serialize;
 
 pub use error::Error;
 pub use xml::reader::{EventReader, ParserConfig};
-pub use serialize::Ser as Serializer;
+pub use serialize::Serializer;
 
 use error::VResult;
 use xml::reader::XmlEvent;

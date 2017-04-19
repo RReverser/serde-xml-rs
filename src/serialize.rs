@@ -1,23 +1,23 @@
 use std::io::Read;
-use serde::ser::{Impossible, Serialize, Serializer};
+use serde::ser::{self, Impossible, Serialize};
 use error::Error;
 
 
-pub struct Ser<R> {
+pub struct Serializer<R> {
     reader: R,
 }
 
-impl<R> Ser<R>
+impl<R> Serializer<R>
     where R: Read
 {
     pub fn new(reader: R) -> Self {
-        Ser { reader: reader }
+        Self { reader: reader }
     }
 }
 
 
 #[allow(unused_variables)]
-impl<R> Serializer for Ser<R> {
+impl<R> ser::Serializer for Serializer<R> {
     type Ok = ();
     type Error = Error;
 
