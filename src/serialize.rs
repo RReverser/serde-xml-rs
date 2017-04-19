@@ -4,7 +4,9 @@ use error::Error;
 
 
 /// An XML Serializer.
-pub struct Serializer<W> {
+pub struct Serializer<W>
+    where W: Write
+{
     writer: W,
 }
 
@@ -14,11 +16,15 @@ impl<W> Serializer<W>
     pub fn new(writer: W) -> Self {
         Self { writer: writer }
     }
+
+    fn into_inner(self) -> W {
+        self.writer
+    }
 }
 
 
 #[allow(unused_variables)]
-impl<W> ser::Serializer for Serializer<W>
+impl<'w, W> ser::Serializer for &'w mut Serializer<W>
     where W: Write
 {
     type Ok = ();
@@ -29,7 +35,7 @@ impl<W> ser::Serializer for Serializer<W>
     type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
     type SerializeMap = Impossible<Self::Ok, Self::Error>;
-    type SerializeStruct = Impossible<Self::Ok, Self::Error>;
+    type SerializeStruct = CompoundSerializer<'w, W>;
     type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
 
     fn serialize_bool(mut self, v: bool) -> Result<Self::Ok, Self::Error> {
@@ -87,7 +93,9 @@ impl<W> ser::Serializer for Serializer<W>
     }
 
     fn serialize_str(self, value: &str) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        write!(self.writer, "{}", value)
+            .map(|_| ())
+            .map_err(|e| e.into())
     }
 
     fn serialize_bytes(self, value: &[u8]) -> Result<Self::Ok, Self::Error> {
@@ -170,7 +178,11 @@ impl<W> ser::Serializer for Serializer<W>
                         name: &'static str,
                         len: usize)
                         -> Result<Self::SerializeStruct, Self::Error> {
-        unimplemented!()
+        write!(self.writer, "<{}>", name)?;
+        Ok(CompoundSerializer {
+               parent: self,
+               name: name,
+           })
     }
 
     fn serialize_struct_variant(self,
@@ -180,5 +192,89 @@ impl<W> ser::Serializer for Serializer<W>
                                 len: usize)
                                 -> Result<Self::SerializeStructVariant, Self::Error> {
         unimplemented!()
+    }
+}
+
+pub struct CompoundSerializer<'w, W>
+    where W: 'w + Write
+{
+    parent: &'w mut Serializer<W>,
+    name: &'w str,
+}
+
+impl<'w, W> ser::SerializeStruct for CompoundSerializer<'w, W>
+    where W: 'w + Write
+{
+    type Ok = ();
+    type Error = Error;
+
+    fn serialize_field<T: ?Sized + Serialize>(&mut self,
+                                              key: &'static str,
+                                              value: &T)
+                                              -> Result<(), Self::Error> {
+        write!(self.parent.writer, "<{}>", key)?;
+        value.serialize(&mut *self.parent)?;
+        write!(self.parent.writer, "</{}>", key)?;
+        Ok(())
+    }
+
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        write!(self.parent.writer, "</{}>", self.name).map_err(|e| e.into())
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+    use serde::Serializer as SerSerializer;
+    use serde::ser::SerializeStruct;
+
+    #[test]
+    fn test_serialize_bool() {
+        let inputs = vec![(true, "true"), (false, "false")];
+
+        for (src, should_be) in inputs {
+            let mut buffer = Vec::new();
+
+            {
+                let mut ser = Serializer::new(&mut buffer);
+                ser.serialize_bool(src).unwrap();
+            }
+
+            let got = String::from_utf8(buffer).unwrap();
+            assert_eq!(got, should_be);
+        }
+    }
+
+    #[test]
+    fn test_start_serialize_struct() {
+        let mut buffer = Vec::new();
+
+        {
+            let mut ser = Serializer::new(&mut buffer);
+            let _ = ser.serialize_struct("foo", 0).unwrap();
+        }
+
+        let got = String::from_utf8(buffer).unwrap();
+        assert_eq!(got, "<foo>");
+    }
+
+    #[test]
+    fn test_serialize_struct_field() {
+        let mut buffer = Vec::new();
+
+        {
+            let mut ser = Serializer::new(&mut buffer);
+            let mut struct_ser = CompoundSerializer {
+                parent: &mut ser,
+                name: "baz",
+            };
+            struct_ser.serialize_field("foo", "bar").unwrap();
+        }
+
+        let got = String::from_utf8(buffer).unwrap();
+        assert_eq!(got, "<foo>bar</foo>");
     }
 }
