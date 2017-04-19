@@ -12,6 +12,7 @@ pub enum Error {
     Syntax(reader::Error),
     Custom(String),
     Io(io::Error),
+    UnsupportedOperation(String),
 }
 
 pub type VResult<V> = Result<V, Error>;
@@ -60,6 +61,7 @@ impl Display for Error {
             Error::Syntax(ref error) => Display::fmt(error, fmt),
             Error::Custom(ref display) => Display::fmt(display, fmt),
             Error::Io(ref err) => Display::fmt(err, fmt),
+            Error::UnsupportedOperation(ref msg) => write!(fmt, "Unsupported Operation: {}", msg),
         }
     }
 }
@@ -71,6 +73,7 @@ impl Debug for Error {
             Error::Syntax(ref error) => Debug::fmt(error, fmt),
             Error::Custom(ref display) => Display::fmt(display, fmt),
             Error::Io(ref err) => Display::fmt(err, fmt),
+            Error::UnsupportedOperation(ref msg) => write!(fmt, "Unsupported Operation: {}", msg),
         }
     }
 }
@@ -87,7 +90,8 @@ impl StdError for Error {
             Error::ParseIntError(ref error) => error.description(),
             Error::Syntax(ref error) => error.description(),
 	    Error::Io(ref error) => error.description(),
-            Error::Custom(_) => "other error"
+            Error::Custom(_) => "other error",
+            Error::UnsupportedOperation(_) => "Unsupported Operation"
         }
     }
 
@@ -95,7 +99,8 @@ impl StdError for Error {
         match *self {
             Error::ParseIntError(ref error) => Some(error),
             Error::Syntax(ref error) => Some(error),
-            _ => None,
+            Error::Io(ref error) => Some(error),
+            _ => None
         }
     }
 }

@@ -49,47 +49,49 @@ impl<'w, W> ser::Serializer for &'w mut Serializer<W>
     }
 
     fn serialize_i8(self, v: i8) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("serialize_i8".to_string()))
     }
 
     fn serialize_i16(self, v: i16) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("serialize_i16".to_string()))
     }
 
     fn serialize_i32(self, v: i32) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("serialize_i32".to_string()))
     }
 
     fn serialize_i64(self, v: i64) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("serialize_i64".to_string()))
     }
 
     fn serialize_u8(self, v: u8) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("serialize_u8".to_string()))
     }
 
     fn serialize_u16(self, v: u16) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("serialize_u16".to_string()))
     }
 
     fn serialize_u32(self, v: u32) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        write!(self.writer, "{}", v)
+            .map(|_| ())
+            .map_err(|e| e.into())
     }
 
     fn serialize_u64(self, v: u64) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("serialize_u64".to_string()))
     }
 
     fn serialize_f32(self, v: f32) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("serialize_f32".to_string()))
     }
 
     fn serialize_f64(self, v: f64) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("serialize_f64".to_string()))
     }
 
     fn serialize_char(self, v: char) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("serialize_char".to_string()))
     }
 
     fn serialize_str(self, value: &str) -> Result<Self::Ok, Self::Error> {
@@ -99,23 +101,23 @@ impl<'w, W> ser::Serializer for &'w mut Serializer<W>
     }
 
     fn serialize_bytes(self, value: &[u8]) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("serialize_bytes".to_string()))
     }
 
     fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("serialize_none".to_string()))
     }
 
     fn serialize_some<T: ?Sized + Serialize>(self, value: &T) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("serialize_some".to_string()))
     }
 
     fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("serialize_unit".to_string()))
     }
 
     fn serialize_unit_struct(self, name: &'static str) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("serialize_unit_struct".to_string()))
     }
 
     fn serialize_unit_variant(self,
@@ -123,14 +125,14 @@ impl<'w, W> ser::Serializer for &'w mut Serializer<W>
                               variant_index: usize,
                               variant: &'static str)
                               -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("serialize_unit_variant".to_string()))
     }
 
     fn serialize_newtype_struct<T: ?Sized + Serialize>(self,
                                                        name: &'static str,
                                                        value: &T)
                                                        -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("serialize_newtype_struct".to_string()))
     }
 
     fn serialize_newtype_variant<T: ?Sized + Serialize>(self,
@@ -139,26 +141,26 @@ impl<'w, W> ser::Serializer for &'w mut Serializer<W>
                                                         variant: &'static str,
                                                         value: &T)
                                                         -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("serialize_newtype_variant".to_string()))
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("serialize_seq".to_string()))
     }
 
     fn serialize_seq_fixed_size(self, size: usize) -> Result<Self::SerializeSeq, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("serialize_seq_fixed_size".to_string()))
     }
 
     fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("serialize_tuple".to_string()))
     }
 
     fn serialize_tuple_struct(self,
                               name: &'static str,
                               len: usize)
                               -> Result<Self::SerializeTupleStruct, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("serialize_tuple_struct".to_string()))
     }
 
     fn serialize_tuple_variant(self,
@@ -167,11 +169,11 @@ impl<'w, W> ser::Serializer for &'w mut Serializer<W>
                                variant: &'static str,
                                len: usize)
                                -> Result<Self::SerializeTupleVariant, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("serialize_tuple_variant".to_string()))
     }
 
     fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("serialize_map".to_string()))
     }
 
     fn serialize_struct(self,
@@ -191,7 +193,7 @@ impl<'w, W> ser::Serializer for &'w mut Serializer<W>
                                 variant: &'static str,
                                 len: usize)
                                 -> Result<Self::SerializeStructVariant, Self::Error> {
-        unimplemented!()
+        Err(Error::UnsupportedOperation("Result".to_string()))
     }
 }
 
@@ -276,5 +278,29 @@ mod tests {
 
         let got = String::from_utf8(buffer).unwrap();
         assert_eq!(got, "<foo>bar</foo>");
+    }
+
+    #[test]
+    fn test_serialize_struct() {
+        #[derive(Serialize)]
+        struct Person {
+            name: String,
+            age: u32,
+        }
+
+        let bob = Person {
+            name: "Bob".to_string(),
+            age: 42,
+        };
+        let should_be = "<Person><name>Bob</name><age>42</age></Person>";
+        let mut buffer = Vec::new();
+
+        {
+            let mut ser = Serializer::new(&mut buffer);
+            bob.serialize(&mut ser).unwrap();
+        }
+
+        let got = String::from_utf8(buffer).unwrap();
+        assert_eq!(got, should_be);
     }
 }
