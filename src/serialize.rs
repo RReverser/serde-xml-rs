@@ -1,23 +1,26 @@
-use std::io::Read;
+use std::io::Write;
 use serde::ser::{self, Impossible, Serialize};
 use error::Error;
 
 
-pub struct Serializer<R> {
-    reader: R,
+/// An XML Serializer.
+pub struct Serializer<W> {
+    writer: W,
 }
 
-impl<R> Serializer<R>
-    where R: Read
+impl<W> Serializer<W>
+    where W: Write
 {
-    pub fn new(reader: R) -> Self {
-        Self { reader: reader }
+    pub fn new(writer: W) -> Self {
+        Self { writer: writer }
     }
 }
 
 
 #[allow(unused_variables)]
-impl<R> ser::Serializer for Serializer<R> {
+impl<W> ser::Serializer for Serializer<W>
+    where W: Write
+{
     type Ok = ();
     type Error = Error;
 
@@ -29,8 +32,14 @@ impl<R> ser::Serializer for Serializer<R> {
     type SerializeStruct = Impossible<Self::Ok, Self::Error>;
     type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
 
-    fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
-        unimplemented!()
+    fn serialize_bool(mut self, v: bool) -> Result<Self::Ok, Self::Error> {
+        if v {
+            write!(self.writer, "true")?;
+        } else {
+            write!(self.writer, "false")?;
+        }
+
+        Ok(())
     }
 
     fn serialize_i8(self, v: i8) -> Result<Self::Ok, Self::Error> {

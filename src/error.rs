@@ -2,6 +2,7 @@ use xml::reader;
 use std::fmt::{self, Display, Debug};
 use std::error::Error as StdError;
 use std::num::ParseIntError;
+use std::io;
 use serde::de::Error as DeError;
 use serde::ser::Error as SerError;
 use serde::de::Visitor;
@@ -10,6 +11,7 @@ pub enum Error {
     ParseIntError(ParseIntError),
     Syntax(reader::Error),
     Custom(String),
+    Io(io::Error),
 }
 
 pub type VResult<V> = Result<V, Error>;
@@ -57,6 +59,7 @@ impl Display for Error {
             Error::ParseIntError(ref error) => Display::fmt(error, fmt),
             Error::Syntax(ref error) => Display::fmt(error, fmt),
             Error::Custom(ref display) => Display::fmt(display, fmt),
+            Error::Io(ref err) => Display::fmt(err, fmt),
         }
     }
 }
@@ -67,7 +70,14 @@ impl Debug for Error {
             Error::ParseIntError(ref error) => Display::fmt(error, fmt),
             Error::Syntax(ref error) => Debug::fmt(error, fmt),
             Error::Custom(ref display) => Display::fmt(display, fmt),
+            Error::Io(ref err) => Display::fmt(err, fmt),
         }
+    }
+}
+
+impl From<io::Error> for Error {
+    fn from(other: io::Error) -> Self {
+        Error::Io(other)
     }
 }
 
@@ -76,7 +86,8 @@ impl StdError for Error {
         match *self {
             Error::ParseIntError(ref error) => error.description(),
             Error::Syntax(ref error) => error.description(),
-            Error::Custom(_) => "other error",
+	    Error::Io(ref error) => error.description(),
+            Error::Custom(_) => "other error"
         }
     }
 
