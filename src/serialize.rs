@@ -1,4 +1,5 @@
 use std::io::Write;
+use std::fmt::Display;
 use serde::ser::{self, Impossible, Serialize};
 use error::Error;
 
@@ -15,6 +16,12 @@ impl<W> Serializer<W>
 {
     pub fn new(writer: W) -> Self {
         Self { writer: writer }
+    }
+
+    fn write_primitive<P: Display>(&mut self, primitive: P) -> Result<(), Error> {
+        write!(self.writer, "{}", primitive)
+            .map(|_| ())
+            .map_err(|e| e.into())
     }
 }
 
@@ -45,75 +52,75 @@ impl<'w, W> ser::Serializer for &'w mut Serializer<W>
     }
 
     fn serialize_i8(self, v: i8) -> Result<Self::Ok, Self::Error> {
-        Err(Error::UnsupportedOperation("serialize_i8".to_string()))
+        self.write_primitive(v)
     }
 
     fn serialize_i16(self, v: i16) -> Result<Self::Ok, Self::Error> {
-        Err(Error::UnsupportedOperation("serialize_i16".to_string()))
+        self.write_primitive(v)
     }
 
     fn serialize_i32(self, v: i32) -> Result<Self::Ok, Self::Error> {
-        Err(Error::UnsupportedOperation("serialize_i32".to_string()))
+        self.write_primitive(v)
     }
 
     fn serialize_i64(self, v: i64) -> Result<Self::Ok, Self::Error> {
-        Err(Error::UnsupportedOperation("serialize_i64".to_string()))
+        self.write_primitive(v)
     }
 
     fn serialize_u8(self, v: u8) -> Result<Self::Ok, Self::Error> {
-        Err(Error::UnsupportedOperation("serialize_u8".to_string()))
+        self.write_primitive(v)
     }
 
     fn serialize_u16(self, v: u16) -> Result<Self::Ok, Self::Error> {
-        Err(Error::UnsupportedOperation("serialize_u16".to_string()))
+        self.write_primitive(v)
     }
 
     fn serialize_u32(self, v: u32) -> Result<Self::Ok, Self::Error> {
-        write!(self.writer, "{}", v)
-            .map(|_| ())
-            .map_err(|e| e.into())
+        self.write_primitive(v)
     }
 
     fn serialize_u64(self, v: u64) -> Result<Self::Ok, Self::Error> {
-        Err(Error::UnsupportedOperation("serialize_u64".to_string()))
+        self.write_primitive(v)
     }
 
     fn serialize_f32(self, v: f32) -> Result<Self::Ok, Self::Error> {
-        Err(Error::UnsupportedOperation("serialize_f32".to_string()))
+        self.write_primitive(v)
     }
 
     fn serialize_f64(self, v: f64) -> Result<Self::Ok, Self::Error> {
-        Err(Error::UnsupportedOperation("serialize_f64".to_string()))
+        self.write_primitive(v)
     }
 
     fn serialize_char(self, v: char) -> Result<Self::Ok, Self::Error> {
-        Err(Error::UnsupportedOperation("serialize_char".to_string()))
+        self.write_primitive(v)
     }
 
     fn serialize_str(self, value: &str) -> Result<Self::Ok, Self::Error> {
-        write!(self.writer, "{}", value)
-            .map(|_| ())
-            .map_err(|e| e.into())
+        self.write_primitive(value)
     }
 
     fn serialize_bytes(self, value: &[u8]) -> Result<Self::Ok, Self::Error> {
+        // TODO: I imagine you'd want to use base64 here.
+        // Not sure how to roundtrip effectively though...
         Err(Error::UnsupportedOperation("serialize_bytes".to_string()))
     }
 
     fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
-        Err(Error::UnsupportedOperation("serialize_none".to_string()))
+        Ok(())
     }
 
     fn serialize_some<T: ?Sized + Serialize>(self, value: &T) -> Result<Self::Ok, Self::Error> {
-        Err(Error::UnsupportedOperation("serialize_some".to_string()))
+        value.serialize(self)
     }
 
     fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
-        Err(Error::UnsupportedOperation("serialize_unit".to_string()))
+        self.serialize_none()
     }
 
     fn serialize_unit_struct(self, name: &'static str) -> Result<Self::Ok, Self::Error> {
-        Err(Error::UnsupportedOperation("serialize_unit_struct".to_string()))
+        write!(self.writer, "<{0}></{0}>", name)
+            .map(|_| ())
+            .map_err(|e| e.into())
     }
 
     fn serialize_unit_variant(self,
@@ -141,6 +148,7 @@ impl<'w, W> ser::Serializer for &'w mut Serializer<W>
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
+        // TODO: Figure out how to constrain the things written to only be composites
         Err(Error::UnsupportedOperation("serialize_seq".to_string()))
     }
 
