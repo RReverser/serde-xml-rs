@@ -1,11 +1,13 @@
 use xml::reader;
 use std::fmt::{self, Display, Debug};
 use std::error::Error as StdError;
-use std::num;
-use serde::de::Error as SerdeError;
+use std::num::ParseIntError;
+use serde::de::Error as DeError;
+use serde::ser::Error as SerError;
+use serde::de::Visitor;
 
 pub enum Error {
-    ParseIntError(num::ParseIntError),
+    ParseIntError(ParseIntError),
     Syntax(reader::Error),
     Custom(String),
 }
@@ -87,7 +89,13 @@ impl StdError for Error {
     }
 }
 
-impl SerdeError for Error {
+impl DeError for Error {
+    fn custom<T: Display>(msg: T) -> Self {
+        Error::Custom(msg.to_string())
+    }
+}
+
+impl SerError for Error {
     fn custom<T: Display>(msg: T) -> Self {
         Error::Custom(msg.to_string())
     }

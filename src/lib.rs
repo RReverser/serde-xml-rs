@@ -9,9 +9,11 @@ mod error;
 mod map;
 mod seq;
 mod var;
+mod serialize;
 
 pub use error::Error;
 pub use xml::reader::{EventReader, ParserConfig};
+pub use serialize::Ser as Serializer;
 
 use error::VResult;
 use xml::reader::XmlEvent;
