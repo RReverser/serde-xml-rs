@@ -42,6 +42,7 @@ fn simple_struct_from_attribute_and_child() {
 #[derive(Debug, Deserialize, PartialEq)]
 struct Project {
     name: String,
+    id: u32,
 
     #[serde(rename = "item", default)]
     items: Vec<Item>
@@ -50,7 +51,7 @@ struct Project {
 #[test]
 fn nested_collection() {
     let s = r##"
-        <project name="my_project">
+        <project name="my_project" id="1" >
             <item name="hello1" source="world1.rs" />
             <item name="hello2" source="world2.rs" />
         </project>
@@ -60,6 +61,7 @@ fn nested_collection() {
 
     assert_eq!(project, Project {
         name: "my_project".to_string(),
+        id: 1,
         items: vec![
             Item { name: "hello1".to_string(), source: "world1.rs".to_string() },
             Item { name: "hello2".to_string(), source: "world2.rs".to_string() }

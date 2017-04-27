@@ -1,15 +1,17 @@
 use xml::reader;
 use std::fmt::{self, Display, Debug};
 use std::error::Error as StdError;
+use std::result::Result as StdResult;
+use std::num;
 use serde::de::Error as SerdeError;
-use serde::de::Visitor;
 
 pub enum Error {
+    ParseIntError(num::ParseIntError),
     Syntax(reader::Error),
     Custom(String)
 }
 
-pub type VResult<V> = Result<<V as Visitor>::Value, Error>;
+pub type Result<T> = StdResult<T, Error>;
 
 macro_rules! expect {
     ($actual: expr, $($expected: pat)|+ => $if_ok: expr) => {
@@ -43,6 +45,7 @@ macro_rules! debug_expect {
 impl Display for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
+            Error::ParseIntError(ref error) => Display::fmt(error, fmt),
             Error::Syntax(ref error) => Display::fmt(error, fmt),
             Error::Custom(ref display) => Display::fmt(display, fmt)
         }
@@ -52,6 +55,7 @@ impl Display for Error {
 impl Debug for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
+            Error::ParseIntError(ref error) => Debug::fmt(error, fmt),
             Error::Syntax(ref error) => Debug::fmt(error, fmt),
             Error::Custom(ref display) => Display::fmt(display, fmt)
         }
@@ -61,6 +65,7 @@ impl Debug for Error {
 impl StdError for Error {
     fn description(&self) -> &str {
         match *self {
+            Error::ParseIntError(ref error) => error.description(),
             Error::Syntax(ref error) => error.description(),
             Error::Custom(_) => "other error"
         }

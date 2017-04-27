@@ -8,8 +8,8 @@ version = "0.1.2"
 
 [dependencies]
 log = "0.3.6"
-serde = "0.9.7"
-xml-rs = "0.3.6"
+serde = "1.0.0"
+xml-rs = "0.4.1"
 
 [dev-dependencies]
-serde_derive = "0.9.7"
+serde_derive = "1.0.0"

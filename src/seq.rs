@@ -1,15 +1,17 @@
 use std::io::Read;
 use xml::reader::XmlEvent;
-use {Deserializer, Error};
-use serde::de::{self, DeserializeSeed};
+use serde::de;
 
-pub struct SeqVisitor<'a, R: 'a + Read> {
+use {Deserializer};
+use error::{Result, Error};
+
+pub struct SeqAccess<'a, R: 'a + Read> {
     de: &'a mut Deserializer<R>,
     max_size: Option<usize>,
     expected_name: Option<String>
 }
 
-impl<'a, R: 'a + Read> SeqVisitor<'a, R> {
+impl<'a, R: 'a + Read> SeqAccess<'a, R> {
     pub fn new(de: &'a mut Deserializer<R>, max_size: Option<usize>) -> Self {
         let expected_name = if de.unset_map_value() {
             debug_expect!(de.peek(), Ok(&XmlEvent::StartElement { ref name, .. }) => {
@@ -18,7 +20,7 @@ impl<'a, R: 'a + Read> SeqVisitor<'a, R> {
         } else {
             None
         };
-        SeqVisitor {
+        SeqAccess {
             de: de,
             max_size: max_size,
             expected_name: expected_name
@@ -26,10 +28,10 @@ impl<'a, R: 'a + Read> SeqVisitor<'a, R> {
     }
 }
 
-impl<'a, R: 'a + Read> de::SeqVisitor for SeqVisitor<'a, R> {
+impl<'de, 'a, R: 'a + Read> de::SeqAccess<'de> for SeqAccess<'a, R> {
     type Error = Error;
 
-    fn visit_seed<T: DeserializeSeed>(&mut self, seed: T) -> Result<Option<T::Value>, Error> {
+    fn next_element_seed<T: de::DeserializeSeed<'de>>(&mut self, seed: T) -> Result<Option<T::Value>> {
         match self.max_size.as_mut() {
             Some(&mut 0) => {
                 return Ok(None);
@@ -57,7 +59,7 @@ impl<'a, R: 'a + Read> de::SeqVisitor for SeqVisitor<'a, R> {
         }
     }
 
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        (0, self.max_size)
+    fn size_hint(&self) -> Option<usize> {
+        self.max_size
     }
 }
