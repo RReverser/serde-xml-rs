@@ -1,15 +1,18 @@
 use std::io::Read;
+
+use serde::de;
+use serde::de::value::ValueDeserializer;
 use xml::attribute::OwnedAttribute;
 use xml::reader::XmlEvent;
-use {Deserializer, Error, VResult};
-use serde::de::{self, DeserializeSeed, Visitor};
-use serde::de::value::ValueDeserializer;
+
+use error::{Result, Error};
+use super::Deserializer;
 
 pub struct MapVisitor<'a, R: 'a + Read> {
     attrs: ::std::vec::IntoIter<OwnedAttribute>,
     next_value: Option<String>,
     de: &'a mut Deserializer<R>,
-    inner_value: bool
+    inner_value: bool,
 }
 
 impl<'a, R: 'a + Read> MapVisitor<'a, R> {
@@ -18,7 +21,7 @@ impl<'a, R: 'a + Read> MapVisitor<'a, R> {
             attrs: attrs.into_iter(),
             next_value: None,
             de: de,
-            inner_value: inner_value
+            inner_value: inner_value,
         }
     }
 }
@@ -26,32 +29,34 @@ impl<'a, R: 'a + Read> MapVisitor<'a, R> {
 impl<'a, R: 'a + Read> de::MapVisitor for MapVisitor<'a, R> {
     type Error = Error;
 
-    fn visit_key_seed<K: DeserializeSeed>(&mut self, seed: K) -> Result<Option<K::Value>, Error> {
+    fn visit_key_seed<K: de::DeserializeSeed>(&mut self, seed: K) -> Result<Option<K::Value>> {
         debug_assert_eq!(self.next_value, None);
         match self.attrs.next() {
             Some(OwnedAttribute { name, value }) => {
                 self.next_value = Some(value);
-                seed.deserialize(name.local_name.into_deserializer()).map(Some)
+                seed.deserialize(name.local_name.into_deserializer())
+                    .map(Some)
             }
             None => {
                 match *self.de.peek()? {
                     XmlEvent::StartElement { ref name, .. } => {
-                        seed.deserialize(if !self.inner_value {
+                        let value = if !self.inner_value {
                             name.local_name.as_str()
                         } else {
                             "$value"
-                        }.into_deserializer()).map(Some)
+                        };
+                        seed.deserialize(value.into_deserializer()).map(Some)
                     }
                     XmlEvent::Characters(_) => {
                         seed.deserialize("$value".into_deserializer()).map(Some)
                     }
-                    _ => Ok(None)
+                    _ => Ok(None),
                 }
             }
         }
     }
 
-    fn visit_value_seed<V: DeserializeSeed>(&mut self, seed: V) -> Result<V::Value, Error> {
+    fn visit_value_seed<V: de::DeserializeSeed>(&mut self, seed: V) -> Result<V::Value> {
         match self.next_value.take() {
             Some(value) => seed.deserialize(AttrValueDeserializer(value)),
             None => {
@@ -76,19 +81,23 @@ struct AttrValueDeserializer(String);
 impl de::Deserializer for AttrValueDeserializer {
     type Error = Error;
 
-    fn deserialize<V: Visitor>(self, visitor: V) -> VResult<V> {
+    fn deserialize<V: de::Visitor>(self, visitor: V) -> Result<V::Value> {
         visitor.visit_string(self.0)
     }
 
-    fn deserialize_enum<V: Visitor>(self, _name: &str, _variants: &'static [&'static str], visitor: V) -> VResult<V> {
+    fn deserialize_enum<V: de::Visitor>(self,
+                                        _name: &str,
+                                        _variants: &'static [&'static str],
+                                        visitor: V)
+                                        -> Result<V::Value> {
         visitor.visit_enum(self.0.into_deserializer())
     }
 
-    fn deserialize_option<V: Visitor>(self, visitor: V) -> VResult<V> {
+    fn deserialize_option<V: de::Visitor>(self, visitor: V) -> Result<V::Value> {
         visitor.visit_some(self)
     }
 
-    fn deserialize_bool<V: Visitor>(self, visitor: V) -> VResult<V> {
+    fn deserialize_bool<V: de::Visitor>(self, visitor: V) -> Result<V::Value> {
         visitor.visit_bool(!self.0.is_empty())
     }
 
