@@ -1,4 +1,5 @@
-#[macro_use] extern crate serde_derive;
+#[macro_use]
+extern crate serde_derive;
 extern crate serde_xml_rs;
 
 use serde_xml_rs::deserialize;
@@ -6,7 +7,7 @@ use serde_xml_rs::deserialize;
 #[derive(Debug, Deserialize, PartialEq)]
 struct Item {
     name: String,
-    source: String
+    source: String,
 }
 
 #[test]
@@ -17,10 +18,13 @@ fn simple_struct_from_attributes() {
 
     let item: Item = deserialize(s.as_bytes()).unwrap();
 
-    assert_eq!(item, Item {
-        name: "hello".to_string(),
-        source: "world.rs".to_string()
-    });
+    assert_eq!(
+        item,
+        Item {
+            name: "hello".to_string(),
+            source: "world.rs".to_string(),
+        }
+    );
 }
 
 #[test]
@@ -33,10 +37,13 @@ fn simple_struct_from_attribute_and_child() {
 
     let item: Item = deserialize(s.as_bytes()).unwrap();
 
-    assert_eq!(item, Item {
-        name: "hello".to_string(),
-        source: "world.rs".to_string()
-    });
+    assert_eq!(
+        item,
+        Item {
+            name: "hello".to_string(),
+            source: "world.rs".to_string(),
+        }
+    );
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
@@ -44,7 +51,7 @@ struct Project {
     name: String,
 
     #[serde(rename = "item", default)]
-    items: Vec<Item>
+    items: Vec<Item>,
 }
 
 #[test]
@@ -58,26 +65,35 @@ fn nested_collection() {
 
     let project: Project = deserialize(s.as_bytes()).unwrap();
 
-    assert_eq!(project, Project {
-        name: "my_project".to_string(),
-        items: vec![
-            Item { name: "hello1".to_string(), source: "world1.rs".to_string() },
-            Item { name: "hello2".to_string(), source: "world2.rs".to_string() }
-        ]
-    });
+    assert_eq!(
+        project,
+        Project {
+            name: "my_project".to_string(),
+            items: vec![
+                Item {
+                    name: "hello1".to_string(),
+                    source: "world1.rs".to_string(),
+                },
+                Item {
+                    name: "hello2".to_string(),
+                    source: "world2.rs".to_string(),
+                },
+            ],
+        }
+    );
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
 enum MyEnum {
     A(String),
     B { name: String, flag: bool },
-    C
+    C,
 }
 
 #[derive(Debug, Deserialize, PartialEq)]
 struct MyEnums {
     #[serde(rename = "$value")]
-    items: Vec<MyEnum>
+    items: Vec<MyEnum>,
 }
 
 #[test]
@@ -92,11 +108,17 @@ fn collection_of_enums() {
 
     let project: MyEnums = deserialize(s.as_bytes()).unwrap();
 
-    assert_eq!(project, MyEnums {
-        items: vec![
-            MyEnum::A("test".to_string()),
-            MyEnum::B { name: "hello".to_string(), flag: true },
-            MyEnum::C
-        ]
-    });
+    assert_eq!(
+        project,
+        MyEnums {
+            items: vec![
+                MyEnum::A("test".to_string()),
+                MyEnum::B {
+                    name: "hello".to_string(),
+                    flag: true,
+                },
+                MyEnum::C,
+            ],
+        }
+    );
 }

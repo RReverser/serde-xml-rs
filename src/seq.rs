@@ -1,12 +1,15 @@
 use std::io::Read;
+
+use serde::de;
 use xml::reader::XmlEvent;
-use {Deserializer, Error};
-use serde::de::{self, DeserializeSeed};
+
+use super::Deserializer;
+use error::{Result, Error};
 
 pub struct SeqVisitor<'a, R: 'a + Read> {
     de: &'a mut Deserializer<R>,
     max_size: Option<usize>,
-    expected_name: Option<String>
+    expected_name: Option<String>,
 }
 
 impl<'a, R: 'a + Read> SeqVisitor<'a, R> {
@@ -21,7 +24,7 @@ impl<'a, R: 'a + Read> SeqVisitor<'a, R> {
         SeqVisitor {
             de: de,
             max_size: max_size,
-            expected_name: expected_name
+            expected_name: expected_name,
         }
     }
 }
@@ -29,7 +32,7 @@ impl<'a, R: 'a + Read> SeqVisitor<'a, R> {
 impl<'a, R: 'a + Read> de::SeqVisitor for SeqVisitor<'a, R> {
     type Error = Error;
 
-    fn visit_seed<T: DeserializeSeed>(&mut self, seed: T) -> Result<Option<T::Value>, Error> {
+    fn visit_seed<T: de::DeserializeSeed>(&mut self, seed: T) -> Result<Option<T::Value>> {
         match self.max_size.as_mut() {
             Some(&mut 0) => {
                 return Ok(None);
@@ -45,7 +48,7 @@ impl<'a, R: 'a + Read> de::SeqVisitor for SeqVisitor<'a, R> {
             }
             (&XmlEvent::EndElement { .. }, None) => false,
             (_, Some(_)) => false,
-            (_, None) => true
+            (_, None) => true,
         };
         if more {
             if self.expected_name.is_some() {
