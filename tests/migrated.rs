@@ -12,7 +12,7 @@ use std::fmt::Debug;
 use serde_xml_rs::{deserialize, Error};
 use serde::{ser, de};
 
-fn from_str<T: de::Deserialize>(s: &str) -> Result<T, Error> {
+fn from_str<'de, T: de::Deserialize<'de>>(s: &str) -> Result<T, Error> {
     deserialize(s.as_bytes())
 }
 
@@ -44,8 +44,8 @@ struct Outer {
     inner: Option<Inner>,
 }
 
-fn test_parse_ok<'a, T>(errors: &[(&'a str, T)])
-where T: PartialEq + Debug + ser::Serialize + de::Deserialize,
+fn test_parse_ok<'de, 'a, T>(errors: &[(&'a str, T)])
+where T: PartialEq + Debug + ser::Serialize + de::Deserialize<'de>,
 {
     for &(s, ref value) in errors {
         let v: T = from_str(s).unwrap();
@@ -60,8 +60,8 @@ where T: PartialEq + Debug + ser::Serialize + de::Deserialize,
     }
 }
 
-fn test_parse_err<'a, T>(errors: &[&'a str])
-    where T: PartialEq + Debug + ser::Serialize + de::Deserialize,
+fn test_parse_err<'de, 'a, T>(errors: &[&'a str])
+    where T: PartialEq + Debug + ser::Serialize + de::Deserialize<'de>,
 {
     for &s in errors {
         assert!(match from_str::<T>(s) {
@@ -580,11 +580,11 @@ fn test_hugo_duncan2() {
     }
 
     #[derive(PartialEq, Debug, Serialize)]
-    struct ItemVec<T: de::Deserialize>(Vec<T>);
+    struct ItemVec<T>(Vec<T>);
 
-    impl<T: de::Deserialize> de::Deserialize for ItemVec<T> {
+    impl<'de, T: de::Deserialize<'de>> de::Deserialize<'de> for ItemVec<T> {
         fn deserialize<D>(deserializer: D) -> Result<ItemVec<T>, D::Error>
-            where D: de::Deserializer,
+            where D: de::Deserializer<'de>,
         {
             #[derive(PartialEq, Debug, Serialize, Deserialize)]
             struct Helper<U> {
