@@ -1,22 +1,36 @@
-use xml::reader;
-use std::fmt::{self, Display, Debug};
-use std::error::Error as StdError;
-use std::num;
+use std::fmt::Display;
+
 use serde::de::Error as SerdeError;
 
-pub enum Error {
-    ParseIntError(num::ParseIntError),
-    Syntax(reader::Error),
-    Custom(String)
-}
+error_chain! {
+    types {
+        Error,
+        ErrorKind,
+        ResultExt,
+        Result;
+    }
 
-pub type VResult<V> = Result<V, Error>;
+    foreign_links {
+        ParseIntError(::std::num::ParseIntError);
+        ParseFloatError(::std::num::ParseFloatError);
+        ParseBoolError(::std::str::ParseBoolError);
+        ParseError(::std::string::ParseError);
+        Syntax(::xml::reader::Error);
+    }
+
+    errors {
+        Custom(field: String) {
+            description("other error")
+            display("custom: '{}'", field)
+        }
+    }
+}
 
 macro_rules! expect {
     ($actual: expr, $($expected: pat)|+ => $if_ok: expr) => {
         match $actual {
             $($expected)|+ => $if_ok,
-            actual => Err($crate::Error::Custom(format!("Expected token {}, found {:?}", stringify!($($expected)|+), actual)))
+            actual => Err($crate::ErrorKind::Custom(format!("Expected token {}, found {:?}", stringify!($($expected)|+), actual)).into())
         }
     }
 }
@@ -41,46 +55,8 @@ macro_rules! debug_expect {
     }
 }
 
-impl Display for Error {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Error::ParseIntError(ref error) => Display::fmt(error, fmt),
-            Error::Syntax(ref error) => Display::fmt(error, fmt),
-            Error::Custom(ref display) => Display::fmt(display, fmt)
-        }
-    }
-}
-
-impl Debug for Error {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Error::ParseIntError(ref error) => Display::fmt(error, fmt),
-            Error::Syntax(ref error) => Debug::fmt(error, fmt),
-            Error::Custom(ref display) => Display::fmt(display, fmt)
-        }
-    }
-}
-
-impl StdError for Error {
-    fn description(&self) -> &str {
-        match *self {
-            Error::ParseIntError(ref error) => error.description(),
-            Error::Syntax(ref error) => error.description(),
-            Error::Custom(_) => "other error"
-        }
-    }
-
-    fn cause(&self) -> Option<&StdError> {
-        match *self {
-            Error::ParseIntError(ref error) => Some(error),
-            Error::Syntax(ref error) => Some(error),
-            _ => None
-        }
-    }
-}
-
 impl SerdeError for Error {
     fn custom<T: Display>(msg: T) -> Self {
-        Error::Custom(msg.to_string())
+        ErrorKind::Custom(msg.to_string()).into()
     }
 }

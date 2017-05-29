@@ -1,0 +1,3 @@
+array_layout = "Block"
+closure_block_indent_threshold = -1
+fn_call_style = "Block" 
