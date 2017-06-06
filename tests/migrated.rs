@@ -83,7 +83,8 @@ fn test_namespaces() {
     }
     let s = r#"
     <?xml version="1.0" encoding="UTF-8"?>
-    <gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
+    <gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01"
+        xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
         <gesmes:subject>Reference rates</gesmes:subject>
     </gesmes:Envelope>"#;
     test_parse_ok(&[(s, Envelope { subject: "Reference rates".to_string() })]);
@@ -199,7 +200,8 @@ fn test_parse_string() {
             ("<bla>&lt;boom/&gt;</bla>", "<boom/>".to_string()),
             //("<bla>&#9835;</bla>", "♫".to_string()),//no support for unicode
             //("<bla>&#x266B;</bla>", "♫".to_string()),//no support for unicode
-            //("<bla>♫<![CDATA[<cookies/>]]>♫</bla>", "♫<cookies/>♫".to_string()),//no support for unicode
+            // no support for unicode
+            //("<bla>♫<![CDATA[<cookies/>]]>♫</bla>", "♫<cookies/>♫".to_string()),
         ],
     );
 }
@@ -480,31 +482,27 @@ fn test_nicolai86() {
         Sender: TheSender,
         Cube: OuterCube,
     }
-    test_parse_ok(&[
-        (
-            r#"
+    test_parse_ok(
+        &[
+            (r#"
             <?xml version="1.0" encoding="UTF-8"?>
-            <gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
+            <gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01"
+                xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
                 <gesmes:subject>Reference rates</gesmes:subject>
                 <gesmes:Sender>
                     <gesmes:name>European Central Bank</gesmes:name>
                 </gesmes:Sender>
                 <Cube> </Cube>
             </gesmes:Envelope>"#,
-            Envelope {
-                subject: "Reference rates".to_string(),
-                Sender: TheSender {
-                    name: "European Central Bank".to_string(),
-                },
-                Cube: OuterCube {
-                    Cube: vec![],
-                }
-            },
-        ),
-        (
-            r#"
+             Envelope {
+                 subject: "Reference rates".to_string(),
+                 Sender: TheSender { name: "European Central Bank".to_string() },
+                 Cube: OuterCube { Cube: vec![] },
+             }),
+            (r#"
             <?xml version="1.0" encoding="UTF-8"?>
-            <gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
+            <gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01"
+                xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
                 <gesmes:subject>Reference rates</gesmes:subject>
                 <gesmes:Sender>
                     <gesmes:name>European Central Bank</gesmes:name>
@@ -514,28 +512,28 @@ fn test_nicolai86() {
                     <Cube currency='Latinum' rate='999999'/>
                 </Cube></Cube>
             </gesmes:Envelope>"#,
-            Envelope {
-                subject: "Reference rates".to_string(),
-                Sender: TheSender {
-                    name: "European Central Bank".to_string(),
+             Envelope {
+                 subject: "Reference rates".to_string(),
+                 Sender: TheSender { name: "European Central Bank".to_string() },
+                 Cube: OuterCube {
+                     Cube: vec![
+                InnerCube {
+                    Cube: vec![
+                        CurrencyCube {
+                            currency: "GBP".to_string(),
+                            rate: "0.81725".to_string(),
+                        },
+                        CurrencyCube {
+                            currency: "Latinum".to_string(),
+                            rate: "999999".to_string(),
+                        },
+                    ],
                 },
-                Cube: OuterCube {
-                    Cube: vec![InnerCube {
-                        Cube: vec![
-                            CurrencyCube {
-                                currency: "GBP".to_string(),
-                                rate: "0.81725".to_string(),
-                            },
-                            CurrencyCube {
-                                currency: "Latinum".to_string(),
-                                rate: "999999".to_string(),
-                            },
-                        ],
-                    }],
-                }
-            },
-        ),
-    ]);
+            ],
+                 },
+             }),
+        ],
+    );
 }
 
 #[test]
@@ -570,7 +568,7 @@ fn test_hugo_duncan2() {
             struct Helper<U> {
                 item: Vec<U>,
             }
-            let h: Helper<_> = try!(de::Deserialize::deserialize(deserializer));
+            let h: Helper<_> = de::Deserialize::deserialize(deserializer)?;
             Ok(ItemVec(h.item))
         }
     }

@@ -113,9 +113,10 @@ impl<'de, R: Read> Deserializer<R> {
     }
 
     fn read_inner_value<V: Visitor<'de>, F: FnOnce(&mut Self) -> Result<V::Value>>
-        (&mut self,
-         f: F)
-         -> Result<V::Value> {
+        (
+        &mut self,
+        f: F,
+    ) -> Result<V::Value> {
         if self.unset_map_value() {
             debug_expect!(self.next(), Ok(XmlEvent::StartElement { name, .. }) => {
                 let result = f(self)?;
@@ -132,7 +133,13 @@ impl<'de, R: Read> Deserializer<R> {
             if name == start_name {
                 Ok(())
             } else {
-                Err(ErrorKind::Custom(format!("End tag </{}> didn't match the start tag <{}>", name.local_name, start_name.local_name)).into())
+                Err(ErrorKind::Custom(
+                    format!(
+                        "End tag </{}> didn't match the start tag <{}>",
+                        name.local_name,
+                        start_name.local_name
+                    )
+                ).into())
             }
         })
     }
@@ -169,14 +176,16 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
         newtype_struct identifier
     }
 
-    fn deserialize_struct<V: Visitor<'de>>(self,
-                                           _name: &'static str,
-                                           fields: &'static [&'static str],
-                                           visitor: V)
-                                           -> Result<V::Value> {
+    fn deserialize_struct<V: Visitor<'de>>(
+        self,
+        _name: &'static str,
+        fields: &'static [&'static str],
+        visitor: V,
+    ) -> Result<V::Value> {
         self.unset_map_value();
         expect!(self.next()?, XmlEvent::StartElement { name, attributes, .. } => {
-            let map_value = visitor.visit_map(MapAccess::new(self, attributes, fields.contains(&"$value")))?;
+            let map_value = visitor
+                .visit_map(MapAccess::new(self, attributes, fields.contains(&"$value")))?;
             self.expect_end_element(name)?;
             Ok(map_value)
         })
@@ -254,18 +263,20 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
         )
     }
 
-    fn deserialize_unit_struct<V: Visitor<'de>>(self,
-                                                _name: &'static str,
-                                                visitor: V)
-                                                -> Result<V::Value> {
+    fn deserialize_unit_struct<V: Visitor<'de>>(
+        self,
+        _name: &'static str,
+        visitor: V,
+    ) -> Result<V::Value> {
         self.deserialize_unit(visitor)
     }
 
-    fn deserialize_tuple_struct<V: Visitor<'de>>(self,
-                                                 _name: &'static str,
-                                                 len: usize,
-                                                 visitor: V)
-                                                 -> Result<V::Value> {
+    fn deserialize_tuple_struct<V: Visitor<'de>>(
+        self,
+        _name: &'static str,
+        len: usize,
+        visitor: V,
+    ) -> Result<V::Value> {
         self.deserialize_tuple(len, visitor)
     }
 
@@ -273,11 +284,12 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
         visitor.visit_seq(SeqAccess::new(self, Some(len)))
     }
 
-    fn deserialize_enum<V: Visitor<'de>>(self,
-                                         _name: &'static str,
-                                         _variants: &'static [&'static str],
-                                         visitor: V)
-                                         -> Result<V::Value> {
+    fn deserialize_enum<V: Visitor<'de>>(
+        self,
+        _name: &'static str,
+        _variants: &'static [&'static str],
+        visitor: V,
+    ) -> Result<V::Value> {
         self.read_inner_value::<V, _>(|this| visitor.visit_enum(EnumAccess::new(this)))
     }
 

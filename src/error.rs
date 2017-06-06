@@ -30,7 +30,13 @@ macro_rules! expect {
     ($actual: expr, $($expected: pat)|+ => $if_ok: expr) => {
         match $actual {
             $($expected)|+ => $if_ok,
-            actual => Err($crate::ErrorKind::Custom(format!("Expected token {}, found {:?}", stringify!($($expected)|+), actual)).into())
+            actual => Err($crate::ErrorKind::Custom(
+                format!(
+                    "Expected token {}, found {:?}",
+                    stringify!($($expected)|+),
+                    actual
+                )
+            ).into())
         }
     }
 }
@@ -40,7 +46,11 @@ macro_rules! debug_expect {
     ($actual: expr, $($expected: pat)|+ => $if_ok: expr) => {
         match $actual {
             $($expected)|+ => $if_ok,
-            actual => panic!("Internal error: Expected token {}, found {:?}", stringify!($($expected)|+), actual)
+            actual => panic!(
+                "Internal error: Expected token {}, found {:?}",
+                stringify!($($expected)|+),
+                actual
+            )
         }
     }
 }

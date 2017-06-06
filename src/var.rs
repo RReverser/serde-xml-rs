@@ -21,12 +21,17 @@ impl<'de, 'a, R: 'a + Read> de::EnumAccess<'de> for EnumAccess<'a, R> {
     type Error = Error;
     type Variant = VariantAccess<'a, R>;
 
-    fn variant_seed<V: DeserializeSeed<'de>>(self,
-                                             seed: V)
-                                             -> Result<(V::Value, VariantAccess<'a, R>)> {
-        let name: Result<V::Value> = expect!(self.de.peek()?, &XmlEvent::Characters(ref name) | &XmlEvent::StartElement { name: OwnedName { local_name: ref name, .. }, .. } => {
-            seed.deserialize(name.as_str().into_deserializer())
-        });
+    fn variant_seed<V: DeserializeSeed<'de>>(
+        self,
+        seed: V,
+    ) -> Result<(V::Value, VariantAccess<'a, R>)> {
+        let name: Result<V::Value> = expect!(
+            self.de.peek()?,
+            &XmlEvent::Characters(ref name) |
+            &XmlEvent::StartElement { name: OwnedName { local_name: ref name, .. }, .. } => {
+                seed.deserialize(name.as_str().into_deserializer())
+            }
+        );
         self.de.set_map_value();
         Ok((name?, VariantAccess::new(self.de)))
     }
@@ -68,10 +73,11 @@ impl<'de, 'a, R: 'a + Read> de::VariantAccess<'de> for VariantAccess<'a, R> {
         self.de.deserialize_tuple(len, visitor)
     }
 
-    fn struct_variant<V: Visitor<'de>>(self,
-                                       _fields: &'static [&'static str],
-                                       visitor: V)
-                                       -> Result<V::Value> {
+    fn struct_variant<V: Visitor<'de>>(
+        self,
+        _fields: &'static [&'static str],
+        visitor: V,
+    ) -> Result<V::Value> {
         self.de.deserialize_map(visitor)
     }
 }

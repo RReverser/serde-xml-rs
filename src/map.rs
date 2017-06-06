@@ -135,11 +135,12 @@ impl<'de> de::Deserializer<'de> for AttrValueDeserializer {
         visitor.visit_f64(u)
     }
 
-    fn deserialize_enum<V: Visitor<'de>>(self,
-                                         _name: &str,
-                                         _variants: &'static [&'static str],
-                                         visitor: V)
-                                         -> Result<V::Value> {
+    fn deserialize_enum<V: Visitor<'de>>(
+        self,
+        _name: &str,
+        _variants: &'static [&'static str],
+        visitor: V,
+    ) -> Result<V::Value> {
         visitor.visit_enum(self.0.into_deserializer())
     }
 
