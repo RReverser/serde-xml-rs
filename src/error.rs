@@ -2,9 +2,11 @@ use xml::reader;
 use std::fmt::{self, Display, Debug};
 use std::error::Error as StdError;
 use std::num;
+use std::str;
 use serde::de::Error as SerdeError;
 
 pub enum Error {
+    ParseBoolError(str::ParseBoolError),
     ParseIntError(num::ParseIntError),
     Syntax(reader::Error),
     Custom(String)
@@ -44,6 +46,7 @@ macro_rules! debug_expect {
 impl Display for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
+            Error::ParseBoolError(ref error) => Display::fmt(error, fmt),
             Error::ParseIntError(ref error) => Display::fmt(error, fmt),
             Error::Syntax(ref error) => Display::fmt(error, fmt),
             Error::Custom(ref display) => Display::fmt(display, fmt)
@@ -54,6 +57,7 @@ impl Display for Error {
 impl Debug for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
+            Error::ParseBoolError(ref error) => Display::fmt(error, fmt),
             Error::ParseIntError(ref error) => Display::fmt(error, fmt),
             Error::Syntax(ref error) => Debug::fmt(error, fmt),
             Error::Custom(ref display) => Display::fmt(display, fmt)
@@ -64,6 +68,7 @@ impl Debug for Error {
 impl StdError for Error {
     fn description(&self) -> &str {
         match *self {
+            Error::ParseBoolError(ref error) => error.description(),
             Error::ParseIntError(ref error) => error.description(),
             Error::Syntax(ref error) => error.description(),
             Error::Custom(_) => "other error"

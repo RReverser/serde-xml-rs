@@ -94,7 +94,8 @@ impl<'de> de::Deserializer<'de> for AttrValueDeserializer {
     }
 
     fn deserialize_bool<V: Visitor<'de>>(self, visitor: V) -> VResult<V::Value> {
-        visitor.visit_bool(!self.0.is_empty())
+        let b = self.0.parse().map_err(Error::ParseBoolError)?;
+        visitor.visit_bool(b)
     }
 
     forward_to_deserialize_any! {
