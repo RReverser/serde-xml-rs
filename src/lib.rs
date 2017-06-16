@@ -139,6 +139,23 @@ impl<'de, R: Read> Deserializer<R> {
             })
         })
     }
+
+    fn parse_bool<N, V, F>(&mut self, visit: F) -> VResult<V::Value>
+        where N: std::str::FromStr<Err=std::str::ParseBoolError>,
+              V: Visitor<'de>,
+              F: FnOnce(N) -> VResult<V::Value>,
+    {
+        self.read_inner_value::<V, _>(|this| {
+            if let XmlEvent::EndElement { .. } = *this.peek()? {
+                return Err(Error::Custom(format!("expected a boolean")));
+            }
+
+            expect!(this.next()?, XmlEvent::Characters(s) => {
+                let value = s.parse::<N>().map_err(Error::ParseBoolError)?;
+                visit(value)
+            })
+        })
+    }
 }
 
 impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
@@ -198,7 +215,7 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
     }
 
     fn deserialize_bool<V: Visitor<'de>>(self, visitor: V) -> VResult<V::Value> {
-        self.deserialize_string(visitor)
+        self.parse_bool::<bool, V, _>(|value| visitor.visit_bool(value))
     }
 
     fn deserialize_char<V: Visitor<'de>>(self, visitor: V) -> VResult<V::Value> {
