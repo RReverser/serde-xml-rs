@@ -6,7 +6,7 @@ use serde::de::{self, DeserializeSeed};
 pub struct SeqAccess<'a, R: 'a + Read> {
     de: &'a mut Deserializer<R>,
     max_size: Option<usize>,
-    expected_name: Option<String>
+    expected_name: Option<String>,
 }
 
 impl<'a, R: 'a + Read> SeqAccess<'a, R> {
@@ -21,7 +21,7 @@ impl<'a, R: 'a + Read> SeqAccess<'a, R> {
         SeqAccess {
             de: de,
             max_size: max_size,
-            expected_name: expected_name
+            expected_name: expected_name,
         }
     }
 }
@@ -29,7 +29,10 @@ impl<'a, R: 'a + Read> SeqAccess<'a, R> {
 impl<'de, 'a, R: 'a + Read> de::SeqAccess<'de> for SeqAccess<'a, R> {
     type Error = Error;
 
-    fn next_element_seed<T: DeserializeSeed<'de>>(&mut self, seed: T) -> Result<Option<T::Value>, Error> {
+    fn next_element_seed<T: DeserializeSeed<'de>>(
+        &mut self,
+        seed: T,
+    ) -> Result<Option<T::Value>, Error> {
         match self.max_size.as_mut() {
             Some(&mut 0) => {
                 return Ok(None);
@@ -45,7 +48,7 @@ impl<'de, 'a, R: 'a + Read> de::SeqAccess<'de> for SeqAccess<'a, R> {
             }
             (&XmlEvent::EndElement { .. }, None) => false,
             (_, Some(_)) => false,
-            (_, None) => true
+            (_, None) => true,
         };
         if more {
             if self.expected_name.is_some() {

@@ -10,6 +10,7 @@ version = "0.2.0"
 log = "0.3.6"
 serde = "1.0"
 xml-rs = "0.3.6"
+error-chain = "0.10.0"
 
 [dev-dependencies]
 serde_derive = "1.0"
