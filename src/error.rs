@@ -7,7 +7,7 @@ use serde::de::Error as SerdeError;
 pub enum Error {
     ParseIntError(num::ParseIntError),
     Syntax(reader::Error),
-    Custom(String)
+    Custom(String),
 }
 
 pub type VResult<V> = Result<V, Error>;
@@ -16,7 +16,11 @@ macro_rules! expect {
     ($actual: expr, $($expected: pat)|+ => $if_ok: expr) => {
         match $actual {
             $($expected)|+ => $if_ok,
-            actual => Err($crate::Error::Custom(format!("Expected token {}, found {:?}", stringify!($($expected)|+), actual)))
+            actual => Err($crate::Error::Custom(format!(
+                "Expected token {}, found {:?}",
+                stringify!($($expected)|+),
+                actual
+            )))
         }
     }
 }
@@ -26,7 +30,11 @@ macro_rules! debug_expect {
     ($actual: expr, $($expected: pat)|+ => $if_ok: expr) => {
         match $actual {
             $($expected)|+ => $if_ok,
-            actual => panic!("Internal error: Expected token {}, found {:?}", stringify!($($expected)|+), actual)
+            actual => panic!(
+                "Internal error: Expected token {}, found {:?}",
+                stringify!($($expected)|+),
+                actual
+            )
         }
     }
 }
@@ -46,7 +54,7 @@ impl Display for Error {
         match *self {
             Error::ParseIntError(ref error) => Display::fmt(error, fmt),
             Error::Syntax(ref error) => Display::fmt(error, fmt),
-            Error::Custom(ref display) => Display::fmt(display, fmt)
+            Error::Custom(ref display) => Display::fmt(display, fmt),
         }
     }
 }
@@ -56,7 +64,7 @@ impl Debug for Error {
         match *self {
             Error::ParseIntError(ref error) => Display::fmt(error, fmt),
             Error::Syntax(ref error) => Debug::fmt(error, fmt),
-            Error::Custom(ref display) => Display::fmt(display, fmt)
+            Error::Custom(ref display) => Display::fmt(display, fmt),
         }
     }
 }
@@ -66,7 +74,7 @@ impl StdError for Error {
         match *self {
             Error::ParseIntError(ref error) => error.description(),
             Error::Syntax(ref error) => error.description(),
-            Error::Custom(_) => "other error"
+            Error::Custom(_) => "other error",
         }
     }
 
@@ -74,7 +82,7 @@ impl StdError for Error {
         match *self {
             Error::ParseIntError(ref error) => Some(error),
             Error::Syntax(ref error) => Some(error),
-            _ => None
+            _ => None,
         }
     }
 }

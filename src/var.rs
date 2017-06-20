@@ -2,19 +2,18 @@ use std::io::Read;
 use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 use {Deserializer, Error};
-use serde::de::{self, DeserializeSeed, Deserializer as SerdeDeserializer, Visitor, Error as SerdeError};
+use serde::de::{self, DeserializeSeed, Deserializer as SerdeDeserializer, Visitor,
+                Error as SerdeError};
 use serde::de::IntoDeserializer;
 use VResult;
 
 pub struct EnumAccess<'a, R: 'a + Read> {
-    de: &'a mut Deserializer<R>
+    de: &'a mut Deserializer<R>,
 }
 
 impl<'a, R: 'a + Read> EnumAccess<'a, R> {
     pub fn new(de: &'a mut Deserializer<R>) -> Self {
-        EnumAccess {
-            de: de
-        }
+        EnumAccess { de: de }
     }
 }
 
@@ -22,24 +21,30 @@ impl<'de, 'a, R: 'a + Read> de::EnumAccess<'de> for EnumAccess<'a, R> {
     type Error = Error;
     type Variant = VariantAccess<'a, R>;
 
-    fn variant_seed<V: DeserializeSeed<'de>>(self, seed: V) -> Result<(V::Value, VariantAccess<'a, R>), Error> {
-        let name = expect!(self.de.peek()?, &XmlEvent::Characters(ref name) | &XmlEvent::StartElement { name: OwnedName { local_name: ref name, .. }, .. } => {
-            seed.deserialize(name.as_str().into_deserializer())
-        })?;
+    fn variant_seed<V: DeserializeSeed<'de>>(
+        self,
+        seed: V,
+    ) -> Result<(V::Value, VariantAccess<'a, R>), Error> {
+        let name = expect!(
+            self.de.peek()?,
+
+            &XmlEvent::Characters(ref name) |
+            &XmlEvent::StartElement { name: OwnedName { local_name: ref name, .. }, .. } => {
+                seed.deserialize(name.as_str().into_deserializer())
+            }
+        )?;
         self.de.set_map_value();
         Ok((name, VariantAccess::new(self.de)))
     }
 }
 
 pub struct VariantAccess<'a, R: 'a + Read> {
-    de: &'a mut Deserializer<R>
+    de: &'a mut Deserializer<R>,
 }
 
 impl<'a, R: 'a + Read> VariantAccess<'a, R> {
     pub fn new(de: &'a mut Deserializer<R>) -> Self {
-        VariantAccess {
-            de: de
-        }
+        VariantAccess { de: de }
     }
 }
 
@@ -55,11 +60,9 @@ impl<'de, 'a, R: 'a + Read> de::VariantAccess<'de> for VariantAccess<'a, R> {
                 } else {
                     Err(Error::invalid_length(attributes.len(), &"0"))
                 }
-            },
-            XmlEvent::Characters(_) => {
-                Ok(())
             }
-            _ => unreachable!()
+            XmlEvent::Characters(_) => Ok(()),
+            _ => unreachable!(),
         }
     }
 
@@ -71,7 +74,11 @@ impl<'de, 'a, R: 'a + Read> de::VariantAccess<'de> for VariantAccess<'a, R> {
         self.de.deserialize_tuple(len, visitor)
     }
 
-    fn struct_variant<V: Visitor<'de>>(self, _fields: &'static [&'static str], visitor: V) -> VResult<V::Value> {
+    fn struct_variant<V: Visitor<'de>>(
+        self,
+        _fields: &'static [&'static str],
+        visitor: V,
+    ) -> VResult<V::Value> {
         self.de.deserialize_map(visitor)
     }
 }

@@ -9,7 +9,7 @@ pub struct MapAccess<'a, R: 'a + Read> {
     attrs: ::std::vec::IntoIter<OwnedAttribute>,
     next_value: Option<String>,
     de: &'a mut Deserializer<R>,
-    inner_value: bool
+    inner_value: bool,
 }
 
 impl<'a, R: 'a + Read> MapAccess<'a, R> {
@@ -18,7 +18,7 @@ impl<'a, R: 'a + Read> MapAccess<'a, R> {
             attrs: attrs.into_iter(),
             next_value: None,
             de: de,
-            inner_value: inner_value
+            inner_value: inner_value,
         }
     }
 }
@@ -26,26 +26,32 @@ impl<'a, R: 'a + Read> MapAccess<'a, R> {
 impl<'de, 'a, R: 'a + Read> de::MapAccess<'de> for MapAccess<'a, R> {
     type Error = Error;
 
-    fn next_key_seed<K: DeserializeSeed<'de>>(&mut self, seed: K) -> Result<Option<K::Value>, Error> {
+    fn next_key_seed<K: DeserializeSeed<'de>>(
+        &mut self,
+        seed: K,
+    ) -> Result<Option<K::Value>, Error> {
         debug_assert_eq!(self.next_value, None);
         match self.attrs.next() {
             Some(OwnedAttribute { name, value }) => {
                 self.next_value = Some(value);
-                seed.deserialize(name.local_name.into_deserializer()).map(Some)
+                seed.deserialize(name.local_name.into_deserializer())
+                    .map(Some)
             }
             None => {
                 match *self.de.peek()? {
                     XmlEvent::StartElement { ref name, .. } => {
-                        seed.deserialize(if !self.inner_value {
-                            name.local_name.as_str()
-                        } else {
-                            "$value"
-                        }.into_deserializer()).map(Some)
+                        seed.deserialize(
+                            if !self.inner_value {
+                                name.local_name.as_str()
+                            } else {
+                                "$value"
+                            }.into_deserializer(),
+                        ).map(Some)
                     }
                     XmlEvent::Characters(_) => {
                         seed.deserialize("$value".into_deserializer()).map(Some)
                     }
-                    _ => Ok(None)
+                    _ => Ok(None),
                 }
             }
         }
@@ -85,7 +91,12 @@ impl<'de> de::Deserializer<'de> for AttrValueDeserializer {
         visitor.visit_u8(u)
     }
 
-    fn deserialize_enum<V: Visitor<'de>>(self, _name: &str, _variants: &'static [&'static str], visitor: V) -> VResult<V::Value> {
+    fn deserialize_enum<V: Visitor<'de>>(
+        self,
+        _name: &str,
+        _variants: &'static [&'static str],
+        visitor: V,
+    ) -> VResult<V::Value> {
         visitor.visit_enum(self.0.into_deserializer())
     }
 

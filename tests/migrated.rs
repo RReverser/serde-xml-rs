@@ -45,7 +45,8 @@ struct Outer {
 }
 
 fn test_parse_ok<'de, 'a, T>(errors: &[(&'a str, T)])
-where T: PartialEq + Debug + ser::Serialize + de::Deserialize<'de>,
+where
+    T: PartialEq + Debug + ser::Serialize + de::Deserialize<'de>,
 {
     for &(s, ref value) in errors {
         let v: T = from_str(s).unwrap();
@@ -61,7 +62,8 @@ where T: PartialEq + Debug + ser::Serialize + de::Deserialize<'de>,
 }
 
 fn test_parse_err<'de, 'a, T>(errors: &[&'a str])
-    where T: PartialEq + Debug + ser::Serialize + de::Deserialize<'de>,
+where
+    T: PartialEq + Debug + ser::Serialize + de::Deserialize<'de>,
 {
     for &s in errors {
         assert!(match from_str::<T>(s) {
@@ -83,14 +85,7 @@ fn test_namespaces() {
     <gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
         <gesmes:subject>Reference rates</gesmes:subject>
     </gesmes:Envelope>"#;
-    test_parse_ok(&[
-        (
-            s,
-            Envelope {
-                subject: "Reference rates".to_string(),
-            },
-        ),
-    ]);
+    test_parse_ok(&[(s, Envelope { subject: "Reference rates".to_string() })]);
 }
 
 #[test]
@@ -101,31 +96,28 @@ fn test_doctype() {
         subject: String,
     }
 
-    test_parse_ok(&[
-        (
-            r#"
+    test_parse_ok(
+        &[
+            (
+                r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE Envelope>
             <Envelope>
             <subject>Reference rates</subject>
             </Envelope>"#,
-            Envelope {
-                subject: "Reference rates".to_string(),
-            },
-        ),
-        (
-            r#"
+                Envelope { subject: "Reference rates".to_string() },
+            ),
+            (
+                r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE Envelope[]>
             <Envelope>
             <subject>Reference rates</subject>
             </Envelope>"#,
-            Envelope {
-                subject: "Reference rates".to_string(),
-            },
-        ),
-        (
-            r#"
+                Envelope { subject: "Reference rates".to_string() },
+            ),
+            (
+                r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE Envelope [
                 <!ELEMENT subject (#PCDATA)>
@@ -133,11 +125,10 @@ fn test_doctype() {
             <Envelope>
             <subject>Reference rates</subject>
             </Envelope>"#,
-            Envelope {
-                subject: "Reference rates".to_string(),
-            },
-        ),
-    ]);
+                Envelope { subject: "Reference rates".to_string() },
+            ),
+        ],
+    );
 }
 
 #[test]
@@ -148,7 +139,9 @@ fn test_doctype_fail() {
         subject: String,
     }
 
-    test_parse_err::<Envelope>(&[r#"
+    test_parse_err::<Envelope>(
+        &[
+            r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE Envelope [
                 <!ELEMENT subject (#PCDATA)>
@@ -167,15 +160,16 @@ fn test_doctype_fail() {
             ]>
 
             </Envelope>"#,
-    ])
+        ],
+    )
 }
 
 #[test]
 fn test_forwarded_namespace() {
     #[derive(PartialEq, Serialize, Deserialize, Debug)]
     struct Graphml {
-        #[serde(rename="xsi:schemaLocation")]
-        schema_location: String
+        #[serde(rename = "xsi:schemaLocation")]
+        schema_location: String,
     }
     let s = r#"
     <?xml version="1.0" encoding="UTF-8"?>
@@ -186,51 +180,41 @@ fn test_forwarded_namespace() {
 
 
     </graphml>"#;
-    test_parse_ok(&[
-         (
+    test_parse_ok(
+        &[
+            (
                 s,
                 Graphml {
                     schema_location: "http://graphml.graphdrawing.org/xmlns
-        http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd".to_string()
+        http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd"
+                        .to_string(),
                 },
-          ),
-    ]);
+            ),
+        ],
+    );
 }
 
 #[test]
 fn test_parse_string() {
     init_logger();
 
-    test_parse_ok(&[
-        (
-            "<bla>This is a String</bla>",
-            "This is a String".to_string(),
-        ),
-        (
-            "<bla></bla>",
-            "".to_string(),
-        ),
-        (
-            "<bla>     </bla>",
-            "     ".to_string(),
-        ),
-        (
-            "<bla>&lt;boom/&gt;</bla>",
-            "<boom/>".to_string(),
-        ),
-        (
-            "<bla>&#9835;</bla>",
-            "♫".to_string(),
-        ),
-        (
-            "<bla>&#x266B;</bla>",
-            "♫".to_string(),
-        ),
-        (
-            "<bla>♫<![CDATA[<cookies/>]]>♫</bla>",
-            "♫<cookies/>♫".to_string(),
-        )
-    ]);
+    test_parse_ok(
+        &[
+            (
+                "<bla>This is a String</bla>",
+                "This is a String".to_string(),
+            ),
+            ("<bla></bla>", "".to_string()),
+            ("<bla>     </bla>", "     ".to_string()),
+            ("<bla>&lt;boom/&gt;</bla>", "<boom/>".to_string()),
+            ("<bla>&#9835;</bla>", "♫".to_string()),
+            ("<bla>&#x266B;</bla>", "♫".to_string()),
+            (
+                "<bla>♫<![CDATA[<cookies/>]]>♫</bla>",
+                "♫<cookies/>♫".to_string(),
+            ),
+        ],
+    );
 }
 
 fn init_logger() {
@@ -263,100 +247,117 @@ fn test_parse_enum() {
 
     init_logger();
 
-    test_parse_ok(&[
-        ("<Animal xsi:type=\"Dog\"/>", Dog),
-        ("<Animal xsi:type=\"Frog\">Quak</Animal>", Frog("Quak".to_string())),
-        ("<Animal xsi:type=\"Ant\"><a/><c>bla</c><b>15</b><d>Foo</d></Animal>", Ant(Simple{
-            a: (),
-            b: 15,
-            c: "bla".to_string(),
-            d: Some("Foo".to_string()),
-        })),
-        ("<Animal xsi:type=\"Ant\"><a/><c>bla</c><b>15</b></Animal>", Ant(Simple{
-            a: (),
-            b: 15,
-            c: "bla".to_string(),
-            d: None,
-        })),
-        (
-            "<Animal xsi:type=\"Cat\"><age>42</age><name>Shere Khan</name></Animal>",
-            Cat {
-                age: 42,
-                name: "Shere Khan".to_string(),
-            },
-        ),
-    ]);
+    test_parse_ok(
+        &[
+            ("<Animal xsi:type=\"Dog\"/>", Dog),
+            (
+                "<Animal xsi:type=\"Frog\">Quak</Animal>",
+                Frog("Quak".to_string()),
+            ),
+            (
+                "<Animal xsi:type=\"Ant\"><a/><c>bla</c><b>15</b><d>Foo</d></Animal>",
+                Ant(Simple {
+                    a: (),
+                    b: 15,
+                    c: "bla".to_string(),
+                    d: Some("Foo".to_string()),
+                }),
+            ),
+            (
+                "<Animal xsi:type=\"Ant\"><a/><c>bla</c><b>15</b></Animal>",
+                Ant(Simple {
+                    a: (),
+                    b: 15,
+                    c: "bla".to_string(),
+                    d: None,
+                }),
+            ),
+            (
+                "<Animal xsi:type=\"Cat\"><age>42</age><name>Shere Khan</name></Animal>",
+                Cat {
+                    age: 42,
+                    name: "Shere Khan".to_string(),
+                },
+            ),
+        ],
+    );
 
     #[derive(PartialEq, Debug, Serialize, Deserialize)]
     struct Helper {
         x: Animal,
     }
 
-    test_parse_ok(&[
-        (
-            "<Helper><x xsi:type=\"Dog\"/></Helper>",
-            Helper { x: Dog },
-        ),
-        (
-            "<Helper><x xsi:type=\"Frog\">Quak</Animal></Helper>",
-            Helper { x: Frog("Quak".to_string()) },
-        ),
-        (
-            "<Helper><x xsi:type=\"Cat\">
+    test_parse_ok(
+        &[
+            ("<Helper><x xsi:type=\"Dog\"/></Helper>", Helper { x: Dog }),
+            (
+                "<Helper><x xsi:type=\"Frog\">Quak</Animal></Helper>",
+                Helper { x: Frog("Quak".to_string()) },
+            ),
+            (
+                "<Helper><x xsi:type=\"Cat\">
                 <age>42</age>
                 <name>Shere Khan</name>
             </x></Helper>",
-            Helper { x: Cat {
-                age: 42,
-                name: "Shere Khan".to_string(),
-            } },
-        ),
-    ]);
+                Helper {
+                    x: Cat {
+                        age: 42,
+                        name: "Shere Khan".to_string(),
+                    },
+                },
+            ),
+        ],
+    );
 }
 
 #[test]
 fn test_parse_i64() {
     init_logger();
-    test_parse_ok(&[
-        ("<bla>0</bla>", 0),
-        ("<bla>-2</bla>", -2),
-        ("<bla>-1234</bla>", -1234),
-        ("<bla> -1234 </bla>", -1234),
-    ]);
+    test_parse_ok(
+        &[
+            ("<bla>0</bla>", 0),
+            ("<bla>-2</bla>", -2),
+            ("<bla>-1234</bla>", -1234),
+            ("<bla> -1234 </bla>", -1234),
+        ],
+    );
 }
 
 #[test]
 fn test_parse_u64() {
     init_logger();
-    test_parse_ok(&[
-        ("<bla>0</bla>", 0),
-        ("<bla>1234</bla>", 1234),
-        ("<bla> 1234 </bla>", 1234),
-    ]);
+    test_parse_ok(
+        &[
+            ("<bla>0</bla>", 0),
+            ("<bla>1234</bla>", 1234),
+            ("<bla> 1234 </bla>", 1234),
+        ],
+    );
 }
 
 #[test]
 fn test_parse_bool() {
-    test_parse_ok(&[
-        ("<bla>true</bla>", true),
-        ("<bla>false</bla>", false),
-        ("<bla> true </bla>", true),
-        ("<bla> false </bla>", false),
-    ]);
+    test_parse_ok(
+        &[
+            ("<bla>true</bla>", true),
+            ("<bla>false</bla>", false),
+            ("<bla> true </bla>", true),
+            ("<bla> false </bla>", false),
+        ],
+    );
 }
 
 #[test]
 fn test_parse_unit() {
     init_logger();
-    test_parse_ok(&[
-        ("<bla/>", ()),
-    ]);
+    test_parse_ok(&[("<bla/>", ())]);
 }
 
 #[test]
 fn test_parse_f64() {
     init_logger();
-    test_parse_ok(&[
+    test_parse_ok(
+        &[
         ("<bla>3.0</bla>", 3.0f64),
         ("<bla>3.1</bla>", 3.1),
         ("<bla>-1.2</bla>", -1.2),
@@ -365,65 +366,70 @@ fn test_parse_f64() {
         ("<bla>0.4e15</bla>", 0.4e15),
         //("<bla>0.4e-01</bla>", 0.4e-01), // precision troubles
         //("<bla> 0.4e-01 </bla>", 0.4e-01),
-    ]);
+    ],
+    );
 }
 
 #[test]
 fn test_parse_struct() {
     init_logger();
 
-    test_parse_ok(&[
-        (
-            "<Simple>
+    test_parse_ok(
+        &[
+            (
+                "<Simple>
                 <c>abc</c>
                 <a/>
                 <b>2</b>
             </Simple>",
-            Simple {
-                a: (),
-                b: 2,
-                c: "abc".to_string(),
-                d: None,
-            },
-        ),
-        (
-            "<Simple><!-- this is a comment -->
+                Simple {
+                    a: (),
+                    b: 2,
+                    c: "abc".to_string(),
+                    d: None,
+                },
+            ),
+            (
+                "<Simple><!-- this is a comment -->
                 <c>abc</c>
                 <a/>
                 <b>2</b>
             </Simple>",
-            Simple {
-                a: (),
-                b: 2,
-                c: "abc".to_string(),
-                d: None,
-            },
-        ),
-        (
-            "<Simple d=\"Foo\"><!-- this is a comment -->
+                Simple {
+                    a: (),
+                    b: 2,
+                    c: "abc".to_string(),
+                    d: None,
+                },
+            ),
+            (
+                "<Simple d=\"Foo\"><!-- this is a comment -->
                 <c>abc</c>
                 <a/>
                 <b>2</b>
             </Simple>",
-            Simple {
-                a: (),
-                b: 2,
-                c: "abc".to_string(),
-                d: Some("Foo".to_string()),
-            },
-        ),
-    ]);
+                Simple {
+                    a: (),
+                    b: 2,
+                    c: "abc".to_string(),
+                    d: Some("Foo".to_string()),
+                },
+            ),
+        ],
+    );
 }
 
 #[test]
 fn test_option() {
     init_logger();
-    test_parse_ok(&[
-        ("<a/>", Some("".to_string())),
-        ("<a></a>", Some("".to_string())),
-        ("<a> </a>", Some(" ".to_string())),
-        ("<a>42</a>", Some("42".to_string())),
-    ]);
+    test_parse_ok(
+        &[
+            ("<a/>", Some("".to_string())),
+            ("<a></a>", Some("".to_string())),
+            ("<a> </a>", Some(" ".to_string())),
+            ("<a>42</a>", Some("42".to_string())),
+        ],
+    );
 }
 
 #[test]
@@ -439,9 +445,10 @@ fn test_amoskvin() {
         a: String,
         b: Option<String>,
     }
-    test_parse_ok(&[
-        (
-            "
+    test_parse_ok(
+        &[
+            (
+                "
 <root>
 <foo>
  <a>Hello</a>
@@ -451,20 +458,21 @@ fn test_amoskvin() {
  <a>Hi</a>
 </foo>
 </root>",
-        Root {
-            foo: vec![
-            Foo {
-                a: "Hello".to_string(),
-                b: Some("World".to_string()),
-            },
-            Foo {
-                a: "Hi".to_string(),
-                b: None,
-            }
-            ]
-        }
-        ),
-    ]);
+                Root {
+                    foo: vec![
+                        Foo {
+                            a: "Hello".to_string(),
+                            b: Some("World".to_string()),
+                        },
+                        Foo {
+                            a: "Hi".to_string(),
+                            b: None,
+                        },
+                    ],
+                },
+            ),
+        ],
+    );
 }
 
 #[test]
@@ -584,7 +592,8 @@ fn test_hugo_duncan2() {
 
     impl<'de, T: de::Deserialize<'de>> de::Deserialize<'de> for ItemVec<T> {
         fn deserialize<D>(deserializer: D) -> Result<ItemVec<T>, D::Error>
-            where D: de::Deserializer<'de>,
+        where
+            D: de::Deserializer<'de>,
         {
             #[derive(PartialEq, Debug, Serialize, Deserialize)]
             struct Helper<U> {
@@ -600,18 +609,22 @@ fn test_hugo_duncan2() {
         requestId: String,
         vpcSet: ItemVec<VpcSet>,
     }
-    test_parse_ok(&[
-        (
-            s,
-            DescribeVpcsResponse {
-                requestId: "8d521e9a-509e-4ef6-bbb7-9f1ac0d49cd1".to_string(),
-                vpcSet: ItemVec(vec![ VpcSet {
-                    vpcId: "vpc-ba0d18d8".to_string(),
-                    state: "available".to_string(),
-                }]),
-            },
-        ),
-    ]);
+    test_parse_ok(
+        &[
+            (
+                s,
+                DescribeVpcsResponse {
+                    requestId: "8d521e9a-509e-4ef6-bbb7-9f1ac0d49cd1".to_string(),
+                    vpcSet: ItemVec(vec![
+                        VpcSet {
+                            vpcId: "vpc-ba0d18d8".to_string(),
+                            state: "available".to_string(),
+                        },
+                    ]),
+                },
+            ),
+        ],
+    );
 }
 
 #[test]
@@ -630,15 +643,17 @@ fn test_hugo_duncan() {
         requestId: String,
         reservationSet: (),
     }
-    test_parse_ok(&[
-        (
-            s,
-            DescribeInstancesResponse {
-                requestId: "9474f558-10a5-42e8-84d1-f9ee181fe943".to_string(),
-                reservationSet: (),
-            },
-        ),
-    ]);
+    test_parse_ok(
+        &[
+            (
+                s,
+                DescribeInstancesResponse {
+                    requestId: "9474f558-10a5-42e8-84d1-f9ee181fe943".to_string(),
+                    reservationSet: (),
+                },
+            ),
+        ],
+    );
 }
 
 #[test]
@@ -646,40 +661,36 @@ fn test_parse_xml_value() {
     init_logger();
     #[derive(Eq, Debug, PartialEq, Deserialize, Serialize)]
     struct Test {
-        #[serde(rename="$value")]
+        #[serde(rename = "$value")]
         myval: String,
     }
-    test_parse_ok(&[
-        (
-            "<Test>abc</Test>",
-            Test { myval: "abc".to_string() },
-        )
-    ]);
+    test_parse_ok(&[("<Test>abc</Test>", Test { myval: "abc".to_string() })]);
 }
 
 #[test]
 fn test_parse_complexstruct() {
     init_logger();
 
-    test_parse_ok(&[
-        (
-            "<Outer>
+    test_parse_ok(
+        &[
+            (
+                "<Outer>
                 <inner>
                     <b>2</b>
                     <b>boom</b>
                     <b>88</b>
                 </inner>
             </Outer>",
-            Outer {
-                inner: Some(Inner {
-                    a: (),
-                    b: (2, "boom".to_string(), 88),
-                    c: vec![]
-                })
-            },
-        ),
-        (
-            "<Outer>
+                Outer {
+                    inner: Some(Inner {
+                        a: (),
+                        b: (2, "boom".to_string(), 88),
+                        c: vec![],
+                    }),
+                },
+            ),
+            (
+                "<Outer>
                 <inner>
                     <c>abc</c>
                     <c>xyz</c>
@@ -689,24 +700,17 @@ fn test_parse_complexstruct() {
                     <b>88</b>
                 </inner>
             </Outer>",
-            Outer {
-                inner: Some(Inner {
-                    a: (),
-                    b: (2, "boom".to_string(), 88),
-                    c: vec![
-                        "abc".to_string(),
-                        "xyz".to_string(),
-                    ]
-                })
-            },
-        ),
-        (
-            "<Outer/>",
-            Outer {
-                inner: None
-            },
-        )
-    ]);
+                Outer {
+                    inner: Some(Inner {
+                        a: (),
+                        b: (2, "boom".to_string(), 88),
+                        c: vec!["abc".to_string(), "xyz".to_string()],
+                    }),
+                },
+            ),
+            ("<Outer/>", Outer { inner: None }),
+        ],
+    );
 }
 
 #[test]
@@ -716,19 +720,21 @@ fn test_parse_attributes() {
     #[derive(PartialEq, Debug, Serialize, Deserialize)]
     struct A {
         a1: String,
-        #[serde(rename="$value")]
+        #[serde(rename = "$value")]
         a2: i32,
     }
 
-    test_parse_ok(&[
-    (
-        r#"<A a1="What is the answer to the ultimate question?">42</A>"#,
-        A {
-            a1: "What is the answer to the ultimate question?".to_string(),
-            a2: 42,
-        }
-    ),
-    ]);
+    test_parse_ok(
+        &[
+            (
+                r#"<A a1="What is the answer to the ultimate question?">42</A>"#,
+                A {
+                    a1: "What is the answer to the ultimate question?".to_string(),
+                    a2: 42,
+                },
+            ),
+        ],
+    );
 
     #[derive(PartialEq, Debug, Serialize, Deserialize)]
     struct B {
@@ -736,63 +742,73 @@ fn test_parse_attributes() {
         b2: i32,
     }
 
-    test_parse_ok(&[
-    (
-        r#"<B b1="What is the answer to the ultimate question?" b2="42"/>"#,
-        B {
-            b1: "What is the answer to the ultimate question?".to_string(),
-            b2: 42,
-        }
-    ),
-    ]);
+    test_parse_ok(
+        &[
+            (
+                r#"<B b1="What is the answer to the ultimate question?" b2="42"/>"#,
+                B {
+                    b1: "What is the answer to the ultimate question?".to_string(),
+                    b2: 42,
+                },
+            ),
+        ],
+    );
 
     #[derive(PartialEq, Debug, Serialize, Deserialize)]
     struct C {
         c1: B,
     }
 
-    test_parse_ok(&[
-    (
-        r#"<C><c1 b1="What is the answer to the ultimate question?" b2="42"/></C>"#,
-        C { c1: B {
-            b1: "What is the answer to the ultimate question?".to_string(),
-            b2: 42,
-        }}
-    ),
-    (
-        r#"<C><c1 b1="What is the answer to the ultimate question?" b2="42"/> </C>"#,
-        C { c1: B {
-            b1: "What is the answer to the ultimate question?".to_string(),
-            b2: 42,
-        }}
-    ),
-    (
-        r#"<C>  <c1 b1="What is the answer to the ultimate question?" b2="42">
+    test_parse_ok(
+        &[
+            (
+                r#"<C><c1 b1="What is the answer to the ultimate question?" b2="42"/></C>"#,
+                C {
+                    c1: B {
+                        b1: "What is the answer to the ultimate question?".to_string(),
+                        b2: 42,
+                    },
+                },
+            ),
+            (
+                r#"<C><c1 b1="What is the answer to the ultimate question?" b2="42"/> </C>"#,
+                C {
+                    c1: B {
+                        b1: "What is the answer to the ultimate question?".to_string(),
+                        b2: 42,
+                    },
+                },
+            ),
+            (
+                r#"<C>  <c1 b1="What is the answer to the ultimate question?" b2="42">
         </c1> </C>"#,
-        C { c1: B {
-            b1: "What is the answer to the ultimate question?".to_string(),
-            b2: 42,
-        }}
-    ),
-    ]);
+                C {
+                    c1: B {
+                        b1: "What is the answer to the ultimate question?".to_string(),
+                        b2: 42,
+                    },
+                },
+            ),
+        ],
+    );
 
     #[derive(PartialEq, Debug, Serialize, Deserialize)]
     struct D {
         d1: Option<A>,
     }
-    test_parse_ok(&[
-    (
-        r#"<D><d1 a1="What is the answer to the ultimate question?">42</d1></D>"#,
-        D {
-            d1: Some(
-                A {
-                    a1: "What is the answer to the ultimate question?".to_string(),
-                    a2: 42,
-                }
-            )
-        }
-    ),
-    ]);
+    test_parse_ok(
+        &[
+            (
+                r#"<D><d1 a1="What is the answer to the ultimate question?">42</d1></D>"#,
+                D {
+                    d1: Some(A {
+                        a1: "What is the answer to the ultimate question?".to_string(),
+                        a2: 42,
+                    }),
+                },
+            ),
+        ],
+    );
 
 }
 
@@ -815,9 +831,10 @@ fn test_parse_hierarchies() {
         c2: Vec<B>,
     }
 
-    test_parse_ok(&[
-    (
-        "<C><c1>
+    test_parse_ok(
+        &[
+            (
+                "<C><c1>
             <b1>
                 <a1>No</a1>
                 <a2>Maybe</a2>
@@ -834,27 +851,28 @@ fn test_parse_hierarchies() {
                 <a2>Paris</a2>
             </b2>
         </c1></C>",
-        C {
-            c1: B {
-                b1: A {
-                    a1: "No".to_string(),
-                    a2: ("Maybe".to_string(), "Yes".to_string()),
+                C {
+                    c1: B {
+                        b1: A {
+                            a1: "No".to_string(),
+                            a2: ("Maybe".to_string(), "Yes".to_string()),
+                        },
+                        b2: (
+                            A {
+                                a1: "Red".to_string(),
+                                a2: ("Green".to_string(), "Blue".to_string()),
+                            },
+                            A {
+                                a1: "London".to_string(),
+                                a2: ("Berlin".to_string(), "Paris".to_string()),
+                            },
+                        ),
+                    },
+                    c2: vec![],
                 },
-                b2: (A {
-                        a1: "Red".to_string(),
-                        a2: ("Green".to_string(), "Blue".to_string()),
-                    },
-                    A {
-                        a1: "London".to_string(),
-                        a2: ("Berlin".to_string(), "Paris".to_string()),
-                    },
-                ),
-            },
-            c2: vec![]
-        }
-    ),
-    (
-        "<C><c1>
+            ),
+            (
+                "<C><c1>
             <b2>
                 <a2>Green</a2>
                 <a2>Blue</a2>
@@ -871,26 +889,28 @@ fn test_parse_hierarchies() {
                 <a1>No</a1>
             </b1>
         </c1></C>",
-        C {
-            c1: B {
-                b1: A {
-                    a1: "No".to_string(),
-                    a2: ("Maybe".to_string(), "Yes".to_string()),
+                C {
+                    c1: B {
+                        b1: A {
+                            a1: "No".to_string(),
+                            a2: ("Maybe".to_string(), "Yes".to_string()),
+                        },
+                        b2: (
+                            A {
+                                a1: "Red".to_string(),
+                                a2: ("Green".to_string(), "Blue".to_string()),
+                            },
+                            A {
+                                a1: "London".to_string(),
+                                a2: ("Berlin".to_string(), "Paris".to_string()),
+                            },
+                        ),
+                    },
+                    c2: vec![],
                 },
-                b2: (A {
-                        a1: "Red".to_string(),
-                        a2: ("Green".to_string(), "Blue".to_string()),
-                    },
-                    A {
-                        a1: "London".to_string(),
-                        a2: ("Berlin".to_string(), "Paris".to_string()),
-                    },
-                ),
-            },
-            c2: vec![]
-        }
-    ),
-    ]);
+            ),
+        ],
+    );
 }
 
 
@@ -905,9 +925,10 @@ fn unknown_field() {
     struct Other {
         d: i32,
     }
-    test_parse_ok(&[
-        (
-            "<a>
+    test_parse_ok(
+        &[
+            (
+                "<a>
                <b>
                  <c>5</c>
                </b>
@@ -915,15 +936,10 @@ fn unknown_field() {
                  <d>6</d>
                </other>
             </a>",
-            A {
-                other: vec![
-                    Other {
-                        d: 6,
-                    },
-                ]
-            },
-        )
-    ]);
+                A { other: vec![Other { d: 6 }] },
+            ),
+        ],
+    );
 }
 
 // #[test]
@@ -938,20 +954,20 @@ fn unknown_field() {
 
 #[test]
 fn test_parse_unfinished() {
-    test_parse_err::<Simple>(&[
-        "<Simple>
+    test_parse_err::<Simple>(
+        &[
+            "<Simple>
             <c>abc</c>
             <a/>
             <b>2</b>
             <d/>",
-    ]);
+        ],
+    );
 }
 
 #[test]
 fn test_things_qc_found() {
-    test_parse_err::<u32>(&[
-        "<\u{0}:/",
-    ]);
+    test_parse_err::<u32>(&["<\u{0}:/"]);
 }
 
 #[test]
@@ -968,39 +984,41 @@ fn futile() {
         ellipse: Option<()>,
     }
 
-    test_parse_ok(&[
-        (
-            r###"
+    test_parse_ok(
+        &[
+            (
+                r###"
             <object id="11" name="testEllipse" x="102" y="38" width="21" height="14">
               <ellipse/>
             </object>
             "###,
-            Object {
-                id: 11,
-                name: "testEllipse".to_owned(),
-                x: 102,
-                y: 38,
-                width: 21,
-                height: 14,
-                ellipse: Some(()),
-            },
-        ),
-        (
-            r###"
+                Object {
+                    id: 11,
+                    name: "testEllipse".to_owned(),
+                    x: 102,
+                    y: 38,
+                    width: 21,
+                    height: 14,
+                    ellipse: Some(()),
+                },
+            ),
+            (
+                r###"
             <object id="11" name="testEllipse" x="102" y="38" width="21" height="14">
             </object>
             "###,
-            Object {
-                id: 11,
-                name: "testEllipse".to_owned(),
-                x: 102,
-                y: 38,
-                width: 21,
-                height: 14,
-                ellipse: None,
-            },
-        ),
-    ]);
+                Object {
+                    id: 11,
+                    name: "testEllipse".to_owned(),
+                    x: 102,
+                    y: 38,
+                    width: 21,
+                    height: 14,
+                    ellipse: None,
+                },
+            ),
+        ],
+    );
 }
 
 
@@ -1020,71 +1038,59 @@ fn futile2() {
         stuff_field: Option<Object>,
     };
 
-    test_parse_ok(&[
-        (
-            r###"
+    test_parse_ok(
+        &[
+            (
+                r###"
             <object>
               <field/>
             </object>
             "###,
-            Object {
-                field: Some(Null),
-            },
-        ),
-        (
-            r###"
+                Object { field: Some(Null) },
+            ),
+            (
+                r###"
             <object>
             </object>
             "###,
-            Object {
-                field: None,
-            },
-        ),
-    ]);
+                Object { field: None },
+            ),
+        ],
+    );
 
-    test_parse_ok(&[
-        (
-            r###"
+    test_parse_ok(
+        &[
+            (
+                r###"
             <object>
               <stuff_field/>
             </object>
             "###,
-            Stuff {
-                stuff_field: Some(Object {
-                    field: None,
-                }),
-            },
-        ),
-        (
-            r###"
+                Stuff { stuff_field: Some(Object { field: None }) },
+            ),
+            (
+                r###"
             <object>
               <stuff_field>
                 <field/>
               </stuff_field>
             </object>
             "###,
-            Stuff {
-                stuff_field: Some(Object {
-                    field: Some(Null),
-                }),
-            },
-        ),
-        (
-            r###"
+                Stuff { stuff_field: Some(Object { field: Some(Null) }) },
+            ),
+            (
+                r###"
             <object>
             </object>
             "###,
-            Stuff {
-                stuff_field: None,
-            },
-        ),
-        (
-            r###"
+                Stuff { stuff_field: None },
+            ),
+            (
+                r###"
             <object/>
             "###,
-            Stuff {
-                stuff_field: None,
-            },
-        ),
-    ]);
+                Stuff { stuff_field: None },
+            ),
+        ],
+    );
 }
