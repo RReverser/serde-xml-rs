@@ -1,7 +1,8 @@
 use std::io::Read;
 use xml::attribute::OwnedAttribute;
 use xml::reader::XmlEvent;
-use {Deserializer, Error, VResult};
+use Deserializer;
+use error::{Error, ErrorKind, Result};
 use serde::de::{self, DeserializeSeed, Visitor};
 use serde::de::IntoDeserializer;
 
@@ -29,7 +30,7 @@ impl<'de, 'a, R: 'a + Read> de::MapAccess<'de> for MapAccess<'a, R> {
     fn next_key_seed<K: DeserializeSeed<'de>>(
         &mut self,
         seed: K,
-    ) -> Result<Option<K::Value>, Error> {
+    ) -> Result<Option<K::Value>> {
         debug_assert_eq!(self.next_value, None);
         match self.attrs.next() {
             Some(OwnedAttribute { name, value }) => {
@@ -57,7 +58,7 @@ impl<'de, 'a, R: 'a + Read> de::MapAccess<'de> for MapAccess<'a, R> {
         }
     }
 
-    fn next_value_seed<V: DeserializeSeed<'de>>(&mut self, seed: V) -> Result<V::Value, Error> {
+    fn next_value_seed<V: DeserializeSeed<'de>>(&mut self, seed: V) -> Result<V::Value> {
         match self.next_value.take() {
             Some(value) => seed.deserialize(AttrValueDeserializer(value)),
             None => {
@@ -82,12 +83,12 @@ struct AttrValueDeserializer(String);
 impl<'de> de::Deserializer<'de> for AttrValueDeserializer {
     type Error = Error;
 
-    fn deserialize_any<V: Visitor<'de>>(self, visitor: V) -> VResult<V::Value> {
+    fn deserialize_any<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
         visitor.visit_string(self.0)
     }
 
-    fn deserialize_u8<V: de::Visitor<'de>>(self, visitor: V) -> VResult<V::Value> {
-        let u = self.0.parse().map_err(Error::ParseIntError)?;
+    fn deserialize_u8<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
+        let u = self.0.parse().map_err(ErrorKind::ParseIntError)?;
         visitor.visit_u8(u)
     }
 
@@ -96,15 +97,15 @@ impl<'de> de::Deserializer<'de> for AttrValueDeserializer {
         _name: &str,
         _variants: &'static [&'static str],
         visitor: V,
-    ) -> VResult<V::Value> {
+    ) -> Result<V::Value> {
         visitor.visit_enum(self.0.into_deserializer())
     }
 
-    fn deserialize_option<V: Visitor<'de>>(self, visitor: V) -> VResult<V::Value> {
+    fn deserialize_option<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
         visitor.visit_some(self)
     }
 
-    fn deserialize_bool<V: Visitor<'de>>(self, visitor: V) -> VResult<V::Value> {
+    fn deserialize_bool<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
         visitor.visit_bool(!self.0.is_empty())
     }
 

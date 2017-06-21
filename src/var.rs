@@ -1,11 +1,11 @@
 use std::io::Read;
 use xml::name::OwnedName;
 use xml::reader::XmlEvent;
-use {Deserializer, Error};
+use Deserializer;
+use error::{Error, Result};
 use serde::de::{self, DeserializeSeed, Deserializer as SerdeDeserializer, Visitor,
                 Error as SerdeError};
 use serde::de::IntoDeserializer;
-use VResult;
 
 pub struct EnumAccess<'a, R: 'a + Read> {
     de: &'a mut Deserializer<R>,
@@ -24,7 +24,7 @@ impl<'de, 'a, R: 'a + Read> de::EnumAccess<'de> for EnumAccess<'a, R> {
     fn variant_seed<V: DeserializeSeed<'de>>(
         self,
         seed: V,
-    ) -> Result<(V::Value, VariantAccess<'a, R>), Error> {
+    ) -> Result<(V::Value, VariantAccess<'a, R>)> {
         let name = expect!(
             self.de.peek()?,
 
@@ -51,7 +51,7 @@ impl<'a, R: 'a + Read> VariantAccess<'a, R> {
 impl<'de, 'a, R: 'a + Read> de::VariantAccess<'de> for VariantAccess<'a, R> {
     type Error = Error;
 
-    fn unit_variant(self) -> Result<(), Error> {
+    fn unit_variant(self) -> Result<()> {
         self.de.unset_map_value();
         match self.de.next()? {
             XmlEvent::StartElement { name, attributes, .. } => {
@@ -66,11 +66,11 @@ impl<'de, 'a, R: 'a + Read> de::VariantAccess<'de> for VariantAccess<'a, R> {
         }
     }
 
-    fn newtype_variant_seed<T: DeserializeSeed<'de>>(self, seed: T) -> Result<T::Value, Error> {
+    fn newtype_variant_seed<T: DeserializeSeed<'de>>(self, seed: T) -> Result<T::Value> {
         seed.deserialize(&mut *self.de)
     }
 
-    fn tuple_variant<V: Visitor<'de>>(self, len: usize, visitor: V) -> VResult<V::Value> {
+    fn tuple_variant<V: Visitor<'de>>(self, len: usize, visitor: V) -> Result<V::Value> {
         self.de.deserialize_tuple(len, visitor)
     }
 
@@ -78,7 +78,7 @@ impl<'de, 'a, R: 'a + Read> de::VariantAccess<'de> for VariantAccess<'a, R> {
         self,
         _fields: &'static [&'static str],
         visitor: V,
-    ) -> VResult<V::Value> {
+    ) -> Result<V::Value> {
         self.de.deserialize_map(visitor)
     }
 }
