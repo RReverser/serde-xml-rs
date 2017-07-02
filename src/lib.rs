@@ -44,15 +44,16 @@ impl<'de, R: Read> Deserializer<R> {
     }
 
     pub fn new_from_reader(reader: R) -> Self {
+        let config = ParserConfig::new()
+            .trim_whitespace(true)
+            .whitespace_to_characters(true)
+            .cdata_to_characters(true)
+            .ignore_comments(true)
+            .coalesce_characters(true);
+
         Self::new(EventReader::new_with_config(
             reader,
-            ParserConfig {
-                trim_whitespace: true,
-                whitespace_to_characters: true,
-                cdata_to_characters: true,
-                ignore_comments: true,
-                coalesce_characters: true,
-            },
+            config,
         ))
     }
 
