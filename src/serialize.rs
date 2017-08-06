@@ -386,6 +386,7 @@ mod tests {
     #[test]
     fn test_serialize_enum() {
         #[derive(Serialize)]
+        #[allow(dead_code)]
         enum Node {
             Boolean(bool),
             Number(f64),
@@ -393,7 +394,7 @@ mod tests {
         }
 
         let mut buffer = Vec::new();
-        let should_be = "<Boolean>true</Boolean>";
+        let should_be = "<Node>true</Node>";
 
         {
             let mut ser = Serializer::new(&mut buffer);
@@ -403,5 +404,22 @@ mod tests {
 
         let got = String::from_utf8(buffer).unwrap();
         assert_eq!(got, should_be);
+    }
+
+    #[test]
+    #[ignore]
+    fn serialize_a_list() {
+        let inputs = vec![1, 2, 3, 4];
+
+        let mut buffer = Vec::new();
+
+        {
+            let mut ser = Serializer::new(&mut buffer);
+            inputs.serialize(&mut ser).unwrap();
+        }
+
+        let got = String::from_utf8(buffer).unwrap();
+        println!("{}", got);
+        panic!();
     }
 }
