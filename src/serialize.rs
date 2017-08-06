@@ -41,22 +41,24 @@ pub fn serialize<W: Write, S: Serialize>(value: S, writer: W) -> Result<(), Erro
 
 /// An XML Serializer.
 pub struct Serializer<W>
-    where W: Write
+where
+    W: Write,
 {
     writer: W,
 }
 
 impl<W> Serializer<W>
-    where W: Write
+where
+    W: Write,
 {
     pub fn new(writer: W) -> Self {
         Self { writer: writer }
     }
 
     fn write_primitive<P: Display>(&mut self, primitive: P) -> Result<(), Error> {
-        write!(self.writer, "{}", primitive)
-            .map(|_| ())
-            .map_err(|e| e.into())
+        write!(self.writer, "{}", primitive).map(|_| ()).map_err(
+            |e| e.into(),
+        )
     }
 
     fn write_wrapped<S: Serialize>(&mut self, tag: &str, value: S) -> Result<(), Error> {
@@ -70,7 +72,8 @@ impl<W> Serializer<W>
 
 #[allow(unused_variables)]
 impl<'w, W> ser::Serializer for &'w mut Serializer<W>
-    where W: Write
+where
+    W: Write,
 {
     type Ok = ();
     type Error = Error;
@@ -163,27 +166,18 @@ impl<'w, W> ser::Serializer for &'w mut Serializer<W>
         self.write_wrapped(name, ())
     }
 
-    fn serialize_unit_variant(self,
-                              name: &'static str,
-                              variant_index: usize,
-                              variant: &'static str)
-                              -> Result<Self::Ok, Self::Error> {
+    fn serialize_unit_variant(self, name: &'static str, variant_index: u32, variant: &'static str)
+        -> Result<Self::Ok, Self::Error> {
         Err(Error::UnsupportedOperation("serialize_unit_variant".to_string()))
     }
 
-    fn serialize_newtype_struct<T: ?Sized + Serialize>(self,
-                                                       name: &'static str,
-                                                       value: &T)
-                                                       -> Result<Self::Ok, Self::Error> {
+    fn serialize_newtype_struct<T: ?Sized + Serialize>(self, name: &'static str, value: &T)
+        -> Result<Self::Ok, Self::Error> {
         Err(Error::UnsupportedOperation("serialize_newtype_struct".to_string()))
     }
 
-    fn serialize_newtype_variant<T: ?Sized + Serialize>(self,
-                                                        name: &'static str,
-                                                        variant_index: usize,
-                                                        variant: &'static str,
-                                                        value: &T)
-                                                        -> Result<Self::Ok, Self::Error> {
+    fn serialize_newtype_variant<T: ?Sized + Serialize>(self, name: &'static str, variant_index: u32, variant: &'static str, value: &T)
+        -> Result<Self::Ok, Self::Error> {
         self.write_wrapped(name, value)
     }
 
@@ -192,27 +186,16 @@ impl<'w, W> ser::Serializer for &'w mut Serializer<W>
         Err(Error::UnsupportedOperation("serialize_seq".to_string()))
     }
 
-    fn serialize_seq_fixed_size(self, size: usize) -> Result<Self::SerializeSeq, Self::Error> {
-        Err(Error::UnsupportedOperation("serialize_seq_fixed_size".to_string()))
-    }
-
     fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple, Self::Error> {
         Err(Error::UnsupportedOperation("serialize_tuple".to_string()))
     }
 
-    fn serialize_tuple_struct(self,
-                              name: &'static str,
-                              len: usize)
-                              -> Result<Self::SerializeTupleStruct, Self::Error> {
+    fn serialize_tuple_struct(self, name: &'static str, len: usize) -> Result<Self::SerializeTupleStruct, Self::Error> {
         Err(Error::UnsupportedOperation("serialize_tuple_struct".to_string()))
     }
 
-    fn serialize_tuple_variant(self,
-                               name: &'static str,
-                               variant_index: usize,
-                               variant: &'static str,
-                               len: usize)
-                               -> Result<Self::SerializeTupleVariant, Self::Error> {
+    fn serialize_tuple_variant(self, name: &'static str, variant_index: u32, variant: &'static str, len: usize)
+        -> Result<Self::SerializeTupleVariant, Self::Error> {
         Err(Error::UnsupportedOperation("serialize_tuple_variant".to_string()))
     }
 
@@ -220,45 +203,37 @@ impl<'w, W> ser::Serializer for &'w mut Serializer<W>
         Ok(Map { parent: self })
     }
 
-    fn serialize_struct(self,
-                        name: &'static str,
-                        len: usize)
-                        -> Result<Self::SerializeStruct, Self::Error> {
+    fn serialize_struct(self, name: &'static str, len: usize) -> Result<Self::SerializeStruct, Self::Error> {
         write!(self.writer, "<{}>", name)?;
         Ok(Struct {
-               parent: self,
-               name: name,
-           })
+            parent: self,
+            name: name,
+        })
     }
 
-    fn serialize_struct_variant(self,
-                                name: &'static str,
-                                variant_index: usize,
-                                variant: &'static str,
-                                len: usize)
-                                -> Result<Self::SerializeStructVariant, Self::Error> {
+    fn serialize_struct_variant(self, name: &'static str, variant_index: u32, variant: &'static str, len: usize)
+        -> Result<Self::SerializeStructVariant, Self::Error> {
         Err(Error::UnsupportedOperation("Result".to_string()))
     }
 }
 
 /// An implementation of SerializeStruct for serializing to XML.
 pub struct Struct<'w, W>
-    where W: 'w + Write
+where
+    W: 'w + Write,
 {
     parent: &'w mut Serializer<W>,
     name: &'w str,
 }
 
 impl<'w, W> ser::SerializeStruct for Struct<'w, W>
-    where W: 'w + Write
+where
+    W: 'w + Write,
 {
     type Ok = ();
     type Error = Error;
 
-    fn serialize_field<T: ?Sized + Serialize>(&mut self,
-                                              key: &'static str,
-                                              value: &T)
-                                              -> Result<(), Self::Error> {
+    fn serialize_field<T: ?Sized + Serialize>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error> {
         write!(self.parent.writer, "<{}>", key)?;
         value.serialize(&mut *self.parent)?;
         write!(self.parent.writer, "</{}>", key)?;
@@ -272,13 +247,15 @@ impl<'w, W> ser::SerializeStruct for Struct<'w, W>
 
 /// An implementation of SerializeMap for serializing to XML.
 pub struct Map<'w, W>
-    where W: 'w + Write
+where
+    W: 'w + Write,
 {
     parent: &'w mut Serializer<W>,
 }
 
 impl<'w, W> ser::SerializeMap for Map<'w, W>
-    where W: 'w + Write
+where
+    W: 'w + Write,
 {
     type Ok = ();
     type Error = Error;
@@ -295,10 +272,8 @@ impl<'w, W> ser::SerializeMap for Map<'w, W>
         Ok(())
     }
 
-    fn serialize_entry<K: ?Sized + Serialize, V: ?Sized + Serialize>(&mut self,
-                                                                     key: &K,
-                                                                     value: &V)
-                                                                     -> Result<(), Self::Error> {
+    fn serialize_entry<K: ?Sized + Serialize, V: ?Sized + Serialize>(&mut self, key: &K, value: &V)
+        -> Result<(), Self::Error> {
         // TODO: Is it possible to ensure our key is never a composite type?
         // Anything which isn't a "primitive" would lead to malformed XML here...
         write!(self.parent.writer, "<")?;

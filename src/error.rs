@@ -5,7 +5,6 @@ use std::num::ParseIntError;
 use std::io;
 use serde::de::Error as DeError;
 use serde::ser::Error as SerError;
-use serde::de::Visitor;
 
 pub enum Error {
     ParseIntError(ParseIntError),
@@ -89,9 +88,9 @@ impl StdError for Error {
         match *self {
             Error::ParseIntError(ref error) => error.description(),
             Error::Syntax(ref error) => error.description(),
-	    Error::Io(ref error) => error.description(),
+            Error::Io(ref error) => error.description(),
             Error::Custom(_) => "other error",
-            Error::UnsupportedOperation(_) => "Unsupported Operation"
+            Error::UnsupportedOperation(_) => "Unsupported Operation",
         }
     }
 
@@ -100,7 +99,7 @@ impl StdError for Error {
             Error::ParseIntError(ref error) => Some(error),
             Error::Syntax(ref error) => Some(error),
             Error::Io(ref error) => Some(error),
-            _ => None
+            _ => None,
         }
     }
 }
