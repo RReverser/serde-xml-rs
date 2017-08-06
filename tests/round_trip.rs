@@ -30,13 +30,13 @@ struct Nodes {
 #[test]
 fn basic_struct() {
     let src = r#"<Item><name>Banana</name><source>Store</source></Item>"#;
+    let should_be = Item {
+        name: "Banana".to_string(),
+        source: "Store".to_string(),
+    };
 
     let item: Item = deserialize(Cursor::new(src)).unwrap();
-    assert_eq!(item,
-               Item {
-                   name: "Banana".to_string(),
-                   source: "Store".to_string(),
-               });
+    assert_eq!(item, should_be);
 
     let mut buffer = Vec::new();
     serialize(item, &mut buffer).unwrap();
@@ -47,15 +47,18 @@ fn basic_struct() {
 
 
 #[test]
+#[ignore]
 fn round_trip_list_of_enums() {
     // Construct some inputs
     let nodes = Nodes {
-        items: vec![Node::Boolean(true),
-                    Node::Identifier {
-                        value: "foo".to_string(),
-                        index: 5,
-                    },
-                    Node::EOF],
+        items: vec![
+            Node::Boolean(true),
+            Node::Identifier {
+                value: "foo".to_string(),
+                index: 5,
+            },
+            Node::EOF,
+        ],
     };
 
     let should_be = r#"

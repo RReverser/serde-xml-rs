@@ -178,7 +178,7 @@ where
 
     fn serialize_newtype_variant<T: ?Sized + Serialize>(self, name: &'static str, variant_index: u32, variant: &'static str, value: &T)
         -> Result<Self::Ok, Self::Error> {
-        self.write_wrapped(name, value)
+        self.write_wrapped(variant, value)
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
@@ -394,7 +394,7 @@ mod tests {
         }
 
         let mut buffer = Vec::new();
-        let should_be = "<Node>true</Node>";
+        let should_be = "<Boolean>true</Boolean>";
 
         {
             let mut ser = Serializer::new(&mut buffer);
