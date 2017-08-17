@@ -4,14 +4,20 @@ extern crate serde;
 #[macro_use]
 extern crate log;
 
+#[cfg(test)]
+#[macro_use]
+extern crate serde_derive;
+
 #[macro_use]
 mod error;
 mod map;
 mod seq;
 mod var;
+mod serialize;
 
 pub use error::Error;
 pub use xml::reader::{EventReader, ParserConfig};
+pub use serialize::{serialize, Serializer};
 
 use error::VResult;
 use xml::reader::XmlEvent;
@@ -72,7 +78,7 @@ impl<'de, R: Read> Deserializer<R> {
                 XmlEvent::StartDocument { .. } |
                 XmlEvent::EndDocument { .. } |
                 XmlEvent::ProcessingInstruction { .. } |
-                XmlEvent::Comment(_) => { /* skip */ }
+                XmlEvent::Comment(_) => { /* skip */ },
 
                 other => return Ok(other),
             }
@@ -88,11 +94,11 @@ impl<'de, R: Read> Deserializer<R> {
         match next {
             XmlEvent::StartElement { .. } => {
                 self.depth += 1;
-            }
+            },
             XmlEvent::EndElement { .. } => {
                 self.depth -= 1;
-            }
-            _ => {}
+            },
+            _ => {},
         }
         debug!("Fetched {:?}", next);
         Ok(next)
@@ -106,10 +112,8 @@ impl<'de, R: Read> Deserializer<R> {
         ::std::mem::replace(&mut self.is_map_value, false)
     }
 
-    fn read_inner_value<V: Visitor<'de>, F: FnOnce(&mut Self) -> VResult<V::Value>>(
-        &mut self,
-        f: F,
-    ) -> VResult<V::Value> {
+    fn read_inner_value<V: Visitor<'de>, F: FnOnce(&mut Self) -> VResult<V::Value>>(&mut self, f: F)
+        -> VResult<V::Value> {
         if self.unset_map_value() {
             debug_expect!(self.next(), Ok(XmlEvent::StartElement { name, .. }) => {
                 let result = f(self)?;
@@ -162,12 +166,8 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
         newtype_struct identifier
     }
 
-    fn deserialize_struct<V: Visitor<'de>>(
-        self,
-        _name: &'static str,
-        fields: &'static [&'static str],
-        visitor: V,
-    ) -> VResult<V::Value> {
+    fn deserialize_struct<V: Visitor<'de>>(self, _name: &'static str, fields: &'static [&'static str], visitor: V)
+        -> VResult<V::Value> {
         self.unset_map_value();
         expect!(self.next()?, XmlEvent::StartElement { name, attributes, .. } => {
             let map_value = visitor.visit_map(MapAccess::new(
@@ -248,20 +248,12 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
         })
     }
 
-    fn deserialize_unit_struct<V: Visitor<'de>>(
-        self,
-        _name: &'static str,
-        visitor: V,
-    ) -> VResult<V::Value> {
+    fn deserialize_unit_struct<V: Visitor<'de>>(self, _name: &'static str, visitor: V) -> VResult<V::Value> {
         self.deserialize_unit(visitor)
     }
 
-    fn deserialize_tuple_struct<V: Visitor<'de>>(
-        self,
-        _name: &'static str,
-        len: usize,
-        visitor: V,
-    ) -> VResult<V::Value> {
+    fn deserialize_tuple_struct<V: Visitor<'de>>(self, _name: &'static str, len: usize, visitor: V)
+        -> VResult<V::Value> {
         self.deserialize_tuple(len, visitor)
     }
 
@@ -269,12 +261,8 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
         visitor.visit_seq(SeqAccess::new(self, Some(len)))
     }
 
-    fn deserialize_enum<V: Visitor<'de>>(
-        self,
-        _name: &'static str,
-        _variants: &'static [&'static str],
-        visitor: V,
-    ) -> VResult<V::Value> {
+    fn deserialize_enum<V: Visitor<'de>>(self, _name: &'static str, _variants: &'static [&'static str], visitor: V)
+        -> VResult<V::Value> {
         self.read_inner_value::<V, _>(|this| visitor.visit_enum(EnumAccess::new(this)))
     }
 
