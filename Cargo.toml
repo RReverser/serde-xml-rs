@@ -4,7 +4,7 @@ description = "xml-rs based deserializer for Serde (compatible with 0.9+)"
 license = "MIT"
 name = "serde-xml-rs"
 repository = "https://github.com/RReverser/serde-xml-rs"
-version = "0.2.0"
+version = "0.2.1"
 
 [dependencies]
 log = "0.3.6"
