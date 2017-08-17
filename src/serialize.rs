@@ -86,7 +86,7 @@ where
     type SerializeStruct = Struct<'w, W>;
     type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
 
-    fn serialize_bool(mut self, v: bool) -> Result<Self::Ok, Self::Error> {
+    fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
         if v {
             write!(self.writer, "true")?;
         } else {
