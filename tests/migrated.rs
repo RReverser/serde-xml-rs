@@ -8,7 +8,7 @@ extern crate serde_xml_rs;
 
 use std::fmt::Debug;
 
-use serde_xml_rs::{deserialize, Error};
+use serde_xml_rs::{deserialize, Error, ErrorKind};
 use serde::{ser, de};
 
 fn from_str<'de, T: de::Deserialize<'de>>(s: &str) -> Result<T, Error> {
@@ -66,7 +66,7 @@ where
 {
     for &s in errors {
         assert!(match from_str::<T>(s) {
-            Err(Error::Syntax(_)) => true,
+            Err(Error(ErrorKind::Syntax(_), _)) => true,
             _ => false,
         });
     }
