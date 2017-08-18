@@ -13,17 +13,23 @@ error_chain! {
     foreign_links {
         Io(::std::io::Error);
         ParseIntError(::std::num::ParseIntError);
+        ParseFloatError(::std::num::ParseFloatError);
+        ParseBoolError(::std::str::ParseBoolError);
         Syntax(::xml::reader::Error);
     }
 
     errors {
+        UnexpectedToken(token: String, found: String) {
+            description("unexpected token")
+            display("Expected token {}, found {}", token, found)
+        }
         Custom(field: String) {
             description("other error")
             display("custom: '{}'", field)
         }
         UnsupportedOperation(operation: String) {
-            description("UnsupportedOperation")
-            display("Unsupported Operation: '{}'", operation)
+            description("unsupported operation")
+            display("unsupported operation: '{}'", operation)
         }
     }
 }
@@ -32,11 +38,9 @@ macro_rules! expect {
     ($actual: expr, $($expected: pat)|+ => $if_ok: expr) => {
         match $actual {
             $($expected)|+ => $if_ok,
-            actual => Err($crate::ErrorKind::Custom(format!(
-                "Expected token {}, found {:?}",
-                stringify!($($expected)|+),
-                actual
-            )).into()) as Result<_>
+            actual => Err($crate::ErrorKind::UnexpectedToken(
+                stringify!($($expected)|+).to_string(), format!("{:?}",actual)
+            ).into()) as Result<_>
         }
     }
 }

@@ -142,20 +142,23 @@ impl<'de, R: Read> Deserializer<R> {
         })
     }
 
-
-    fn parse_int<N, V, F>(&mut self, visit: F) -> Result<V::Value>
+    fn parse_type<N, C, V, F>(&mut self, visit: F) -> Result<V::Value>
     where
-        N: std::str::FromStr<Err = std::num::ParseIntError>,
+        N: std::str::FromStr<Err = C>,
+        Error: std::convert::From<C>,
         V: Visitor<'de>,
         F: FnOnce(N) -> Result<V::Value>,
     {
+        if let XmlEvent::StartElement { .. } = *self.peek()? {
+            self.set_map_value()
+        }
         self.read_inner_value::<V, _>(|this| {
             if let XmlEvent::EndElement { .. } = *this.peek()? {
-                return Err(ErrorKind::Custom(format!("expected an integer")).into());
+                return Err(ErrorKind::UnexpectedToken("EndElement".into(), "Characters".into()).into());
             }
 
             expect!(this.next()?, XmlEvent::Characters(s) => {
-                let value = s.parse::<N>().map_err(ErrorKind::ParseIntError)?;
+                let value = s.parse::<N>()?;
                 visit(value)
             })
         })
@@ -184,47 +187,47 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
     }
 
     fn deserialize_u64<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        self.parse_int::<u64, V, _>(|value| visitor.visit_u64(value))
+        self.parse_type::<u64, ::std::num::ParseIntError, V, _>(|value| visitor.visit_u64(value))
     }
 
     fn deserialize_u32<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        self.deserialize_string(visitor)
+        self.parse_type::<u32, ::std::num::ParseIntError, V, _>(|value| visitor.visit_u32(value))
     }
 
     fn deserialize_u16<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        self.deserialize_string(visitor)
+        self.parse_type::<u16, ::std::num::ParseIntError, V, _>(|value| visitor.visit_u16(value))
     }
 
     fn deserialize_u8<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        self.deserialize_string(visitor)
+        self.parse_type::<u8, ::std::num::ParseIntError, V, _>(|value| visitor.visit_u8(value))
     }
 
     fn deserialize_i64<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        self.deserialize_string(visitor)
+        self.parse_type::<i64, ::std::num::ParseIntError, V, _>(|value| visitor.visit_i64(value))
     }
 
     fn deserialize_i32<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        self.parse_int::<i32, V, _>(|value| visitor.visit_i32(value))
+        self.parse_type::<i32, ::std::num::ParseIntError, V, _>(|value| visitor.visit_i32(value))
     }
 
     fn deserialize_i16<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        self.deserialize_string(visitor)
+        self.parse_type::<i16, ::std::num::ParseIntError, V, _>(|value| visitor.visit_i16(value))
     }
 
     fn deserialize_i8<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        self.deserialize_string(visitor)
+        self.parse_type::<i8, ::std::num::ParseIntError, V, _>(|value| visitor.visit_i8(value))
     }
 
     fn deserialize_f32<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        self.deserialize_string(visitor)
+        self.parse_type::<f32, ::std::num::ParseFloatError, V, _>(|value| visitor.visit_f32(value))
     }
 
     fn deserialize_f64<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        self.deserialize_string(visitor)
+        self.parse_type::<f64, ::std::num::ParseFloatError, V, _>(|value| visitor.visit_f64(value))
     }
 
     fn deserialize_bool<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        self.deserialize_string(visitor)
+        self.parse_type::<bool, ::std::str::ParseBoolError, V, _>(|value| visitor.visit_bool(value))
     }
 
     fn deserialize_char<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
@@ -244,11 +247,12 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
     }
 
     fn deserialize_unit<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        self.read_inner_value::<V, _>(|this| {
-            expect!(this.peek()?, &XmlEvent::EndElement { .. } => {
-                visitor.visit_unit()
-            })
-        })
+        if let XmlEvent::StartElement { .. } = *self.peek()? {
+            self.set_map_value()
+        }
+        self.read_inner_value::<V, _>(
+            |this| expect!(this.peek()?, &XmlEvent::EndElement { .. } => visitor.visit_unit()),
+        )
     }
 
     fn deserialize_unit_struct<V: Visitor<'de>>(self, _name: &'static str, visitor: V) -> Result<V::Value> {
@@ -270,6 +274,9 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
     }
 
     fn deserialize_string<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
+        if let XmlEvent::StartElement { .. } = *self.peek()? {
+            self.set_map_value()
+        }
         self.read_inner_value::<V, _>(|this| {
             if let XmlEvent::EndElement { .. } = *this.peek()? {
                 return visitor.visit_str("");
