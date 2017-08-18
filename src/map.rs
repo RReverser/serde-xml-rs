@@ -2,7 +2,7 @@ use std::io::Read;
 use xml::attribute::OwnedAttribute;
 use xml::reader::XmlEvent;
 use Deserializer;
-use error::{Error, ErrorKind, Result};
+use error::{Error, Result};
 use serde::de::{self, DeserializeSeed, Visitor};
 use serde::de::IntoDeserializer;
 
@@ -27,10 +27,7 @@ impl<'a, R: 'a + Read> MapAccess<'a, R> {
 impl<'de, 'a, R: 'a + Read> de::MapAccess<'de> for MapAccess<'a, R> {
     type Error = Error;
 
-    fn next_key_seed<K: DeserializeSeed<'de>>(
-        &mut self,
-        seed: K,
-    ) -> Result<Option<K::Value>> {
+    fn next_key_seed<K: DeserializeSeed<'de>>(&mut self, seed: K) -> Result<Option<K::Value>> {
         debug_assert_eq!(self.next_value, None);
         match self.attrs.next() {
             Some(OwnedAttribute { name, value }) => {
@@ -63,7 +60,7 @@ impl<'de, 'a, R: 'a + Read> de::MapAccess<'de> for MapAccess<'a, R> {
             Some(value) => seed.deserialize(AttrValueDeserializer(value)),
             None => {
                 if !self.inner_value {
-                    if let &XmlEvent::StartElement { .. } = self.de.peek()? {
+                    if let XmlEvent::StartElement { .. } = *self.de.peek()? {
                         self.de.set_map_value();
                     }
                 }
@@ -88,8 +85,43 @@ impl<'de> de::Deserializer<'de> for AttrValueDeserializer {
     }
 
     fn deserialize_u8<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        let u = self.0.parse().map_err(ErrorKind::ParseIntError)?;
-        visitor.visit_u8(u)
+        visitor.visit_u8(self.0.parse()?)
+    }
+
+    fn deserialize_u16<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
+        visitor.visit_u16(self.0.parse()?)
+    }
+
+    fn deserialize_u32<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
+        visitor.visit_u32(self.0.parse()?)
+    }
+
+    fn deserialize_u64<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
+        visitor.visit_u64(self.0.parse()?)
+    }
+
+    fn deserialize_i8<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
+        visitor.visit_i8(self.0.parse()?)
+    }
+
+    fn deserialize_i16<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
+        visitor.visit_i16(self.0.parse()?)
+    }
+
+    fn deserialize_i32<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
+        visitor.visit_i32(self.0.parse()?)
+    }
+
+    fn deserialize_i64<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
+        visitor.visit_i64(self.0.parse()?)
+    }
+
+    fn deserialize_f32<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
+        visitor.visit_f32(self.0.parse()?)
+    }
+
+    fn deserialize_f64<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
+        visitor.visit_f64(self.0.parse()?)
     }
 
     fn deserialize_enum<V: Visitor<'de>>(
@@ -110,8 +142,7 @@ impl<'de> de::Deserializer<'de> for AttrValueDeserializer {
     }
 
     forward_to_deserialize_any! {
-        u16 u32 u64 i8 i16 i32 i64 f32 f64 char str string unit
-        seq bytes map unit_struct newtype_struct tuple_struct
+        char str string unit seq bytes map unit_struct newtype_struct tuple_struct
         struct identifier tuple ignored_any byte_buf
     }
 }

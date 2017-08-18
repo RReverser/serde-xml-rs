@@ -196,7 +196,6 @@ fn test_forwarded_namespace() {
 }
 
 #[test]
-#[ignore] // FIXME
 fn test_parse_string() {
     init_logger();
 
@@ -207,7 +206,7 @@ fn test_parse_string() {
                 "This is a String".to_string(),
             ),
             ("<bla></bla>", "".to_string()),
-            ("<bla>     </bla>", "     ".to_string()),
+            ("<bla>     </bla>", "".to_string()),
             ("<bla>&lt;boom/&gt;</bla>", "<boom/>".to_string()),
             ("<bla>&#9835;</bla>", "♫".to_string()),
             ("<bla>&#x266B;</bla>", "♫".to_string()),
@@ -215,6 +214,18 @@ fn test_parse_string() {
                 "<bla>♫<![CDATA[<cookies/>]]>♫</bla>",
                 "♫<cookies/>♫".to_string(),
             ),
+        ],
+    );
+}
+
+#[test]
+#[ignore] // FIXME
+fn test_parse_string_not_trim() {
+    init_logger();
+
+    test_parse_ok(
+        &[
+            ("<bla>     </bla>", "     ".to_string()),
         ],
     );
 }
@@ -314,7 +325,6 @@ fn test_parse_enum() {
 }
 
 #[test]
-#[ignore] // FIXME
 fn test_parse_i64() {
     init_logger();
     test_parse_ok(
@@ -328,7 +338,6 @@ fn test_parse_i64() {
 }
 
 #[test]
-#[ignore] // FIXME
 fn test_parse_u64() {
     init_logger();
     test_parse_ok(
@@ -341,7 +350,6 @@ fn test_parse_u64() {
 }
 
 #[test]
-#[ignore] // FIXME
 fn test_parse_bool() {
     test_parse_ok(
         &[
@@ -354,14 +362,12 @@ fn test_parse_bool() {
 }
 
 #[test]
-#[ignore] // FIXME
 fn test_parse_unit() {
     init_logger();
     test_parse_ok(&[("<bla/>", ())]);
 }
 
 #[test]
-#[ignore] // FIXME
 fn test_parse_f64() {
     init_logger();
     test_parse_ok(
@@ -372,8 +378,8 @@ fn test_parse_f64() {
         ("<bla>0.4</bla>", 0.4),
         ("<bla>0.4e5</bla>", 0.4e5),
         ("<bla>0.4e15</bla>", 0.4e15),
-        //("<bla>0.4e-01</bla>", 0.4e-01), // precision troubles
-        //("<bla> 0.4e-01 </bla>", 0.4e-01),
+        ("<bla>0.4e-01</bla>", 0.4e-01), // precision troubles
+        ("<bla> 0.4e-01 </bla>", 0.4e-01),
     ],
     );
 }
@@ -428,15 +434,25 @@ fn test_parse_struct() {
 }
 
 #[test]
-#[ignore] // FIXME
 fn test_option() {
     init_logger();
     test_parse_ok(
         &[
             ("<a/>", Some("".to_string())),
             ("<a></a>", Some("".to_string())),
-            ("<a> </a>", Some(" ".to_string())),
+            ("<a> </a>", Some("".to_string())),
             ("<a>42</a>", Some("42".to_string())),
+        ],
+    );
+}
+
+#[test]
+#[ignore] // FIXME
+fn test_option_not_trim() {
+    init_logger();
+    test_parse_ok(
+        &[
+            ("<a> </a>", Some(" ".to_string())),
         ],
     );
 }
@@ -725,7 +741,6 @@ fn test_parse_complexstruct() {
 }
 
 #[test]
-#[ignore] // FIXME
 fn test_parse_attributes() {
     init_logger();
 

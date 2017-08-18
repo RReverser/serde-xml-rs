@@ -30,10 +30,7 @@ impl<'a, R: 'a + Read> SeqAccess<'a, R> {
 impl<'de, 'a, R: 'a + Read> de::SeqAccess<'de> for SeqAccess<'a, R> {
     type Error = Error;
 
-    fn next_element_seed<T: DeserializeSeed<'de>>(
-        &mut self,
-        seed: T,
-    ) -> Result<Option<T::Value>> {
+    fn next_element_seed<T: DeserializeSeed<'de>>(&mut self, seed: T) -> Result<Option<T::Value>> {
         match self.max_size.as_mut() {
             Some(&mut 0) => {
                 return Ok(None);
@@ -47,7 +44,7 @@ impl<'de, 'a, R: 'a + Read> de::SeqAccess<'de> for SeqAccess<'a, R> {
             (&XmlEvent::StartElement { ref name, .. }, Some(expected_name)) => {
                 &name.local_name == expected_name
             }
-            (&XmlEvent::EndElement { .. }, None) => false,
+            (&XmlEvent::EndElement { .. }, None) |
             (_, Some(_)) => false,
             (_, None) => true,
         };
