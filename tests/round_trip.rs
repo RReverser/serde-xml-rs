@@ -2,8 +2,7 @@
 extern crate serde_derive;
 extern crate serde_xml_rs;
 
-use std::io::Cursor;
-use serde_xml_rs::{deserialize, serialize};
+use serde_xml_rs::{from_str, to_string};
 
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -35,13 +34,10 @@ fn basic_struct() {
         source: "Store".to_string(),
     };
 
-    let item: Item = deserialize(Cursor::new(src)).unwrap();
+    let item: Item = from_str(src).unwrap();
     assert_eq!(item, should_be);
 
-    let mut buffer = Vec::new();
-    serialize(item, &mut buffer).unwrap();
-
-    let reserialized_item = String::from_utf8(buffer).unwrap();
+    let reserialized_item = to_string(&item).unwrap();
     assert_eq!(src, reserialized_item);
 }
 
@@ -73,16 +69,11 @@ fn round_trip_list_of_enums() {
         <EOF />
     </Nodes>"#;
 
-    // Create a buffer and serialize our nodes into it
-    let mut buffer = Vec::new();
-    serialize(&nodes, &mut buffer).unwrap();
-
-    // We then check that the serialized string is the same as what we expect
-    let serialized_nodes = String::from_utf8(buffer).unwrap();
+    let serialized_nodes = to_string(&nodes).unwrap();
     assert_eq!(serialized_nodes, should_be);
 
     // Then turn it back into a `Nodes` struct and make sure it's the same
     // as the original
-    let deserialized_nodes: Nodes = deserialize(Cursor::new(serialized_nodes)).unwrap();
+    let deserialized_nodes: Nodes = from_str(serialized_nodes.as_str()).unwrap();
     assert_eq!(deserialized_nodes, nodes);
 }

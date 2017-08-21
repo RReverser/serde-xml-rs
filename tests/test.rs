@@ -2,7 +2,7 @@
 extern crate serde_derive;
 extern crate serde_xml_rs;
 
-use serde_xml_rs::deserialize;
+use serde_xml_rs::from_str;
 
 #[derive(Debug, Deserialize, PartialEq)]
 struct Item {
@@ -16,7 +16,7 @@ fn simple_struct_from_attributes() {
         <item name="hello" source="world.rs" />
     "##;
 
-    let item: Item = deserialize(s.as_bytes()).unwrap();
+    let item: Item = from_str(s).unwrap();
 
     assert_eq!(
         item,
@@ -35,7 +35,7 @@ fn simple_struct_from_attribute_and_child() {
         </item>
     "##;
 
-    let item: Item = deserialize(s.as_bytes()).unwrap();
+    let item: Item = from_str(s).unwrap();
 
     assert_eq!(
         item,
@@ -63,7 +63,7 @@ fn nested_collection() {
         </project>
     "##;
 
-    let project: Project = deserialize(s.as_bytes()).unwrap();
+    let project: Project = from_str(s).unwrap();
 
     assert_eq!(
         project,
@@ -106,7 +106,7 @@ fn collection_of_enums() {
         </enums>
     "##;
 
-    let project: MyEnums = deserialize(s.as_bytes()).unwrap();
+    let project: MyEnums = from_str(s).unwrap();
 
     assert_eq!(
         project,

@@ -1,7 +1,13 @@
 use std::io::Write;
 use std::fmt::Display;
+
 use serde::ser::{self, Impossible, Serialize};
+
 use error::{Error, ErrorKind, Result};
+use self::var::{Map, Struct};
+
+mod var;
+
 
 
 /// A convenience method for serializing some object to a buffer.
@@ -35,11 +41,25 @@ use error::{Error, ErrorKind, Result};
 /// # }
 /// ```
 pub fn serialize<W: Write, S: Serialize>(value: S, writer: W) -> Result<()> {
+    to_writer(writer, &value)
+}
+
+pub fn to_writer<W: Write, S: Serialize>(writer: W, value: &S) -> Result<()> {
     let mut ser = Serializer::new(writer);
     value.serialize(&mut ser)
 }
 
-/// An XML Serializer.
+pub fn to_string<S: Serialize>(value: &S) -> Result<String> {
+    // Create a buffer and serialize our nodes into it
+    let mut writer = Vec::with_capacity(128);
+    to_writer(&mut writer, value)?;
+
+    // We then check that the serialized string is the same as what we expect
+    let string = String::from_utf8(writer)?;
+    Ok(string)
+}
+
+/// An XML `Serializer`.
 pub struct Serializer<W>
 where
     W: Write,
@@ -234,15 +254,12 @@ where
     }
 
     fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap> {
-        Ok(Map { parent: self })
+        Ok(Map::new(self))
     }
 
     fn serialize_struct(self, name: &'static str, len: usize) -> Result<Self::SerializeStruct> {
         write!(self.writer, "<{}>", name)?;
-        Ok(Struct {
-            parent: self,
-            name: name,
-        })
+        Ok(Struct::new(self, name))
     }
 
     fn serialize_struct_variant(
@@ -253,85 +270,6 @@ where
         len: usize,
     ) -> Result<Self::SerializeStructVariant> {
         Err(ErrorKind::UnsupportedOperation("Result".to_string()).into())
-    }
-}
-
-/// An implementation of SerializeStruct for serializing to XML.
-pub struct Struct<'w, W>
-where
-    W: 'w + Write,
-{
-    parent: &'w mut Serializer<W>,
-    name: &'w str,
-}
-
-impl<'w, W> ser::SerializeStruct for Struct<'w, W>
-where
-    W: 'w + Write,
-{
-    type Ok = ();
-    type Error = Error;
-
-    fn serialize_field<T: ?Sized + Serialize>(
-        &mut self,
-        key: &'static str,
-        value: &T,
-    ) -> Result<()> {
-        write!(self.parent.writer, "<{}>", key)?;
-        value.serialize(&mut *self.parent)?;
-        write!(self.parent.writer, "</{}>", key)?;
-        Ok(())
-    }
-
-    fn end(self) -> Result<Self::Ok> {
-        write!(self.parent.writer, "</{}>", self.name).map_err(|e| e.into())
-    }
-}
-
-/// An implementation of SerializeMap for serializing to XML.
-pub struct Map<'w, W>
-where
-    W: 'w + Write,
-{
-    parent: &'w mut Serializer<W>,
-}
-
-impl<'w, W> ser::SerializeMap for Map<'w, W>
-where
-    W: 'w + Write,
-{
-    type Ok = ();
-    type Error = Error;
-
-    fn serialize_key<T: ?Sized + Serialize>(&mut self, _: &T) -> Result<()> {
-        panic!("impossible to serialize the key on its own, please use serialize_entry()")
-    }
-
-    fn serialize_value<T: ?Sized + Serialize>(&mut self, value: &T) -> Result<()> {
-        value.serialize(&mut *self.parent)
-    }
-
-    fn end(self) -> Result<Self::Ok> {
-        Ok(())
-    }
-
-    fn serialize_entry<K: ?Sized + Serialize, V: ?Sized + Serialize>(
-        &mut self,
-        key: &K,
-        value: &V,
-    ) -> Result<()> {
-        // TODO: Is it possible to ensure our key is never a composite type?
-        // Anything which isn't a "primitive" would lead to malformed XML here...
-        write!(self.parent.writer, "<")?;
-        key.serialize(&mut *self.parent)?;
-        write!(self.parent.writer, ">")?;
-
-        value.serialize(&mut *self.parent)?;
-
-        write!(self.parent.writer, "</")?;
-        key.serialize(&mut *self.parent)?;
-        write!(self.parent.writer, ">")?;
-        Ok(())
     }
 }
 
@@ -378,10 +316,7 @@ mod tests {
 
         {
             let mut ser = Serializer::new(&mut buffer);
-            let mut struct_ser = Struct {
-                parent: &mut ser,
-                name: "baz",
-            };
+            let mut struct_ser = Struct::new(&mut ser, "baz");
             struct_ser.serialize_field("foo", "bar").unwrap();
         }
 
@@ -420,7 +355,7 @@ mod tests {
 
         {
             let mut ser = Serializer::new(&mut buffer);
-            let mut map = Map { parent: &mut ser };
+            let mut map = Map::new(&mut ser);
             map.serialize_entry("name", "Bob").unwrap();
             map.serialize_entry("age", "5").unwrap();
         }
