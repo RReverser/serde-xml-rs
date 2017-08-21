@@ -15,23 +15,62 @@ mod map;
 mod seq;
 mod var;
 
-pub struct Deserializer<R: Read> {
-    depth: usize,
-    reader: EventReader<R>,
-    peeked: Option<XmlEvent>,
-    is_map_value: bool,
-}
-
+/// A convenience method for deserialize some object from a string.
+///
+/// ```rust
+/// # #[macro_use]
+/// # extern crate serde_derive;
+/// # extern crate serde;
+/// # extern crate serde_xml_rs;
+/// # use serde_xml_rs::from_str;
+/// #[derive(Debug, Deserialize, PartialEq)]
+/// struct Item {
+///     name: String,
+///     source: String,
+/// }
+/// # fn main() {
+/// let s = r##"<item name="hello" source="world.rs" />"##;
+/// let item: Item = from_str(s).unwrap();
+/// assert_eq!(item, Item { name: "hello".to_string(),source: "world.rs".to_string()});
+/// # }
+/// ```
 pub fn from_str<'de, T: de::Deserialize<'de>>(s: &str) -> Result<T> {
-    deserialize(s.as_bytes())
+    from_reader(s.as_bytes())
 }
 
+
+/// A convenience method for deserialize some object from a reader.
+///
+/// ```rust
+/// # #[macro_use]
+/// # extern crate serde_derive;
+/// # extern crate serde;
+/// # extern crate serde_xml_rs;
+/// # use serde_xml_rs::from_reader;
+/// #[derive(Debug, Deserialize, PartialEq)]
+/// struct Item {
+///     name: String,
+///     source: String,
+/// }
+/// # fn main() {
+/// let s = r##"<item name="hello" source="world.rs" />"##;
+/// let item: Item = from_reader(s.as_bytes()).unwrap();
+/// assert_eq!(item, Item { name: "hello".to_string(),source: "world.rs".to_string()});
+/// # }
+/// ```
 pub fn from_reader<'de, R: Read, T: Deserialize<'de>>(reader: R) -> Result<T> {
     T::deserialize(&mut Deserializer::new_from_reader(reader))
 }
 
 pub fn deserialize<'de, R: Read, T: Deserialize<'de>>(reader: R) -> Result<T> {
     from_reader(reader)
+}
+
+pub struct Deserializer<R: Read> {
+    depth: usize,
+    reader: EventReader<R>,
+    peeked: Option<XmlEvent>,
+    is_map_value: bool,
 }
 
 impl<'de, R: Read> Deserializer<R> {
