@@ -146,7 +146,9 @@ where
     fn serialize_bytes(self, value: &[u8]) -> Result<Self::Ok> {
         // TODO: I imagine you'd want to use base64 here.
         // Not sure how to roundtrip effectively though...
-        Err(ErrorKind::UnsupportedOperation("serialize_bytes".to_string()).into())
+        Err(
+            ErrorKind::UnsupportedOperation("serialize_bytes".to_string()).into(),
+        )
     }
 
     fn serialize_none(self) -> Result<Self::Ok> {
@@ -165,37 +167,70 @@ where
         self.write_wrapped(name, ())
     }
 
-    fn serialize_unit_variant(self, name: &'static str, variant_index: u32, variant: &'static str)
-        -> Result<Self::Ok> {
-        Err(ErrorKind::UnsupportedOperation("serialize_unit_variant".to_string()).into())
+    fn serialize_unit_variant(
+        self,
+        name: &'static str,
+        variant_index: u32,
+        variant: &'static str,
+    ) -> Result<Self::Ok> {
+        Err(
+            ErrorKind::UnsupportedOperation("serialize_unit_variant".to_string()).into(),
+        )
     }
 
-    fn serialize_newtype_struct<T: ?Sized + Serialize>(self, name: &'static str, value: &T)
-        -> Result<Self::Ok> {
-        Err(ErrorKind::UnsupportedOperation("serialize_newtype_struct".to_string()).into())
+    fn serialize_newtype_struct<T: ?Sized + Serialize>(
+        self,
+        name: &'static str,
+        value: &T,
+    ) -> Result<Self::Ok> {
+        Err(
+            ErrorKind::UnsupportedOperation("serialize_newtype_struct".to_string()).into(),
+        )
     }
 
-    fn serialize_newtype_variant<T: ?Sized + Serialize>(self, name: &'static str, variant_index: u32, variant: &'static str, value: &T)
-        -> Result<Self::Ok> {
+    fn serialize_newtype_variant<T: ?Sized + Serialize>(
+        self,
+        name: &'static str,
+        variant_index: u32,
+        variant: &'static str,
+        value: &T,
+    ) -> Result<Self::Ok> {
         self.write_wrapped(variant, value)
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq> {
         // TODO: Figure out how to constrain the things written to only be composites
-        Err(ErrorKind::UnsupportedOperation("serialize_seq".to_string()).into())
+        Err(
+            ErrorKind::UnsupportedOperation("serialize_seq".to_string()).into(),
+        )
     }
 
     fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
-        Err(ErrorKind::UnsupportedOperation("serialize_tuple".to_string()).into())
+        Err(
+            ErrorKind::UnsupportedOperation("serialize_tuple".to_string()).into(),
+        )
     }
 
-    fn serialize_tuple_struct(self, name: &'static str, len: usize) -> Result<Self::SerializeTupleStruct> {
-        Err(ErrorKind::UnsupportedOperation("serialize_tuple_struct".to_string()).into())
+    fn serialize_tuple_struct(
+        self,
+        name: &'static str,
+        len: usize,
+    ) -> Result<Self::SerializeTupleStruct> {
+        Err(
+            ErrorKind::UnsupportedOperation("serialize_tuple_struct".to_string()).into(),
+        )
     }
 
-    fn serialize_tuple_variant(self, name: &'static str, variant_index: u32, variant: &'static str, len: usize)
-        -> Result<Self::SerializeTupleVariant> {
-        Err(ErrorKind::UnsupportedOperation("serialize_tuple_variant".to_string()).into())
+    fn serialize_tuple_variant(
+        self,
+        name: &'static str,
+        variant_index: u32,
+        variant: &'static str,
+        len: usize,
+    ) -> Result<Self::SerializeTupleVariant> {
+        Err(
+            ErrorKind::UnsupportedOperation("serialize_tuple_variant".to_string()).into(),
+        )
     }
 
     fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap> {
@@ -210,8 +245,13 @@ where
         })
     }
 
-    fn serialize_struct_variant(self, name: &'static str, variant_index: u32, variant: &'static str, len: usize)
-        -> Result<Self::SerializeStructVariant> {
+    fn serialize_struct_variant(
+        self,
+        name: &'static str,
+        variant_index: u32,
+        variant: &'static str,
+        len: usize,
+    ) -> Result<Self::SerializeStructVariant> {
         Err(ErrorKind::UnsupportedOperation("Result".to_string()).into())
     }
 }
@@ -232,7 +272,11 @@ where
     type Ok = ();
     type Error = Error;
 
-    fn serialize_field<T: ?Sized + Serialize>(&mut self, key: &'static str, value: &T) -> Result<()> {
+    fn serialize_field<T: ?Sized + Serialize>(
+        &mut self,
+        key: &'static str,
+        value: &T,
+    ) -> Result<()> {
         write!(self.parent.writer, "<{}>", key)?;
         value.serialize(&mut *self.parent)?;
         write!(self.parent.writer, "</{}>", key)?;
@@ -271,8 +315,11 @@ where
         Ok(())
     }
 
-    fn serialize_entry<K: ?Sized + Serialize, V: ?Sized + Serialize>(&mut self, key: &K, value: &V)
-        -> Result<()> {
+    fn serialize_entry<K: ?Sized + Serialize, V: ?Sized + Serialize>(
+        &mut self,
+        key: &K,
+        value: &V,
+    ) -> Result<()> {
         // TODO: Is it possible to ensure our key is never a composite type?
         // Anything which isn't a "primitive" would lead to malformed XML here...
         write!(self.parent.writer, "<")?;

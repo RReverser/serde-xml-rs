@@ -79,5 +79,4 @@ impl SerError for Error {
     fn custom<T: Display>(msg: T) -> Self {
         ErrorKind::Custom(msg.to_string()).into()
     }
-
 }
