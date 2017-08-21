@@ -1,4 +1,7 @@
 //!
+//!
+//! # Examples
+//!
 //! ```rust
 //! extern crate serde;
 //! extern crate serde_xml_rs;
@@ -49,5 +52,5 @@ pub mod ser;
 
 pub use error::{Error, ErrorKind};
 pub use xml::reader::{EventReader, ParserConfig};
-pub use ser::{serialize, to_string, to_writer, Serializer};
-pub use de::{deserialize, from_reader, from_str, Deserializer};
+pub use ser::{to_string, to_writer, Serializer};
+pub use de::{from_reader, from_str, Deserializer};

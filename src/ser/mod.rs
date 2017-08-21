@@ -9,47 +9,7 @@ use self::var::{Map, Struct};
 mod var;
 
 
-
 /// A convenience method for serializing some object to a buffer.
-///
-/// You'll almost always want to use this over any of the other things in the
-/// `serde_xml_rs::serialize` module.
-///
-///
-/// # Examples
-///
-/// ```rust
-/// # #[macro_use]
-/// # extern crate serde_derive;
-/// # extern crate serde;
-/// # extern crate serde_xml_rs;
-/// # use serde_xml_rs::serialize;
-/// #[derive(Serialize)]
-/// struct Person {
-///   name: String,
-///   age: u32,
-/// }
-///
-/// # fn main() {
-/// let mut buffer = Vec::new();
-/// let joe = Person {name: "Joe".to_string(), age: 42};
-///
-/// serialize(&joe, &mut buffer).unwrap();
-///
-/// let serialized = String::from_utf8(buffer).unwrap();
-/// println!("{}", serialized);
-/// # }
-/// ```
-pub fn serialize<W: Write, S: Serialize>(value: S, writer: W) -> Result<()> {
-    to_writer(writer, &value)
-}
-
-
-/// A convenience method for serializing some object to a buffer.
-///
-/// You'll almost always want to use this over any of the other things in the
-/// `serde_xml_rs::to_writer` module.
-///
 ///
 /// # Examples
 ///
@@ -82,10 +42,6 @@ pub fn to_writer<W: Write, S: Serialize>(writer: W, value: &S) -> Result<()> {
 
 
 /// A convenience method for serializing some object to a string.
-///
-/// You'll almost always want to use this over any of the other things in the
-/// `serde_xml_rs::to_string` module.
-///
 ///
 /// # Examples
 ///
