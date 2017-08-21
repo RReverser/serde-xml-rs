@@ -8,12 +8,8 @@ extern crate serde_xml_rs;
 
 use std::fmt::Debug;
 
-use serde_xml_rs::{deserialize, Error, ErrorKind};
+use serde_xml_rs::{from_str, Error, ErrorKind};
 use serde::{de, ser};
-
-fn from_str<'de, T: de::Deserialize<'de>>(s: &str) -> Result<T, Error> {
-    deserialize(s.as_bytes())
-}
 
 #[derive(PartialEq, Debug, Serialize, Deserialize)]
 enum Animal {

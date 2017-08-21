@@ -12,6 +12,7 @@ error_chain! {
 
     foreign_links {
         Io(::std::io::Error);
+        FromUtf8Error(::std::string::FromUtf8Error);
         ParseIntError(::std::num::ParseIntError);
         ParseFloatError(::std::num::ParseFloatError);
         ParseBoolError(::std::str::ParseBoolError);
