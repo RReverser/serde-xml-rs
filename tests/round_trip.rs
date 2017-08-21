@@ -3,7 +3,7 @@ extern crate serde_derive;
 extern crate serde_xml_rs;
 
 use std::io::Cursor;
-use serde_xml_rs::{serialize, deserialize};
+use serde_xml_rs::{deserialize, serialize};
 
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]

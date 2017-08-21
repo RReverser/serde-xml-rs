@@ -34,24 +34,18 @@ impl<'de, 'a, R: 'a + Read> de::MapAccess<'de> for MapAccess<'a, R> {
                 self.next_value = Some(value);
                 seed.deserialize(name.local_name.into_deserializer())
                     .map(Some)
-            }
-            None => {
-                match *self.de.peek()? {
-                    XmlEvent::StartElement { ref name, .. } => {
-                        seed.deserialize(
-                            if !self.inner_value {
-                                name.local_name.as_str()
-                            } else {
-                                "$value"
-                            }.into_deserializer(),
-                        ).map(Some)
-                    }
-                    XmlEvent::Characters(_) => {
-                        seed.deserialize("$value".into_deserializer()).map(Some)
-                    }
-                    _ => Ok(None),
-                }
-            }
+            },
+            None => match *self.de.peek()? {
+                XmlEvent::StartElement { ref name, .. } => seed.deserialize(
+                    if !self.inner_value {
+                        name.local_name.as_str()
+                    } else {
+                        "$value"
+                    }.into_deserializer(),
+                ).map(Some),
+                XmlEvent::Characters(_) => seed.deserialize("$value".into_deserializer()).map(Some),
+                _ => Ok(None),
+            },
         }
     }
 
@@ -66,7 +60,7 @@ impl<'de, 'a, R: 'a + Read> de::MapAccess<'de> for MapAccess<'a, R> {
                 }
                 let result = seed.deserialize(&mut *self.de)?;
                 Ok(result)
-            }
+            },
         }
     }
 

@@ -3,8 +3,8 @@ use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 use Deserializer;
 use error::{Error, Result};
-use serde::de::{self, DeserializeSeed, Deserializer as SerdeDeserializer, Visitor,
-                Error as SerdeError};
+use serde::de::{self, DeserializeSeed, Deserializer as SerdeDeserializer, Error as SerdeError,
+                Visitor};
 use serde::de::IntoDeserializer;
 
 pub struct EnumAccess<'a, R: 'a + Read> {
@@ -54,13 +54,13 @@ impl<'de, 'a, R: 'a + Read> de::VariantAccess<'de> for VariantAccess<'a, R> {
     fn unit_variant(self) -> Result<()> {
         self.de.unset_map_value();
         match self.de.next()? {
-            XmlEvent::StartElement { name, attributes, .. } => {
-                if attributes.is_empty() {
-                    self.de.expect_end_element(name)
-                } else {
-                    Err(Error::invalid_length(attributes.len(), &"0"))
-                }
-            }
+            XmlEvent::StartElement {
+                name, attributes, ..
+            } => if attributes.is_empty() {
+                self.de.expect_end_element(name)
+            } else {
+                Err(Error::invalid_length(attributes.len(), &"0"))
+            },
             XmlEvent::Characters(_) => Ok(()),
             _ => unreachable!(),
         }
