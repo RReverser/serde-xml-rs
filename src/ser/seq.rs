@@ -27,12 +27,12 @@ impl<'a, W: Write> SerializeSeq for Seq<'a, W> {
     where
         T: Serialize,
     {
-        if helpers::is_primitive(value) {
+        if helpers::is_wrapped(value) {
+            value.serialize(&mut *self.parent)
+        } else {
             Err(SerError::custom(
                 "Cannot serialize a sequence of primitives",
             ))
-        } else {
-            value.serialize(&mut *self.parent)
         }
     }
 
