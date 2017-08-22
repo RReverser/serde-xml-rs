@@ -1,5 +1,6 @@
-use serde::ser::{Impossible, Serialize, Serializer, Error as SerError};
-use error::Error;
+use std::error::Error as StdError;
+use std::fmt::{self, Display, Formatter};
+use serde::ser::{Impossible, Serialize, SerializeSeq, SerializeTuple, Serializer, Error as SerError};
 
 
 /// Check if a value would be "wrapped" when serialized as XML. 
@@ -11,25 +12,27 @@ pub fn is_wrapped<S>(thing: &S) -> bool
 where
     S: Serialize + ?Sized,
 {
-    let mut is_wrapped = false;
+    let is_primitive = thing.serialize(WrapSafeDetector).is_ok();
 
-    thing.serialize(WrapSafeDetector{ is_wrapped: &mut is_wrapped }).ok();
-
-    is_wrapped
+    !is_primitive
 }
 
+/// A custom `Serializer` which will visit a type and determine if it would
+/// be wrapped when serialized as XML. 
+///
+/// To work around the function signatures defined by the `Serializer` trait, if
+/// something serializes with an error (i.e. returns `Err(_)`) it would be 
+/// wrapped. Things which "serialize" fine aren't wrapped.
 #[derive(Debug)]
-struct WrapSafeDetector<'a> {
-    is_wrapped: &'a mut bool,
-}
+struct WrapSafeDetector;
 
 #[allow(unused_variables)]
-impl<'a> Serializer for WrapSafeDetector<'a> {
+impl Serializer for WrapSafeDetector {
     type Ok = ();
-    type Error = Error;
+    type Error = DummyError;
 
-    type SerializeSeq = Impossible<Self::Ok, Self::Error>;
-    type SerializeTuple = Impossible<Self::Ok, Self::Error>;
+    type SerializeSeq = DummySer;
+    type SerializeTuple = DummySer;
     type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
     type SerializeMap = Impossible<Self::Ok, Self::Error>;
@@ -37,77 +40,62 @@ impl<'a> Serializer for WrapSafeDetector<'a> {
     type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok, Self::Error> {
-        *self.is_wrapped = false;
         Ok(())
     }
 
     fn serialize_i8(self, v: i8) -> Result<Self::Ok, Self::Error> {
-        *self.is_wrapped = false;
         Ok(())
     }
 
     fn serialize_i16(self, v: i16) -> Result<Self::Ok, Self::Error> {
-        *self.is_wrapped = false;
         Ok(())
     }
 
     fn serialize_i32(self, v: i32) -> Result<Self::Ok, Self::Error> {
-        *self.is_wrapped = false;
         Ok(())
     }
 
     fn serialize_i64(self, v: i64) -> Result<Self::Ok, Self::Error> {
-        *self.is_wrapped = false;
         Ok(())
     }
 
     fn serialize_u8(self, v: u8) -> Result<Self::Ok, Self::Error> {
-        *self.is_wrapped = false;
         Ok(())
     }
 
     fn serialize_u16(self, v: u16) -> Result<Self::Ok, Self::Error> {
-        *self.is_wrapped = false;
         Ok(())
     }
 
     fn serialize_u32(self, v: u32) -> Result<Self::Ok, Self::Error> {
-        *self.is_wrapped = false;
         Ok(())
     }
 
     fn serialize_u64(self, v: u64) -> Result<Self::Ok, Self::Error> {
-        *self.is_wrapped = false;
         Ok(())
     }
 
     fn serialize_f32(self, v: f32) -> Result<Self::Ok, Self::Error> {
-        *self.is_wrapped = false;
         Ok(())
     }
 
     fn serialize_f64(self, v: f64) -> Result<Self::Ok, Self::Error> {
-        *self.is_wrapped = false;
         Ok(())
     }
 
     fn serialize_char(self, v: char) -> Result<Self::Ok, Self::Error> {
-        *self.is_wrapped = false;
         Ok(())
     }
 
     fn serialize_str(self, value: &str) -> Result<Self::Ok, Self::Error> {
-        *self.is_wrapped = false;
         Ok(())
     }
 
     fn serialize_bytes(self, value: &[u8]) -> Result<Self::Ok, Self::Error> {
-        *self.is_wrapped = false;
         Ok(())
     }
 
     fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
-        *self.is_wrapped = false;
         Ok(())
     }
 
@@ -116,13 +104,11 @@ impl<'a> Serializer for WrapSafeDetector<'a> {
     }
 
     fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
-        *self.is_wrapped = false;
         Ok(())
     }
 
     fn serialize_unit_struct(self, name: &'static str) -> Result<Self::Ok, Self::Error> {
-        *self.is_wrapped = true;
-        Ok(())
+        Err(DummyError)
     }
 
     fn serialize_unit_variant(
@@ -131,8 +117,7 @@ impl<'a> Serializer for WrapSafeDetector<'a> {
         variant_index: u32,
         variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
-        *self.is_wrapped = true;
-        Ok(())
+        Err(DummyError)
     }
 
     fn serialize_newtype_struct<T: ?Sized + Serialize>(
@@ -140,8 +125,7 @@ impl<'a> Serializer for WrapSafeDetector<'a> {
         name: &'static str,
         value: &T,
     ) -> Result<Self::Ok, Self::Error> {
-        *self.is_wrapped = true;
-        Ok(())
+        Err(DummyError)
     }
 
     fn serialize_newtype_variant<T: ?Sized + Serialize>(
@@ -151,20 +135,17 @@ impl<'a> Serializer for WrapSafeDetector<'a> {
         variant: &'static str,
         value: &T,
     ) -> Result<Self::Ok, Self::Error> {
-        *self.is_wrapped = true;
-        Ok(())
+        Err(DummyError)
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
         // FIXME: Is a sequence of sequences okay here?
-        *self.is_wrapped = false;
-        Err(Error::custom("Ignore me...".to_string()))
+        Ok(DummySer)
     }
 
     fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple, Self::Error> {
         // FIXME: I think a tuple counts as a "primitive"... doesn't it?
-        *self.is_wrapped = false;
-        Err(Error::custom("Ignore me...".to_string()))
+        Ok(DummySer)
     }
 
     fn serialize_tuple_struct(
@@ -172,8 +153,7 @@ impl<'a> Serializer for WrapSafeDetector<'a> {
         name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleStruct, Self::Error> {
-        *self.is_wrapped = true;
-        Err(Error::custom("Ignore me...".to_string()))
+        Err(DummyError)
     }
 
     fn serialize_tuple_variant(
@@ -183,18 +163,15 @@ impl<'a> Serializer for WrapSafeDetector<'a> {
         variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
-        *self.is_wrapped = true;
-        Err(Error::custom("Ignore me...".to_string()))
+        Err(DummyError)
     }
 
     fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        *self.is_wrapped = true;
-        Err(Error::custom("Ignore me...".to_string()))
+        Err(DummyError)
     }
 
     fn serialize_struct(self, name: &'static str, len: usize) -> Result<Self::SerializeStruct, Self::Error> {
-        *self.is_wrapped = true;
-        Err(Error::custom("Ignore me...".to_string()))
+        Err(DummyError)
     }
 
     fn serialize_struct_variant(
@@ -204,9 +181,64 @@ impl<'a> Serializer for WrapSafeDetector<'a> {
         variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
-        *self.is_wrapped = true;
-        Err(Error::custom("Ignore me...".to_string()))
+        Err(DummyError)
     }
+}
+
+#[derive(Clone, Copy, Debug)]
+struct DummyError;
+
+impl StdError for DummyError {
+    fn description(&self) -> &'static str {
+        "dummy error"
+    }
+}
+
+impl Display for DummyError {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "ignore me")
+    }
+}
+
+impl SerError for DummyError {
+    fn custom<D: Display>(_: D) -> Self {
+        DummyError
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+struct DummySer;
+
+impl SerializeSeq for DummySer {
+    type Ok = ();
+    type Error = DummyError;
+
+    fn serialize_element<T>(&mut self, elem: &T) -> Result<Self::Ok, Self::Error> 
+    where T: Serialize + ?Sized {
+        if is_wrapped(elem) {
+            Err(DummyError)
+        } else {
+            Ok(())
+        }
+    }
+
+    fn end(self) -> Result<Self::Ok, Self::Error>{ Ok(())}
+}
+
+impl SerializeTuple for DummySer {
+    type Ok = ();
+    type Error = DummyError;
+
+    fn serialize_element<T>(&mut self, elem: &T) -> Result<Self::Ok, Self::Error> 
+    where T: Serialize + ?Sized {
+        if is_wrapped(elem) {
+            Err(DummyError)
+        } else {
+            Ok(())
+        }
+    }
+
+    fn end(self) -> Result<Self::Ok, Self::Error>{ Ok(())}
 }
 
 

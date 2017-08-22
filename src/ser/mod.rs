@@ -282,7 +282,7 @@ where
         variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStructVariant> {
-        Err(ErrorKind::UnsupportedOperation("Result".to_string()).into())
+        Err(ErrorKind::UnsupportedOperation("serialize_struct_variant".to_string()).into())
     }
 }
 
