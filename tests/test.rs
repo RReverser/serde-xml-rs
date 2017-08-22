@@ -28,6 +28,30 @@ fn simple_struct_from_attributes() {
 }
 
 #[test]
+fn multiple_roots_attributes() {
+    let s = r##"
+        <item name="hello" source="world.rs" />
+        <item name="hello" source="world.rs" />
+    "##;
+
+    let item: Vec<Item> = from_str(s).unwrap();
+
+    assert_eq!(
+        item,
+        vec![
+            Item {
+                name: "hello".to_string(),
+                source: "world.rs".to_string(),
+            },
+            Item {
+                name: "hello".to_string(),
+                source: "world.rs".to_string(),
+            },
+        ]
+    );
+}
+
+#[test]
 fn simple_struct_from_attribute_and_child() {
     let s = r##"
         <item name="hello">
