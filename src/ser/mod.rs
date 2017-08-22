@@ -1,12 +1,14 @@
 use std::io::Write;
 use std::fmt::Display;
 
-use serde::ser::{self, Impossible, Serialize, SerializeSeq};
+use serde::ser::{self, Impossible, Serialize};
 
 use error::{Error, ErrorKind, Result};
 use self::var::{Map, Struct};
+use self::seq::Seq;
 
 mod var;
+mod seq;
 
 
 /// A convenience method for serializing some object to a buffer.
@@ -232,7 +234,7 @@ where
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq> {
-        Ok(Seq { parent: self })
+        Ok(Seq::new(self))
     }
 
     fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
@@ -280,26 +282,6 @@ where
         len: usize,
     ) -> Result<Self::SerializeStructVariant> {
         Err(ErrorKind::UnsupportedOperation("Result".to_string()).into())
-    }
-}
-
-pub struct Seq<'a, W: 'a + Write> {
-    parent: &'a mut Serializer<W>,
-}
-
-impl<'a, W: Write> SerializeSeq for Seq<'a, W> {
-    type Ok = ();
-    type Error = Error;
-
-    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<Self::Ok>
-    where
-        T: Serialize,
-    {
-        value.serialize(&mut *self.parent)
-    }
-
-    fn end(self) -> Result<Self::Ok> {
-        Ok(())
     }
 }
 
