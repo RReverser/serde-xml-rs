@@ -104,10 +104,8 @@ impl<'de, R: Read> Deserializer<R> {
         loop {
             match self.reader.next().map_err(ErrorKind::Syntax)? {
                 XmlEvent::StartDocument { .. } |
-                XmlEvent::EndDocument { .. } |
                 XmlEvent::ProcessingInstruction { .. } |
                 XmlEvent::Comment(_) => { /* skip */ },
-
                 other => return Ok(other),
             }
         }

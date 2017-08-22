@@ -256,8 +256,6 @@ fn test_parse_enum() {
     use self::Animal::*;
     init_logger();
 
-    init_logger();
-
     test_parse_ok(&[
         ("<Animal xsi:type=\"Dog\"/>", Dog),
         (
