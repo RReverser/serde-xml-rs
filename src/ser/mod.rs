@@ -218,9 +218,7 @@ where
         name: &'static str,
         value: &T,
     ) -> Result<Self::Ok> {
-        Err(
-            ErrorKind::UnsupportedOperation("serialize_newtype_struct".to_string()).into(),
-        )
+        self.write_wrapped(name, value)
     }
 
     fn serialize_newtype_variant<T: ?Sized + Serialize>(
@@ -417,5 +415,20 @@ mod tests {
         let got = String::from_utf8(buffer).unwrap();
         println!("{}", got);
         panic!();
+    }
+
+    #[test]
+    fn newtype_struct() {
+        #[derive(Serialize)]
+        struct Foo(u32);
+
+        let f = Foo(5);
+        let should_be = "<Foo>5</Foo>";
+
+        let mut buffer = Vec::new();
+        f.serialize(&mut Serializer::new(&mut buffer)).unwrap();
+
+        let got = String::from_utf8(buffer).unwrap();
+        assert_eq!(got, should_be);
     }
 }
