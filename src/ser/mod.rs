@@ -1,7 +1,7 @@
 use std::io::Write;
 use std::fmt::Display;
 
-use serde::ser::{self, Impossible, Serialize};
+use serde::ser::{self, Impossible, Serialize, SerializeSeq};
 
 use error::{Error, ErrorKind, Result};
 use self::var::{Map, Struct};
@@ -112,7 +112,7 @@ where
     type Ok = ();
     type Error = Error;
 
-    type SerializeSeq = Impossible<Self::Ok, Self::Error>;
+    type SerializeSeq = Seq<'w, W>;
     type SerializeTuple = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
@@ -232,10 +232,7 @@ where
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq> {
-        // TODO: Figure out how to constrain the things written to only be composites
-        Err(
-            ErrorKind::UnsupportedOperation("serialize_seq".to_string()).into(),
-        )
+        Ok(Seq { parent: self })
     }
 
     fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
@@ -283,6 +280,26 @@ where
         len: usize,
     ) -> Result<Self::SerializeStructVariant> {
         Err(ErrorKind::UnsupportedOperation("Result".to_string()).into())
+    }
+}
+
+pub struct Seq<'a, W: 'a + Write> {
+    parent: &'a mut Serializer<W>,
+}
+
+impl<'a, W: Write> SerializeSeq for Seq<'a, W> {
+    type Ok = ();
+    type Error = Error;
+
+    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<Self::Ok>
+    where
+        T: Serialize,
+    {
+        value.serialize(&mut *self.parent)
+    }
+
+    fn end(self) -> Result<Self::Ok> {
+        Ok(())
     }
 }
 
@@ -402,9 +419,12 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn serialize_a_list() {
-        let inputs = vec![1, 2, 3, 4];
+        #[derive(Serialize)]
+        struct Foo;
+
+        let inputs = vec![Foo, Foo, Foo];
+        let should_be = "<Foo></Foo><Foo></Foo><Foo></Foo>";
 
         let mut buffer = Vec::new();
 
@@ -414,8 +434,7 @@ mod tests {
         }
 
         let got = String::from_utf8(buffer).unwrap();
-        println!("{}", got);
-        panic!();
+        assert_eq!(got, should_be);
     }
 
     #[test]
