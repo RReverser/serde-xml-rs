@@ -6,10 +6,12 @@ use serde::ser::{self, Impossible, Serialize};
 use error::{Error, ErrorKind, Result};
 use self::var::{Map, Struct};
 use self::seq::Seq;
+use self::tuples::Tuple;
 
 mod var;
 mod seq;
 mod helpers;
+mod tuples;
 
 
 /// A convenience method for serializing some object to a buffer.
@@ -116,7 +118,7 @@ where
     type Error = Error;
 
     type SerializeSeq = Seq<'w, W>;
-    type SerializeTuple = Impossible<Self::Ok, Self::Error>;
+    type SerializeTuple = Tuple<'w, W>;
     type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
     type SerializeMap = Map<'w, W>;
@@ -239,9 +241,7 @@ where
     }
 
     fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
-        Err(
-            ErrorKind::UnsupportedOperation("serialize_tuple".to_string()).into(),
-        )
+        Ok(Tuple::new(self))
     }
 
     fn serialize_tuple_struct(
@@ -282,7 +282,9 @@ where
         variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStructVariant> {
-        Err(ErrorKind::UnsupportedOperation("serialize_struct_variant".to_string()).into())
+        Err(
+            ErrorKind::UnsupportedOperation("serialize_struct_variant".to_string()).into(),
+        )
     }
 }
 
@@ -409,10 +411,7 @@ mod tests {
         let inputs = vec![Foo, Foo, Foo];
         let should_be = "<Foo></Foo><Foo></Foo><Foo></Foo>";
 
-        let mut buffer = Vec::new();
-        inputs.serialize(&mut Serializer::new(&mut buffer)).unwrap();
-
-        let got = String::from_utf8(buffer).unwrap();
+        let got = to_string(&inputs).unwrap();
         assert_eq!(got, should_be);
     }
 
@@ -482,10 +481,58 @@ mod tests {
     #[test]
     fn serializing_a_list_of_primitives_is_an_error() {
         let dodgy = vec![1, 2, 3, 4, 5];
+        assert!(to_string(&dodgy).is_err());
+    }
 
-        let mut buffer = Vec::new();
-        let got = dodgy.serialize(&mut Serializer::new(&mut buffer));
+    #[test]
+    fn serializing_a_list_of_tuples_is_an_error() {
+        let dodgy = vec![(1, 2), (3, 4)];
 
-        assert!(got.is_err());
+        assert!(to_string(&dodgy).is_err());
+    }
+
+    #[test]
+    fn serialize_list_of_newtype_enums() {
+        #[derive(Serialize)]
+        enum Foo {
+            A(u32),
+            B(bool),
+            C(Box<Foo>)
+        }
+
+        let f = vec![Foo::A(42), Foo::B(true), Foo::C(Box::new(Foo::B(false)))];
+        let should_be = "<A>42</A><B>true</B><C><B>false</B></C>";
+
+        let got = to_string(&f).unwrap();
+        assert_eq!(got, should_be);
+    }
+
+    #[test]
+    fn serialize_tuple_containing_non_primitive_types() {
+        #[derive(Serialize)]
+        struct Foo;
+        #[derive(Serialize)]
+        struct Bar;
+
+        let a = (Foo, Bar);
+        let should_be = "<Foo></Foo><Bar></Bar>";
+
+        let got = to_string(&a).unwrap();
+        assert_eq!(got, should_be);
+    }
+
+    #[test]
+    fn serialize_tuple_of_primitives_is_error() {
+        let value = (5, false);
+        assert!(to_string(&value).is_err());
+    }
+
+    #[test]
+    fn serialize_tuple_with_at_least_1_primitive_is_error() {
+        #[derive(Serialize)]
+        struct Foo;
+
+        let value = (5, Foo);
+        assert!(to_string(&value).is_err());
     }
 }

@@ -23,15 +23,15 @@ impl<'a, W: Write> SerializeSeq for Seq<'a, W> {
     type Ok = ();
     type Error = Error;
 
-    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<Self::Ok>
+    fn serialize_element<T>(&mut self, value: &T) -> Result<Self::Ok>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         if helpers::is_wrapped(value) {
             value.serialize(&mut *self.parent)
         } else {
             Err(SerError::custom(
-                "Cannot serialize a sequence of primitives",
+                "Cannot serialize a sequence of primitives. Please wrap them in newtypes",
             ))
         }
     }
