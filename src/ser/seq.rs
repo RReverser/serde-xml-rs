@@ -1,7 +1,8 @@
 use std::io::Write;
-use serde::ser::{Serialize, SerializeSeq};
+use serde::ser::{Error as SerError, Serialize, SerializeSeq};
 
 use ser::Serializer;
+use ser::helpers;
 use error::{Error, Result};
 
 pub struct Seq<'a, W: 'a + Write> {
@@ -26,7 +27,13 @@ impl<'a, W: Write> SerializeSeq for Seq<'a, W> {
     where
         T: Serialize,
     {
-        value.serialize(&mut *self.parent)
+        if helpers::is_primitive(value) {
+            Err(SerError::custom(
+                "Cannot serialize a sequence of primitives",
+            ))
+        } else {
+            value.serialize(&mut *self.parent)
+        }
     }
 
     fn end(self) -> Result<Self::Ok> {

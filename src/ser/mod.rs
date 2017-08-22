@@ -9,6 +9,7 @@ use self::seq::Seq;
 
 mod var;
 mod seq;
+mod helpers;
 
 
 /// A convenience method for serializing some object to a buffer.
@@ -409,11 +410,7 @@ mod tests {
         let should_be = "<Foo></Foo><Foo></Foo><Foo></Foo>";
 
         let mut buffer = Vec::new();
-
-        {
-            let mut ser = Serializer::new(&mut buffer);
-            inputs.serialize(&mut ser).unwrap();
-        }
+        inputs.serialize(&mut Serializer::new(&mut buffer)).unwrap();
 
         let got = String::from_utf8(buffer).unwrap();
         assert_eq!(got, should_be);
@@ -480,5 +477,15 @@ mod tests {
 
         let got = String::from_utf8(buffer).unwrap();
         assert_eq!(got, should_be);
+    }
+
+    #[test]
+    fn serializing_a_list_of_primitives_is_an_error() {
+        let dodgy = vec![1, 2, 3, 4, 5];
+
+        let mut buffer = Vec::new();
+        let got = dodgy.serialize(&mut Serializer::new(&mut buffer));
+
+        assert!(got.is_err());
     }
 }
