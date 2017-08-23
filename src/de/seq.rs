@@ -1,8 +1,10 @@
 use std::io::Read;
+
+use serde::de;
 use xml::reader::XmlEvent;
-use Deserializer;
+
+use de::Deserializer;
 use error::{Error, Result};
-use serde::de::{self, DeserializeSeed};
 
 pub struct SeqAccess<'a, R: 'a + Read> {
     de: &'a mut Deserializer<R>,
@@ -30,7 +32,10 @@ impl<'a, R: 'a + Read> SeqAccess<'a, R> {
 impl<'de, 'a, R: 'a + Read> de::SeqAccess<'de> for SeqAccess<'a, R> {
     type Error = Error;
 
-    fn next_element_seed<T: DeserializeSeed<'de>>(&mut self, seed: T) -> Result<Option<T::Value>> {
+    fn next_element_seed<T: de::DeserializeSeed<'de>>(
+        &mut self,
+        seed: T,
+    ) -> Result<Option<T::Value>> {
         match self.max_size.as_mut() {
             Some(&mut 0) => {
                 return Ok(None);

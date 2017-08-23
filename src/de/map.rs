@@ -1,10 +1,11 @@
 use std::io::Read;
+
+use serde::de::{self, IntoDeserializer};
 use xml::attribute::OwnedAttribute;
 use xml::reader::XmlEvent;
+
 use Deserializer;
 use error::{Error, Result};
-use serde::de::{self, DeserializeSeed, Visitor};
-use serde::de::IntoDeserializer;
 
 pub struct MapAccess<'a, R: 'a + Read> {
     attrs: ::std::vec::IntoIter<OwnedAttribute>,
@@ -27,7 +28,7 @@ impl<'a, R: 'a + Read> MapAccess<'a, R> {
 impl<'de, 'a, R: 'a + Read> de::MapAccess<'de> for MapAccess<'a, R> {
     type Error = Error;
 
-    fn next_key_seed<K: DeserializeSeed<'de>>(&mut self, seed: K) -> Result<Option<K::Value>> {
+    fn next_key_seed<K: de::DeserializeSeed<'de>>(&mut self, seed: K) -> Result<Option<K::Value>> {
         debug_assert_eq!(self.next_value, None);
         match self.attrs.next() {
             Some(OwnedAttribute { name, value }) => {
@@ -49,7 +50,7 @@ impl<'de, 'a, R: 'a + Read> de::MapAccess<'de> for MapAccess<'a, R> {
         }
     }
 
-    fn next_value_seed<V: DeserializeSeed<'de>>(&mut self, seed: V) -> Result<V::Value> {
+    fn next_value_seed<V: de::DeserializeSeed<'de>>(&mut self, seed: V) -> Result<V::Value> {
         match self.next_value.take() {
             Some(value) => seed.deserialize(AttrValueDeserializer(value)),
             None => {
@@ -71,54 +72,33 @@ impl<'de, 'a, R: 'a + Read> de::MapAccess<'de> for MapAccess<'a, R> {
 
 struct AttrValueDeserializer(String);
 
+macro_rules! deserialize_type_attr {
+    ($deserialize:ident => $visit:ident) => {
+        fn $deserialize<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
+            visitor.$visit(self.0.parse()?)
+        }
+    }
+}
+
 impl<'de> de::Deserializer<'de> for AttrValueDeserializer {
     type Error = Error;
 
-    fn deserialize_any<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
+    fn deserialize_any<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
         visitor.visit_string(self.0)
     }
 
-    fn deserialize_u8<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        visitor.visit_u8(self.0.parse()?)
-    }
+    deserialize_type_attr!(deserialize_i8 => visit_i8);
+    deserialize_type_attr!(deserialize_i16 => visit_i16);
+    deserialize_type_attr!(deserialize_i32 => visit_i32);
+    deserialize_type_attr!(deserialize_i64 => visit_i64);
+    deserialize_type_attr!(deserialize_u8 => visit_u8);
+    deserialize_type_attr!(deserialize_u16 => visit_u16);
+    deserialize_type_attr!(deserialize_u32 => visit_u32);
+    deserialize_type_attr!(deserialize_u64 => visit_u64);
+    deserialize_type_attr!(deserialize_f32 => visit_f32);
+    deserialize_type_attr!(deserialize_f64 => visit_f64);
 
-    fn deserialize_u16<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        visitor.visit_u16(self.0.parse()?)
-    }
-
-    fn deserialize_u32<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        visitor.visit_u32(self.0.parse()?)
-    }
-
-    fn deserialize_u64<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        visitor.visit_u64(self.0.parse()?)
-    }
-
-    fn deserialize_i8<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        visitor.visit_i8(self.0.parse()?)
-    }
-
-    fn deserialize_i16<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        visitor.visit_i16(self.0.parse()?)
-    }
-
-    fn deserialize_i32<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        visitor.visit_i32(self.0.parse()?)
-    }
-
-    fn deserialize_i64<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        visitor.visit_i64(self.0.parse()?)
-    }
-
-    fn deserialize_f32<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        visitor.visit_f32(self.0.parse()?)
-    }
-
-    fn deserialize_f64<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        visitor.visit_f64(self.0.parse()?)
-    }
-
-    fn deserialize_enum<V: Visitor<'de>>(
+    fn deserialize_enum<V: de::Visitor<'de>>(
         self,
         _name: &str,
         _variants: &'static [&'static str],
@@ -127,11 +107,11 @@ impl<'de> de::Deserializer<'de> for AttrValueDeserializer {
         visitor.visit_enum(self.0.into_deserializer())
     }
 
-    fn deserialize_option<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
+    fn deserialize_option<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
         visitor.visit_some(self)
     }
 
-    fn deserialize_bool<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
+    fn deserialize_bool<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
         visitor.visit_bool(!self.0.is_empty())
     }
 
