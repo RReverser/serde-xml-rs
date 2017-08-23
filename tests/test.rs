@@ -2,7 +2,32 @@
 extern crate serde_derive;
 extern crate serde_xml_rs;
 
+extern crate log;
+
 use serde_xml_rs::from_str;
+
+fn init_logger() {
+    use log::{LogLevel, LogMetadata, LogRecord};
+
+    struct SimpleLogger;
+
+    impl log::Log for SimpleLogger {
+        fn enabled(&self, metadata: &LogMetadata) -> bool {
+            metadata.level() <= LogLevel::Debug
+        }
+
+        fn log(&self, record: &LogRecord) {
+            if self.enabled(record.metadata()) {
+                println!("{} - {}", record.level(), record.args());
+            }
+        }
+    }
+
+    let _ = log::set_logger(|max_log_level| {
+        max_log_level.set(log::LogLevelFilter::Debug);
+        Box::new(SimpleLogger)
+    });
+}
 
 #[derive(Debug, Deserialize, PartialEq)]
 struct Item {
@@ -12,6 +37,8 @@ struct Item {
 
 #[test]
 fn simple_struct_from_attributes() {
+    init_logger();
+
     let s = r##"
         <item name="hello" source="world.rs" />
     "##;
@@ -29,6 +56,8 @@ fn simple_struct_from_attributes() {
 
 #[test]
 fn multiple_roots_attributes() {
+    init_logger();
+
     let s = r##"
         <item name="hello" source="world.rs" />
         <item name="hello" source="world.rs" />
@@ -53,6 +82,8 @@ fn multiple_roots_attributes() {
 
 #[test]
 fn simple_struct_from_attribute_and_child() {
+    init_logger();
+
     let s = r##"
         <item name="hello">
             <source>world.rs</source>
@@ -80,6 +111,8 @@ struct Project {
 
 #[test]
 fn nested_collection() {
+    init_logger();
+
     let s = r##"
         <project name="my_project">
             <item name="hello1" source="world1.rs" />
@@ -122,6 +155,8 @@ struct MyEnums {
 
 #[test]
 fn collection_of_enums() {
+    init_logger();
+
     let s = r##"
         <enums>
             <A>test</A>

@@ -11,6 +11,29 @@ use std::fmt::Debug;
 use serde_xml_rs::{from_str, Error, ErrorKind};
 use serde::{de, ser};
 
+fn init_logger() {
+    use log::{LogLevel, LogMetadata, LogRecord};
+
+    struct SimpleLogger;
+
+    impl log::Log for SimpleLogger {
+        fn enabled(&self, metadata: &LogMetadata) -> bool {
+            metadata.level() <= LogLevel::Debug
+        }
+
+        fn log(&self, record: &LogRecord) {
+            if self.enabled(record.metadata()) {
+                println!("{} - {}", record.level(), record.args());
+            }
+        }
+    }
+
+    let _ = log::set_logger(|max_log_level| {
+        max_log_level.set(log::LogLevelFilter::Debug);
+        Box::new(SimpleLogger)
+    });
+}
+
 #[derive(PartialEq, Debug, Serialize, Deserialize)]
 enum Animal {
     Dog,
@@ -225,29 +248,6 @@ fn test_parse_string_not_trim() {
     init_logger();
 
     test_parse_ok(&[("<bla>     </bla>", "     ".to_string())]);
-}
-
-fn init_logger() {
-    use log::{LogLevel, LogMetadata, LogRecord};
-
-    struct SimpleLogger;
-
-    impl log::Log for SimpleLogger {
-        fn enabled(&self, metadata: &LogMetadata) -> bool {
-            metadata.level() <= LogLevel::Debug
-        }
-
-        fn log(&self, record: &LogRecord) {
-            if self.enabled(record.metadata()) {
-                println!("{} - {}", record.level(), record.args());
-            }
-        }
-    }
-
-    let _ = log::set_logger(|max_log_level| {
-        max_log_level.set(log::LogLevelFilter::Debug);
-        Box::new(SimpleLogger)
-    });
 }
 
 #[test]
