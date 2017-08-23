@@ -218,9 +218,7 @@ where
         name: &'static str,
         value: &T,
     ) -> Result<Self::Ok> {
-        Err(
-            ErrorKind::UnsupportedOperation("serialize_newtype_struct".to_string()).into(),
-        )
+        self.write_wrapped(name, value)
     }
 
     fn serialize_newtype_variant<T: ?Sized + Serialize>(
@@ -294,6 +292,7 @@ mod tests {
     use super::*;
     use serde::Serializer as SerSerializer;
     use serde::ser::{SerializeMap, SerializeStruct};
+    use std::collections::BTreeMap;
 
     #[test]
     fn test_serialize_bool() {
@@ -417,5 +416,68 @@ mod tests {
         let got = String::from_utf8(buffer).unwrap();
         println!("{}", got);
         panic!();
+    }
+
+    #[test]
+    fn basic_newtype_struct() {
+        #[derive(Serialize)]
+        struct Foo(u32);
+
+        let f = Foo(5);
+        let should_be = "<Foo>5</Foo>";
+
+        let mut buffer = Vec::new();
+        f.serialize(&mut Serializer::new(&mut buffer)).unwrap();
+
+        let got = String::from_utf8(buffer).unwrap();
+        assert_eq!(got, should_be);
+    }
+
+    #[test]
+    fn option_as_a_newtype_struct() {
+        #[derive(Serialize)]
+        struct Foo(Option<u32>);
+
+        let inputs = vec![(Foo(Some(5)), "<Foo>5</Foo>"), (Foo(None), "<Foo></Foo>")];
+
+        for (input, should_be) in inputs {
+            let mut buffer = Vec::new();
+            input.serialize(&mut Serializer::new(&mut buffer)).unwrap();
+
+            let got = String::from_utf8(buffer).unwrap();
+            assert_eq!(got, should_be);
+        }
+    }
+
+    #[test]
+    fn newtype_wrapper_around_a_map() {
+        #[derive(Serialize)]
+        struct Foo(BTreeMap<String, u32>);
+
+        let pairs = vec![(String::from("a"), 5), (String::from("hello"), 42)];
+        let map = Foo(pairs.into_iter().collect());
+
+        let should_be = "<Foo><a>5</a><hello>42</hello></Foo>";
+        let mut buffer = Vec::new();
+
+        map.serialize(&mut Serializer::new(&mut buffer)).unwrap();
+
+        let got = String::from_utf8(buffer).unwrap();
+        assert_eq!(got, should_be);
+    }
+
+    #[test]
+    fn newtype_around_unit() {
+        #[derive(Serialize)]
+        struct Foo(());
+
+        let should_be = "<Foo></Foo>";
+        let f = Foo(());
+
+        let mut buffer = Vec::new();
+        f.serialize(&mut Serializer::new(&mut buffer)).unwrap();
+
+        let got = String::from_utf8(buffer).unwrap();
+        assert_eq!(got, should_be);
     }
 }
