@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use serde::ser::{self, Serialize};
+use serde::ser::{self, Serialize, SerializeStruct, SerializeStructVariant};
 
 use ser::Serializer;
 use error::{Error, Result};
@@ -79,7 +79,7 @@ where
     }
 }
 
-impl<'w, W> ser::SerializeStruct for Struct<'w, W>
+impl<'w, W> SerializeStruct for Struct<'w, W>
 where
     W: 'w + Write,
 {
@@ -99,5 +99,26 @@ where
 
     fn end(self) -> Result<Self::Ok> {
         write!(self.parent.writer, "</{}>", self.name).map_err(|e| e.into())
+    }
+}
+
+
+impl<'w, W> SerializeStructVariant for Struct<'w, W>
+where
+    W: 'w + Write,
+{
+    type Ok = ();
+    type Error = Error;
+
+    fn serialize_field<T: ?Sized + Serialize>(
+        &mut self,
+        key: &'static str,
+        value: &T,
+    ) -> Result<()> {
+        <Self as SerializeStruct>::serialize_field(self, key, value)
+    }
+
+    fn end(self) -> Result<Self::Ok> {
+        <Self as SerializeStruct>::end(self)
     }
 }

@@ -1,7 +1,7 @@
 use std::io::Write;
 use std::fmt::Display;
 
-use serde::ser::{self, Impossible, Serialize};
+use serde::ser::{self, Serialize};
 
 use error::{Error, ErrorKind, Result};
 use self::var::{Map, Struct};
@@ -123,7 +123,7 @@ where
     type SerializeTupleVariant = Tuple<'w, W>;
     type SerializeMap = Map<'w, W>;
     type SerializeStruct = Struct<'w, W>;
-    type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
+    type SerializeStructVariant = Struct<'w, W>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok> {
         if v {
@@ -278,9 +278,8 @@ where
         variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStructVariant> {
-        Err(
-            ErrorKind::UnsupportedOperation("serialize_struct_variant".to_string()).into(),
-        )
+        write!(self.writer, "<{}>", variant)?;
+        Ok(Struct::new(self, variant))
     }
 }
 
@@ -595,6 +594,23 @@ mod tests {
 
         let f = Foo::A(Bar, Baz(5));
         let should_be = "<Foo><Bar></Bar><Baz>5</Baz></Foo>";
+
+        let got = to_string(&f).unwrap();
+        assert_eq!(got, should_be);
+    }
+
+    #[test]
+    fn serialize_a_struct_variant() {
+        #[derive(Serialize)]
+        enum Foo {
+            Bar{ 
+                x: u32,
+                y: u32,
+            }
+        }
+
+        let f = Foo::Bar {x: 5, y: 1};
+        let should_be = "<Bar><x>5</x><y>1</y></Bar>";
 
         let got = to_string(&f).unwrap();
         assert_eq!(got, should_be);
