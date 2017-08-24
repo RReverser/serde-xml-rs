@@ -6,6 +6,7 @@ use ser::helpers;
 use error::Error;
 
 pub struct Tuple<'a, W: 'a + Write> {
+    name: Option<&'static str>,
     parent: &'a mut Serializer<W>,
 }
 
@@ -14,8 +15,12 @@ impl<'w, W> Tuple<'w, W>
 where
     W: 'w + Write,
 {
-    pub fn new(parent: &'w mut Serializer<W>) -> Tuple<'w, W> {
-        Tuple { parent }
+    pub fn new(parent: &'w mut Serializer<W>) -> Self {
+        Tuple { parent: parent, name: None }
+    }
+
+    pub fn new_with_name(parent: &'w mut Serializer<W>, name: &'static str) -> Self {
+        Tuple { parent: parent, name: Some(name) }
     }
 }
 
@@ -44,21 +49,8 @@ where
     }
 }
 
-pub struct TupleStruct<'w, W: 'w + Write> {
-    parent: &'w mut Serializer<W>,
-    name: &'static str,
-}
 
-impl<'w, W> TupleStruct<'w, W>
-where
-    W: 'w + Write,
-{
-    pub fn new(parent: &'w mut Serializer<W>, name: &'static str) -> Self {
-        TupleStruct { parent, name }
-    }
-}
-
-impl<'w, W> SerializeTupleStruct for TupleStruct<'w, W>
+impl<'w, W> SerializeTupleStruct for Tuple<'w, W>
 where
     W: 'w + Write
 {
@@ -69,17 +61,11 @@ where
     where 
         T: Serialize + ?Sized 
     {
-        if helpers::is_wrapped(value) {
-            value.serialize(&mut *self.parent)
-        } else {
-            Err(SerError::custom(
-                "TupleStructs can't contain primitive types. Please wrap primitives in a newtype.",
-            ))
-        }
+        self.serialize_element(value)
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        write!(self.parent.writer, "</{}>", self.name)?;
+        write!(self.parent.writer, "</{}>", self.name.expect("if we're serializing a tuple struct we should have been given a name"))?;
         Ok(())
     }
 }

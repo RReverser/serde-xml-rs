@@ -6,7 +6,7 @@ use serde::ser::{self, Impossible, Serialize};
 use error::{Error, ErrorKind, Result};
 use self::var::{Map, Struct};
 use self::seq::Seq;
-use self::tuples::{Tuple, TupleStruct};
+use self::tuples::Tuple;
 
 mod var;
 mod seq;
@@ -119,7 +119,7 @@ where
 
     type SerializeSeq = Seq<'w, W>;
     type SerializeTuple = Tuple<'w, W>;
-    type SerializeTupleStruct = TupleStruct<'w, W>;
+    type SerializeTupleStruct = Tuple<'w, W>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
     type SerializeMap = Map<'w, W>;
     type SerializeStruct = Struct<'w, W>;
@@ -250,7 +250,7 @@ where
         len: usize,
     ) -> Result<Self::SerializeTupleStruct> {
         write!(self.writer, "<{}>", name)?;
-        Ok(TupleStruct::new(self, name))
+        Ok(Tuple::new_with_name(self, name))
     }
 
     fn serialize_tuple_variant(
