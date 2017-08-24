@@ -120,7 +120,7 @@ where
     type SerializeSeq = Seq<'w, W>;
     type SerializeTuple = Tuple<'w, W>;
     type SerializeTupleStruct = Tuple<'w, W>;
-    type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleVariant = Tuple<'w, W>;
     type SerializeMap = Map<'w, W>;
     type SerializeStruct = Struct<'w, W>;
     type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
@@ -213,9 +213,7 @@ where
         variant_index: u32,
         variant: &'static str,
     ) -> Result<Self::Ok> {
-        Err(
-            ErrorKind::UnsupportedOperation("serialize_unit_variant".to_string()).into(),
-        )
+        self.serialize_unit_struct(variant)
     }
 
     fn serialize_newtype_struct<T: ?Sized + Serialize>(
@@ -260,9 +258,8 @@ where
         variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleVariant> {
-        Err(
-            ErrorKind::UnsupportedOperation("serialize_tuple_variant".to_string()).into(),
-        )
+        write!(self.writer, "<{}>", name)?;
+        Ok(Tuple::new_with_name(self, name))
     }
 
     fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap> {
@@ -558,5 +555,48 @@ mod tests {
 
         let f = Foo(5, "bar");
         assert!(to_string(&f).is_err());
+    }
+
+    #[test]
+    fn serialize_an_enum_with_a_unit_variant() {
+        #[derive(Serialize)]
+        enum Foo {
+            A, 
+        }
+
+        let f = Foo::A;
+        let should_be = "<A></A>";
+
+        let got = to_string(&f).unwrap();
+        assert_eq!(got, should_be);
+    }
+
+    #[test]
+    fn serialize_an_enum_with_a_tuple_variant_containing_primitives_is_error() {
+        #[derive(Serialize)]
+        enum Foo {
+            A(u32, &'static str), 
+        }
+
+        let f = Foo::A(5, "bar");
+        assert!(to_string(&f).is_err());
+    }
+
+    #[test]
+    fn you_can_serialize_a_tuple_variant_containing_no_primitives() {
+        #[derive(Serialize)]
+        enum Foo {
+            A(Bar, Baz), 
+        }
+        #[derive(Serialize)]
+        struct Bar;
+        #[derive(Serialize)]
+        struct Baz(u32);
+
+        let f = Foo::A(Bar, Baz(5));
+        let should_be = "<Foo><Bar></Bar><Baz>5</Baz></Foo>";
+
+        let got = to_string(&f).unwrap();
+        assert_eq!(got, should_be);
     }
 }

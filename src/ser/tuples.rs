@@ -1,5 +1,6 @@
 use std::io::Write;
-use serde::ser::{Error as SerError, Serialize, SerializeTuple, SerializeTupleStruct};
+use serde::ser::{Error as SerError, Serialize, SerializeTuple, 
+                 SerializeTupleStruct, SerializeTupleVariant};
 
 use ser::Serializer;
 use ser::helpers;
@@ -66,6 +67,26 @@ where
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
         write!(self.parent.writer, "</{}>", self.name.expect("if we're serializing a tuple struct we should have been given a name"))?;
+        Ok(())
+    }
+}
+
+impl<'w, W> SerializeTupleVariant for Tuple<'w, W>
+where
+    W: 'w + Write
+{
+    type Ok = ();
+    type Error = Error;
+
+    fn serialize_field<T>(&mut self, value: &T) -> Result<Self::Ok, Self::Error> 
+    where 
+        T: Serialize + ?Sized 
+    {
+        self.serialize_element(value)
+    }
+
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        write!(self.parent.writer, "</{}>", self.name.expect("if we're serializing a tuple variant we should have been given a name"))?;
         Ok(())
     }
 }
