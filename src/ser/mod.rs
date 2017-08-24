@@ -2,6 +2,7 @@ use std::io::Write;
 use std::fmt::Display;
 
 use serde::ser::{self, Impossible, Serialize};
+use xml::writer::{EventWriter, EmitterConfig, XmlEvent};
 
 use error::{Error, ErrorKind, Result};
 use self::var::{Map, Struct};
@@ -36,6 +37,16 @@ mod var;
 /// # }
 /// ```
 pub fn to_writer<W: Write, S: Serialize>(writer: W, value: &S) -> Result<()> {
+    let writer = EmitterConfig::new().write_document_declaration(false).create_writer(writer);
+    let mut ser = Serializer::new(writer);
+    value.serialize(&mut ser)
+}
+
+/// A convenience method for pretty serializing some object to a buffer.
+///
+/// With indent and add document declaration at the beginning of a document.
+pub fn to_pretty_writer<W: Write, S: Serialize>(writer: W, value: &S) -> Result<()> {
+    let writer = EmitterConfig::new().perform_indent(true).create_writer(writer);
     let mut ser = Serializer::new(writer);
     value.serialize(&mut ser)
 }
@@ -74,31 +85,50 @@ pub fn to_string<S: Serialize>(value: &S) -> Result<String> {
     Ok(string)
 }
 
+/// A convenience method for serializing some object to a string.
+///
+/// With indent and add document declaration at the beginning of a document.
+pub fn to_pretty_string<S: Serialize>(value: &S) -> Result<String> {
+    // Create a buffer and serialize our nodes into it
+    let mut writer = Vec::with_capacity(128);
+    to_pretty_writer(&mut writer, value)?;
+
+    // We then check that the serialized string is the same as what we expect
+    let string = String::from_utf8(writer)?;
+    Ok(string)
+}
+
 /// An XML `Serializer`.
 pub struct Serializer<W>
 where
     W: Write,
 {
-    writer: W,
+    writer: EventWriter<W>,
 }
 
 impl<W> Serializer<W>
 where
     W: Write,
 {
-    pub fn new(writer: W) -> Self {
+    pub fn new(writer: EventWriter<W>) -> Self {
         Self { writer: writer }
     }
 
-    fn write_primitive<P: Display>(&mut self, primitive: P) -> Result<()> {
-        write!(self.writer, "{}", primitive)?;
+    #[cfg(test)]
+    pub fn new_for_test(writer: W) -> Self {
+        let writer = EmitterConfig::new().write_document_declaration(false).create_writer(writer);
+        Self { writer: writer }
+    }
+
+    pub fn write_primitive<P: Display>(&mut self, primitive: P) -> Result<()> {
+        self.writer.write(XmlEvent::characters(format!("{}", primitive).as_str()))?;
         Ok(())
     }
 
-    fn write_wrapped<S: Serialize>(&mut self, tag: &str, value: S) -> Result<()> {
-        write!(self.writer, "<{}>", tag)?;
+    pub fn write_wrapped<S: Serialize>(&mut self, tag: &str, value: S) -> Result<()> {
+        self.writer.write(XmlEvent::start_element(tag))?;
         value.serialize(&mut *self)?;
-        write!(self.writer, "</{}>", tag)?;
+        self.writer.write(XmlEvent::end_element())?;
         Ok(())
     }
 }
@@ -122,9 +152,9 @@ where
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok> {
         if v {
-            write!(self.writer, "true")?;
+            self.write_primitive("true")?;
         } else {
-            write!(self.writer, "false")?;
+            self.write_primitive("false")?;
         }
 
         Ok(())
@@ -273,8 +303,8 @@ where
     }
 
     fn serialize_struct(self, name: &'static str, len: usize) -> Result<Self::SerializeStruct> {
-        write!(self.writer, "<{}>", name)?;
-        Ok(Struct::new(self, name))
+        self.writer.write(XmlEvent::start_element(name))?;
+        Ok(Struct::new(self))
     }
 
     fn serialize_struct_variant(
@@ -303,7 +333,7 @@ mod tests {
             let mut buffer = Vec::new();
 
             {
-                let mut ser = Serializer::new(&mut buffer);
+                let mut ser = Serializer::new_for_test(&mut buffer);
                 ser.serialize_bool(src).unwrap();
             }
 
@@ -317,12 +347,12 @@ mod tests {
         let mut buffer = Vec::new();
 
         {
-            let mut ser = Serializer::new(&mut buffer);
+            let mut ser = Serializer::new_for_test(&mut buffer);
             let _ = ser.serialize_struct("foo", 0).unwrap();
         }
 
         let got = String::from_utf8(buffer).unwrap();
-        assert_eq!(got, "<foo>");
+        assert_eq!(got, "<foo");
     }
 
     #[test]
@@ -330,8 +360,8 @@ mod tests {
         let mut buffer = Vec::new();
 
         {
-            let mut ser = Serializer::new(&mut buffer);
-            let mut struct_ser = Struct::new(&mut ser, "baz");
+            let mut ser = Serializer::new_for_test(&mut buffer);
+            let mut struct_ser = Struct::new(&mut ser);
             struct_ser.serialize_field("foo", "bar").unwrap();
         }
 
@@ -355,7 +385,7 @@ mod tests {
         let mut buffer = Vec::new();
 
         {
-            let mut ser = Serializer::new(&mut buffer);
+            let mut ser = Serializer::new_for_test(&mut buffer);
             bob.serialize(&mut ser).unwrap();
         }
 
@@ -369,7 +399,7 @@ mod tests {
         let mut buffer = Vec::new();
 
         {
-            let mut ser = Serializer::new(&mut buffer);
+            let mut ser = Serializer::new_for_test(&mut buffer);
             let mut map = Map::new(&mut ser);
             map.serialize_entry("name", "Bob").unwrap();
             map.serialize_entry("age", "5").unwrap();
@@ -393,7 +423,7 @@ mod tests {
         let should_be = "<Boolean>true</Boolean>";
 
         {
-            let mut ser = Serializer::new(&mut buffer);
+            let mut ser = Serializer::new_for_test(&mut buffer);
             let node = Node::Boolean(true);
             node.serialize(&mut ser).unwrap();
         }
@@ -410,7 +440,7 @@ mod tests {
         let mut buffer = Vec::new();
 
         {
-            let mut ser = Serializer::new(&mut buffer);
+            let mut ser = Serializer::new_for_test(&mut buffer);
             inputs.serialize(&mut ser).unwrap();
         }
 

@@ -1,9 +1,11 @@
 use std::io::Write;
+use std::fmt::Display;
 
-use serde::ser::{self, Serialize};
+use serde::ser::{self, Impossible, Serialize};
+use xml::writer::{XmlEvent};
 
 use ser::Serializer;
-use error::{Error, Result};
+use error::{Error, ErrorKind, Result};
 
 /// An implementation of `SerializeMap` for serializing to XML.
 pub struct Map<'w, W>
@@ -46,18 +48,145 @@ where
         key: &K,
         value: &V,
     ) -> Result<()> {
-        // TODO: Is it possible to ensure our key is never a composite type?
-        // Anything which isn't a "primitive" would lead to malformed XML here...
-        write!(self.parent.writer, "<")?;
-        key.serialize(&mut *self.parent)?;
-        write!(self.parent.writer, ">")?;
-
-        value.serialize(&mut *self.parent)?;
-
-        write!(self.parent.writer, "</")?;
-        key.serialize(&mut *self.parent)?;
-        write!(self.parent.writer, ">")?;
+        let key = key.serialize(&mut MapKeySerializer)?;
+        self.parent.write_wrapped(key.as_str(), value)?;
         Ok(())
+    }
+}
+
+pub struct MapKeySerializer;
+
+#[allow(unused_variables)]
+impl<'w> ser::Serializer for &'w mut MapKeySerializer
+{
+    type Ok = String;
+    type Error = Error;
+    type SerializeSeq = Impossible<Self::Ok, Self::Error>;
+    type SerializeTuple = Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
+    type SerializeMap = Impossible<Self::Ok, Self::Error>;
+    type SerializeStruct = Impossible<Self::Ok, Self::Error>;
+    type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
+
+    fn serialize_str(self, v: &str) -> Result<Self::Ok> {
+        Ok(v.to_string())
+    }
+
+    fn serialize_bool(self, v: bool) -> Result<Self::Ok> {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_i8(self, v: i8) -> Result<Self::Ok> {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_i16(self, v: i16) -> Result<Self::Ok> {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_i32(self, v: i32) -> Result<Self::Ok> {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_i64(self, v: i64) -> Result<Self::Ok> {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_u8(self, v: u8) -> Result<Self::Ok> {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_u16(self, v: u16) -> Result<Self::Ok> {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_u32(self, v: u32) -> Result<Self::Ok> {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_u64(self, v: u64) -> Result<Self::Ok> {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_f32(self, v: f32) -> Result<Self::Ok> {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_f64(self, v: f64) -> Result<Self::Ok> {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_char(self, v: char) -> Result<Self::Ok> {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok> {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_none(self) -> Result<Self::Ok> {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_some<T: ? Sized>(self, value: &T) -> Result<Self::Ok> where
+        T: Serialize {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_unit(self) -> Result<Self::Ok> {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_unit_struct(self, name: &'static str) -> Result<Self::Ok> {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_unit_variant(self, name: &'static str, variant_index: u32, variant: &'static str) -> Result<Self::Ok> {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_newtype_struct<T: ? Sized>(self, name: &'static str, value: &T) -> Result<Self::Ok> where
+        T: Serialize {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_newtype_variant<T: ? Sized>(self, name: &'static str, variant_index: u32, variant: &'static str, value: &T) -> Result<Self::Ok> where
+        T: Serialize {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq> {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_tuple_struct(self, name: &'static str, len: usize) -> Result<Self::SerializeTupleStruct> {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_tuple_variant(self, name: &'static str, variant_index: u32, variant: &'static str, len: usize) -> Result<Self::SerializeTupleVariant> {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap> {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_struct(self, name: &'static str, len: usize) -> Result<Self::SerializeStruct> {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn serialize_struct_variant(self, name: &'static str, variant_index: u32, variant: &'static str, len: usize) -> Result<Self::SerializeStructVariant> {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
+    }
+
+    fn collect_str<T: ? Sized>(self, value: &T) -> Result<Self::Ok> where
+        T: Display {
+        Err(ErrorKind::Custom("wrong type".to_string()).into())
     }
 }
 
@@ -67,15 +196,14 @@ where
     W: 'w + Write,
 {
     parent: &'w mut Serializer<W>,
-    name: &'w str,
 }
 
 impl<'w, W> Struct<'w, W>
 where
     W: 'w + Write,
 {
-    pub fn new(parent: &'w mut Serializer<W>, name: &'w str) -> Struct<'w, W> {
-        Struct { parent, name }
+    pub fn new(parent: &'w mut Serializer<W>) -> Struct<'w, W> {
+        Struct { parent }
     }
 }
 
@@ -91,13 +219,12 @@ where
         key: &'static str,
         value: &T,
     ) -> Result<()> {
-        write!(self.parent.writer, "<{}>", key)?;
-        value.serialize(&mut *self.parent)?;
-        write!(self.parent.writer, "</{}>", key)?;
+        self.parent.write_wrapped(key, value)?;
         Ok(())
     }
 
     fn end(self) -> Result<Self::Ok> {
-        write!(self.parent.writer, "</{}>", self.name).map_err(|e| e.into())
+        self.parent.writer.write(XmlEvent::end_element())?;
+        Ok(())
     }
 }

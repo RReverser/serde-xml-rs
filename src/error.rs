@@ -17,6 +17,7 @@ error_chain! {
         ParseFloatError(::std::num::ParseFloatError);
         ParseBoolError(::std::str::ParseBoolError);
         Syntax(::xml::reader::Error);
+        EmitterError(::xml::writer::Error);
     }
 
     errors {
