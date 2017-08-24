@@ -6,7 +6,7 @@ use serde::ser::{self, Impossible, Serialize};
 use error::{Error, ErrorKind, Result};
 use self::var::{Map, Struct};
 use self::seq::Seq;
-use self::tuples::Tuple;
+use self::tuples::{Tuple, TupleStruct};
 
 mod var;
 mod seq;
@@ -119,7 +119,7 @@ where
 
     type SerializeSeq = Seq<'w, W>;
     type SerializeTuple = Tuple<'w, W>;
-    type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
+    type SerializeTupleStruct = TupleStruct<'w, W>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
     type SerializeMap = Map<'w, W>;
     type SerializeStruct = Struct<'w, W>;
@@ -249,9 +249,8 @@ where
         name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleStruct> {
-        Err(
-            ErrorKind::UnsupportedOperation("serialize_tuple_struct".to_string()).into(),
-        )
+        write!(self.writer, "<{}>", name)?;
+        Ok(TupleStruct::new(self, name))
     }
 
     fn serialize_tuple_variant(
@@ -534,5 +533,30 @@ mod tests {
 
         let value = (5, Foo);
         assert!(to_string(&value).is_err());
+    }
+
+    #[test]
+    fn serialize_a_tuple_struct_containing_no_primitives() {
+        #[derive(Serialize)]
+        struct Foo(Bar, Baz);
+        #[derive(Serialize)]
+        struct Bar;
+        #[derive(Serialize)]
+        struct Baz(u32);
+
+        let f = Foo(Bar, Baz(5));
+        let should_be = "<Foo><Bar></Bar><Baz>5</Baz></Foo>";
+
+        let got = to_string(&f).unwrap();
+        assert_eq!(got, should_be);
+    }
+
+    #[test]
+    fn tuple_struct_cant_contain_primitives() {
+        #[derive(Serialize)]
+        struct Foo(u32, &'static str);
+
+        let f = Foo(5, "bar");
+        assert!(to_string(&f).is_err());
     }
 }
