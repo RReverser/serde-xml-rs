@@ -1,25 +1,25 @@
 use error::{ErrorKind, Error, Result};
 use serde::ser::{self, Serialize};
 
-pub struct StrSerializer {
+struct PrimitiveSerializer {
     result: String,
 }
 
-pub fn serialize<T: Serialize>(v: T) -> Result<String> {
-    let mut serializer = StrSerializer::new();
+pub fn serialize_primitive<T: Serialize>(v: T) -> Result<String> {
+    let mut serializer = PrimitiveSerializer::new();
     v.serialize(&mut serializer)?;
     Ok(serializer.result)
 }
 
-impl StrSerializer {
-    fn new() -> StrSerializer {
-        StrSerializer { result: String::new() }
+impl PrimitiveSerializer {
+    fn new() -> PrimitiveSerializer {
+        PrimitiveSerializer { result: String::new() }
     }
 }
 
-// This serializer only allows for the serialization of str. Anything else results
+// This serializer only allows for the serialization of primitives. Anything else results
 // in an error.
-impl<'a> ser::Serializer for &'a mut StrSerializer {
+impl<'a> ser::Serializer for &'a mut PrimitiveSerializer {
     type Ok = ();
 
     type Error = Error;
@@ -36,48 +36,59 @@ impl<'a> ser::Serializer for &'a mut StrSerializer {
         Err(ErrorKind::NonPrimitiveKey.into())
     }
 
-    fn serialize_i8(self, _v: i8) -> Result<Self::Ok> {
-        Err(ErrorKind::NonPrimitiveKey.into())
+    fn serialize_i8(self, v: i8) -> Result<Self::Ok> {
+        self.result = v.to_string();
+        Ok(())
     }
 
-    fn serialize_i16(self, _v: i16) -> Result<Self::Ok> {
-        Err(ErrorKind::NonPrimitiveKey.into())
+    fn serialize_i16(self, v: i16) -> Result<Self::Ok> {
+        self.result = v.to_string();
+        Ok(())
     }
 
-    fn serialize_i32(self, _v: i32) -> Result<Self::Ok> {
-        Err(ErrorKind::NonPrimitiveKey.into())
+    fn serialize_i32(self, v: i32) -> Result<Self::Ok> {
+        self.result = v.to_string();
+        Ok(())
     }
 
-    fn serialize_i64(self, _v: i64) -> Result<Self::Ok> {
-        Err(ErrorKind::NonPrimitiveKey.into())
+    fn serialize_i64(self, v: i64) -> Result<Self::Ok> {
+        self.result = v.to_string();
+        Ok(())
     }
 
-    fn serialize_u8(self, _v: u8) -> Result<Self::Ok> {
-        Err(ErrorKind::NonPrimitiveKey.into())
+    fn serialize_u8(self, v: u8) -> Result<Self::Ok> {
+        self.result = v.to_string();
+        Ok(())
     }
 
-    fn serialize_u16(self, _v: u16) -> Result<Self::Ok> {
-        Err(ErrorKind::NonPrimitiveKey.into())
+    fn serialize_u16(self, v: u16) -> Result<Self::Ok> {
+        self.result = v.to_string();
+        Ok(())
     }
 
-    fn serialize_u32(self, _v: u32) -> Result<Self::Ok> {
-        Err(ErrorKind::NonPrimitiveKey.into())
+    fn serialize_u32(self, v: u32) -> Result<Self::Ok> {
+        self.result = v.to_string();
+        Ok(())
     }
 
-    fn serialize_u64(self, _v: u64) -> Result<Self::Ok> {
-        Err(ErrorKind::NonPrimitiveKey.into())
+    fn serialize_u64(self, v: u64) -> Result<Self::Ok> {
+        self.result = v.to_string();
+        Ok(())
     }
 
-    fn serialize_f32(self, _v: f32) -> Result<Self::Ok> {
-        Err(ErrorKind::NonPrimitiveKey.into())
+    fn serialize_f32(self, v: f32) -> Result<Self::Ok> {
+        self.result = v.to_string();
+        Ok(())
     }
 
-    fn serialize_f64(self, _v: f64) -> Result<Self::Ok> {
-        Err(ErrorKind::NonPrimitiveKey.into())
+    fn serialize_f64(self, v: f64) -> Result<Self::Ok> {
+        self.result = v.to_string();
+        Ok(())
     }
 
-    fn serialize_char(self, _v: char) -> Result<Self::Ok> {
-        Err(ErrorKind::NonPrimitiveKey.into())
+    fn serialize_char(self, v: char) -> Result<Self::Ok> {
+        self.result = v.to_string();
+        Ok(())
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok> {
@@ -186,7 +197,7 @@ impl<'a> ser::Serializer for &'a mut StrSerializer {
     }
 }
 
-impl<'a> ser::SerializeSeq for &'a mut StrSerializer {
+impl<'a> ser::SerializeSeq for &'a mut PrimitiveSerializer {
     type Ok = ();
     type Error = Error;
 
@@ -204,7 +215,7 @@ impl<'a> ser::SerializeSeq for &'a mut StrSerializer {
 }
 
 // Same thing but for tuples.
-impl<'a> ser::SerializeTuple for &'a mut StrSerializer {
+impl<'a> ser::SerializeTuple for &'a mut PrimitiveSerializer {
     type Ok = ();
     type Error = Error;
 
@@ -220,7 +231,7 @@ impl<'a> ser::SerializeTuple for &'a mut StrSerializer {
     }
 }
 
-impl<'a> ser::SerializeTupleStruct for &'a mut StrSerializer {
+impl<'a> ser::SerializeTupleStruct for &'a mut PrimitiveSerializer {
     type Ok = ();
     type Error = Error;
 
@@ -236,7 +247,7 @@ impl<'a> ser::SerializeTupleStruct for &'a mut StrSerializer {
     }
 }
 
-impl<'a> ser::SerializeTupleVariant for &'a mut StrSerializer {
+impl<'a> ser::SerializeTupleVariant for &'a mut PrimitiveSerializer {
     type Ok = ();
     type Error = Error;
 
@@ -252,7 +263,7 @@ impl<'a> ser::SerializeTupleVariant for &'a mut StrSerializer {
     }
 }
 
-impl<'a> ser::SerializeMap for &'a mut StrSerializer {
+impl<'a> ser::SerializeMap for &'a mut PrimitiveSerializer {
     type Ok = ();
     type Error = Error;
 
@@ -275,7 +286,7 @@ impl<'a> ser::SerializeMap for &'a mut StrSerializer {
     }
 }
 
-impl<'a> ser::SerializeStruct for &'a mut StrSerializer {
+impl<'a> ser::SerializeStruct for &'a mut PrimitiveSerializer {
     type Ok = ();
     type Error = Error;
 
@@ -291,7 +302,7 @@ impl<'a> ser::SerializeStruct for &'a mut StrSerializer {
     }
 }
 
-impl<'a> ser::SerializeStructVariant for &'a mut StrSerializer {
+impl<'a> ser::SerializeStructVariant for &'a mut PrimitiveSerializer {
     type Ok = ();
     type Error = Error;
 

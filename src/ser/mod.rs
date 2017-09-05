@@ -5,7 +5,7 @@ use serde::ser::{self, Serialize};
 
 use std::io::Write;
 
-mod str_serializer;
+mod primitive_serializer;
 
 /// A convenience method for serializing some object to a buffer.
 ///
@@ -257,10 +257,10 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         value.serialize(self)
     }
 
-    // Represent E::N(a) as <N>a</N>, wrap it in the struct name if serializing a sequence.
+    // Represent E::N(a) as <N>a</N>
     fn serialize_newtype_variant<T>(
         self,
-        name: &'static str,
+        _name: &'static str,
         _variant_index: u32,
         variant: &'static str,
         value: &T,
@@ -268,16 +268,10 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     where
         T: ?Sized + Serialize,
     {
-        self.serialize_item_name_if_wrapped(name);
-
         let variant_element = xmltree::Element::new(variant);
         self.current_path.push(variant_element);
-
         value.serialize(&mut *self)?;
-
         self.pop_current_path();
-        self.pop_current_path_if_wrapped();
-
         Ok(())
     }
 
@@ -335,14 +329,14 @@ impl<'a> ser::Serializer for &'a mut Serializer {
 
     fn serialize_struct_variant(
         self,
-        name: &'static str,
+        _name: &'static str,
         _variant_index: u32,
         variant: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeStructVariant> {
-        let name_element = xmltree::Element::new(name);
+        let name_element = xmltree::Element::new(variant);
         self.current_path.push(name_element);
-        variant.serialize(&mut *self)?;
+        // variant.serialize(&mut *self)?;
         Ok(self)
     }
 }
@@ -437,7 +431,7 @@ impl<'a> ser::SerializeMap for &'a mut Serializer {
     where
         T: ?Sized + Serialize,
     {
-        let name = str_serializer::serialize(key)?;
+        let name = primitive_serializer::serialize_primitive(key)?;
         let key_element = xmltree::Element::new(&name);
         self.current_path.push(key_element);
         Ok(())
@@ -485,11 +479,15 @@ impl<'a> ser::SerializeStructVariant for &'a mut Serializer {
     type Ok = ();
     type Error = Error;
 
-    fn serialize_field<T>(&mut self, _key: &'static str, value: &T) -> Result<Self::Ok>
+    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<Self::Ok>
     where
         T: ?Sized + Serialize,
     {
-        value.serialize(&mut **self)
+        let element = xmltree::Element::new(key);
+        self.current_path.push(element);
+        value.serialize(&mut **self)?;
+        self.pop_current_path();
+        Ok(())
     }
 
     fn end(self) -> Result<Self::Ok> {
