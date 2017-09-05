@@ -52,7 +52,7 @@ pub mod ser;
 
 pub use error::{Error, ErrorKind};
 pub use xml::reader::{EventReader, ParserConfig};
-pub use ser::{to_string, to_writer, Serializer};
+pub use ser::{to_string, to_string_with_namespaces, to_writer, Serializer};
 pub use de::{from_reader, from_str, Deserializer};
 
 use serde::ser::SerializeMap;

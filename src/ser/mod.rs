@@ -4,6 +4,7 @@ use error::{Error, ErrorKind, Result};
 use serde::ser::{self, Serialize};
 
 use std::io::Write;
+use std::collections::BTreeMap;
 
 mod primitive_serializer;
 
@@ -64,15 +65,53 @@ pub fn to_writer<W: Write, S: Serialize>(writer: W, value: &S) -> Result<()> {
 /// println!("{}", serialized);
 /// # }
 /// ```
-pub fn to_string<T>(value: &T) -> Result<String>
-where
-    T: Serialize,
-{
+pub fn to_string<S: Serialize>(value: &S) -> Result<String> {
+    let mut buffer = Vec::new();
+    to_writer(&mut buffer, value)?;
+    let result = String::from_utf8(buffer).unwrap();
+    Ok(result)
+}
+
+/// A convenience method for serializing some object to a string, with
+/// xml namespaces.
+///
+/// # Examples
+///
+/// ```rust
+/// # #[macro_use]
+/// # extern crate serde_derive;
+/// # extern crate serde;
+/// # extern crate serde_xml_rs;
+/// # use serde_xml_rs::to_string_with_namespaces;
+/// # use std::collections::BTreeMap;
+/// #[derive(Serialize)]
+/// struct Person {
+///   name: String,
+///   age: u32,
+/// }
+///
+/// # fn main() {
+/// let mut namespaces = BTreeMap::new();
+/// namespaces.insert("".to_string(), "http://example.com/schema.xsd".to_string());
+/// let joe = Person {name: "Joe".to_string(), age: 42};
+/// // An empty key indicates a global namespace
+/// let serialized = to_string_with_namespaces(&joe, namespaces).unwrap();
+/// println!("{}", serialized);
+/// # }
+/// ```
+pub fn to_string_with_namespaces<S: Serialize>(
+    value: &S,
+    namespaces: BTreeMap<String, String>,
+) -> Result<String> {
     let mut serializer = Serializer::new();
     value.serialize(&mut serializer)?;
 
     let mut buffer = Vec::new();
-    let ref tree = serializer.current_path[0];
+    let ref mut tree = serializer.current_path[0];
+
+    let namespaces = xmltree::Namespace(namespaces);
+    tree.namespaces = Some(namespaces);
+
     tree.write(&mut buffer);
     let result = String::from_utf8(buffer).unwrap();
     Ok(result)
