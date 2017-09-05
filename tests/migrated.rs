@@ -448,7 +448,7 @@ fn test_amoskvin() {
     init_logger();
     #[derive(Debug, Deserialize, PartialEq, Serialize)]
     struct Root {
-        foo: Vec<Foo>,
+        foos: Vec<Foo>,
     }
 
     #[derive(Debug, Deserialize, PartialEq, Serialize)]
@@ -461,18 +461,18 @@ fn test_amoskvin() {
             (
                 "
 <root>
-<foo>
-<foo>
- <a>Hello</a>
- <b>World</b>
-</foo>
-<foo>
- <a>Hi</a>
-</foo>
-</foo>
+  <foos>
+  <foo>
+   <a>Hello</a>
+   <b>World</b>
+  </foo>
+  <foo>
+   <a>Hi</a>
+  </foo>
+  </foos>
 </root>",
                 Root {
-                    foo: vec![
+                    foos: vec![
                         Foo {
                             a: "Hello".to_string(),
                             b: Some("World".to_string()),
