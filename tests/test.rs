@@ -1,10 +1,13 @@
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_xml_rs;
+extern crate serde;
 
 extern crate log;
 
-use serde_xml_rs::from_str;
+use serde_xml_rs::{from_str, to_string, wrap_primitives};
+
+use serde::ser::Serializer;
 
 fn init_logger() {
     use log::{LogLevel, LogMetadata, LogRecord};
@@ -59,8 +62,10 @@ fn multiple_roots_attributes() {
     init_logger();
 
     let s = r##"
+    <list>
         <item name="hello" source="world.rs" />
         <item name="hello" source="world.rs" />
+    </list>
     "##;
 
     let item: Vec<Item> = from_str(s).unwrap();
@@ -105,7 +110,6 @@ fn simple_struct_from_attribute_and_child() {
 struct Project {
     name: String,
 
-    #[serde(rename = "item", default)]
     items: Vec<Item>,
 }
 
@@ -115,8 +119,10 @@ fn nested_collection() {
 
     let s = r##"
         <project name="my_project">
-            <item name="hello1" source="world1.rs" />
-            <item name="hello2" source="world2.rs" />
+            <items>
+                <Item name="hello1" source="world1.rs" />
+                <Item name="hello2" source="world2.rs" />
+            </items>
         </project>
     "##;
 
@@ -159,9 +165,11 @@ fn collection_of_enums() {
 
     let s = r##"
         <enums>
-            <A>test</A>
-            <B name="hello" flag="t" />
-            <C />
+            <items>
+                <A>test</A>
+                <B name="hello" flag="t" />
+                <C />
+            </items>
         </enums>
     "##;
 
@@ -180,4 +188,191 @@ fn collection_of_enums() {
             ],
         }
     );
+}
+
+
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename = "wrapper")]
+struct Wrapper {
+    pub groups: Vec<Group>,
+}
+
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
+pub enum Type {
+    Simple,
+    Complex,
+}
+
+// Helper function for serializing Vec<String> as <identity>element<identity>
+fn serialize_with_item_name<S>(item: &Vec<String>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    wrap_primitives(item, serializer, "identity")
+}
+
+
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename = "group")]
+pub struct Group {
+    pub name: String,
+
+    #[serde(rename = "type")]
+    pub _type: Type,
+
+    #[serde(serialize_with = "serialize_with_item_name")]
+    pub members: Vec<String>,
+
+    pub active: bool,
+}
+
+
+#[test]
+fn deserialize_with_wrapped_list() {
+    let s = r##"
+        <wrapper>
+          <groups>
+            <group>
+              <name>my group</name>
+              <type>Simple</type>
+              <members>
+                <identity>bill</identity>
+                <identity>bob</identity>
+                <identity>dave</identity>
+              </members>
+              <active>true</active>
+            </group>
+          </groups>
+        </wrapper>
+    "##;
+
+    let wrapper: Wrapper = from_str(s).unwrap();
+
+    assert_eq!(
+        wrapper,
+        Wrapper {
+            groups: vec![
+                Group {
+                    name: "my group".to_string(),
+                    _type: Type::Simple,
+                    members: vec!["bill".to_string(), "bob".to_string(), "dave".to_string()],
+                    active: true,
+                },
+            ],
+        }
+    );
+}
+
+#[test]
+fn serialize_with_wrapped_list() {
+    let s = "\
+    <?xml version=\"1.0\" encoding=\"UTF-8\"?>\
+        <wrapper>\
+          <groups>\
+            <group>\
+              <name>my group</name>\
+              <type>Simple</type>\
+              <members>\
+                <identity>bill</identity>\
+                <identity>bob</identity>\
+                <identity>dave</identity>\
+              </members>\
+              <active>true</active>\
+            </group>\
+          </groups>\
+        </wrapper>\
+    ";
+
+    let group = Wrapper {
+        groups: vec![
+            Group {
+                name: "my group".to_string(),
+                _type: Type::Simple,
+                members: vec!["bill".to_string(), "bob".to_string(), "dave".to_string()],
+                active: true,
+            },
+        ],
+    };
+
+    assert_eq!(to_string(&group).unwrap(), s);
+}
+
+#[test]
+fn serialize_with_empty_list() {
+    let s = "\
+    <?xml version=\"1.0\" encoding=\"UTF-8\"?>\
+        <wrapper>\
+          <groups>\
+            <group>\
+              <name>my group</name>\
+              <type>Complex</type>\
+              <members />\
+              <active>true</active>\
+            </group>\
+          </groups>\
+        </wrapper>\
+    ";
+
+    let group = Wrapper {
+        groups: vec![
+            Group {
+                name: "my group".to_string(),
+                _type: Type::Complex,
+                members: vec![],
+                active: true,
+            },
+        ],
+    };
+
+    assert_eq!(to_string(&group).unwrap(), s);
+}
+
+#[test]
+fn deserialize_with_empty_list() {
+    let s = r##"
+        <wrapper>
+          <groups>
+            <group>
+              <name>my group</name>
+              <type>Complex</type>
+              <members/>
+              <active>true</active>
+            </group>
+          </groups>
+        </wrapper>
+    "##;
+
+    let wrapper: Wrapper = from_str(s).unwrap();
+
+    assert_eq!(
+        wrapper,
+        Wrapper {
+            groups: vec![
+                Group {
+                    name: "my group".to_string(),
+                    _type: Type::Complex,
+                    members: vec![],
+                    active: true,
+                },
+            ],
+        }
+    );
+}
+
+#[test]
+fn deserialize_with_badly_formed_list() {
+    let s = r##"
+        <wrapper>
+          <groups>
+            <group>
+              <name>my group</name>
+              <members>THIS IS MALFORMED</members>
+              <active>true</active>
+            </group>
+          </groups>
+        </wrapper>
+    "##;
+
+    let wrapper: Result<Wrapper, _> = from_str(s);
+    assert!(wrapper.is_err());
 }

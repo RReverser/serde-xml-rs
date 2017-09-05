@@ -54,12 +54,12 @@ impl<'de, 'a, R: 'a + Read> de::VariantAccess<'de> for VariantAccess<'a, R> {
     fn unit_variant(self) -> Result<()> {
         self.de.unset_map_value();
         match self.de.next()? {
-            XmlEvent::StartElement {
-                name, attributes, ..
-            } => if attributes.is_empty() {
-                self.de.expect_end_element(name)
-            } else {
-                Err(de::Error::invalid_length(attributes.len(), &"0"))
+            XmlEvent::StartElement { name, attributes, .. } => {
+                if attributes.is_empty() {
+                    self.de.expect_end_element(name)
+                } else {
+                    Err(de::Error::invalid_length(attributes.len(), &"0"))
+                }
             },
             XmlEvent::Characters(_) => Ok(()),
             _ => unreachable!(),

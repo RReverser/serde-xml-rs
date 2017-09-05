@@ -4,7 +4,7 @@ use serde::de;
 use xml::reader::XmlEvent;
 
 use de::Deserializer;
-use error::{Error, Result};
+use error::{Error, ErrorKind, Result};
 
 pub struct SeqAccess<'a, R: 'a + Read> {
     de: &'a mut Deserializer<R>,
@@ -13,19 +13,30 @@ pub struct SeqAccess<'a, R: 'a + Read> {
 }
 
 impl<'a, R: 'a + Read> SeqAccess<'a, R> {
-    pub fn new(de: &'a mut Deserializer<R>, max_size: Option<usize>) -> Self {
-        let expected_name = if de.unset_map_value() {
-            debug_expect!(de.peek(), Ok(&XmlEvent::StartElement { ref name, .. }) => {
-                Some(name.local_name.clone())
-            })
+    pub fn new(de: &'a mut Deserializer<R>, max_size: Option<usize>) -> Result<Self> {
+        let expected_name: Result<Option<String>> = if de.unset_map_value() {
+            match de.peek() {
+                Ok(&XmlEvent::StartElement { ref name, .. }) => Ok(Some(name.local_name.clone())),
+                Ok(&XmlEvent::EndElement { .. }) => Ok(None),
+                other => {
+                    Err(
+                        ErrorKind::Custom(format!(
+                            "Expected StartElement or EndElement, found {:?}",
+                            other
+                        )).into(),
+                    )
+                },
+            }
+
         } else {
-            None
+            Ok(None)
         };
-        SeqAccess {
+        let expected_name = expected_name?;
+        Ok(SeqAccess {
             de: de,
             max_size: max_size,
             expected_name: expected_name,
-        }
+        })
     }
 }
 

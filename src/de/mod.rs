@@ -272,7 +272,7 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
     }
 
     fn deserialize_tuple<V: de::Visitor<'de>>(self, len: usize, visitor: V) -> Result<V::Value> {
-        visitor.visit_seq(SeqAccess::new(self, Some(len)))
+        visitor.visit_seq(SeqAccess::new(self, Some(len))?)
     }
 
     fn deserialize_enum<V: de::Visitor<'de>>(
@@ -299,7 +299,11 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
     }
 
     fn deserialize_seq<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        visitor.visit_seq(SeqAccess::new(self, None))
+        expect!(self.next(), Ok(XmlEvent::StartElement { name, .. }) => {
+                let result = visitor.visit_seq(SeqAccess::new(self, None)?);
+                self.expect_end_element(name)?;
+                result
+        })
     }
 
     fn deserialize_map<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
