@@ -1,4 +1,4 @@
-use error::{ErrorKind, Error, Result};
+use error::{Error, ErrorKind, Result};
 use serde::ser::{self, Serialize};
 
 struct PrimitiveSerializer {
@@ -13,7 +13,9 @@ pub fn serialize_primitive<T: Serialize>(v: T) -> Result<String> {
 
 impl PrimitiveSerializer {
     fn new() -> PrimitiveSerializer {
-        PrimitiveSerializer { result: String::new() }
+        PrimitiveSerializer {
+            result: String::new(),
+        }
     }
 }
 

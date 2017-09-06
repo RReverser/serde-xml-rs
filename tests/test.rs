@@ -1,7 +1,8 @@
+
+extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_xml_rs;
-extern crate serde;
 
 extern crate log;
 
@@ -155,8 +156,7 @@ enum MyEnum {
 
 #[derive(Debug, Deserialize, PartialEq)]
 struct MyEnums {
-    #[serde(rename = "$value")]
-    items: Vec<MyEnum>,
+    #[serde(rename = "$value")] items: Vec<MyEnum>,
 }
 
 #[test]
@@ -217,11 +217,9 @@ where
 pub struct Group {
     pub name: String,
 
-    #[serde(rename = "type")]
-    pub _type: Type,
+    #[serde(rename = "type")] pub _type: Type,
 
-    #[serde(serialize_with = "serialize_with_item_name")]
-    pub members: Vec<String>,
+    #[serde(serialize_with = "serialize_with_item_name")] pub members: Vec<String>,
 
     pub active: bool,
 }
@@ -266,22 +264,22 @@ fn deserialize_with_wrapped_list() {
 #[test]
 fn serialize_with_wrapped_list() {
     let s = "\
-    <?xml version=\"1.0\" encoding=\"UTF-8\"?>\
-        <wrapper>\
-          <groups>\
-            <group>\
-              <name>my group</name>\
-              <type>Simple</type>\
-              <members>\
-                <identity>bill</identity>\
-                <identity>bob</identity>\
-                <identity>dave</identity>\
-              </members>\
-              <active>true</active>\
-            </group>\
-          </groups>\
-        </wrapper>\
-    ";
+             <?xml version=\"1.0\" encoding=\"UTF-8\"?>\
+             <wrapper>\
+             <groups>\
+             <group>\
+             <name>my group</name>\
+             <type>Simple</type>\
+             <members>\
+             <identity>bill</identity>\
+             <identity>bob</identity>\
+             <identity>dave</identity>\
+             </members>\
+             <active>true</active>\
+             </group>\
+             </groups>\
+             </wrapper>\
+             ";
 
     let group = Wrapper {
         groups: vec![
@@ -300,18 +298,18 @@ fn serialize_with_wrapped_list() {
 #[test]
 fn serialize_with_empty_list() {
     let s = "\
-    <?xml version=\"1.0\" encoding=\"UTF-8\"?>\
-        <wrapper>\
-          <groups>\
-            <group>\
-              <name>my group</name>\
-              <type>Complex</type>\
-              <members />\
-              <active>true</active>\
-            </group>\
-          </groups>\
-        </wrapper>\
-    ";
+             <?xml version=\"1.0\" encoding=\"UTF-8\"?>\
+             <wrapper>\
+             <groups>\
+             <group>\
+             <name>my group</name>\
+             <type>Complex</type>\
+             <members />\
+             <active>true</active>\
+             </group>\
+             </groups>\
+             </wrapper>\
+             ";
 
     let group = Wrapper {
         groups: vec![

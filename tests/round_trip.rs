@@ -1,7 +1,8 @@
+
+extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_xml_rs;
-extern crate serde;
 
 use serde::ser::Serializer;
 use serde_xml_rs::{from_str, to_string, wrap_primitives};
@@ -31,14 +32,14 @@ where
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 struct Nodes {
-    #[serde(serialize_with = "wrap_in_item")]
-    items: Vec<Node>,
+    #[serde(serialize_with = "wrap_in_item")] items: Vec<Node>,
 }
 
 
 #[test]
 fn basic_struct() {
-    let src = r#"<?xml version="1.0" encoding="UTF-8"?><Item><name>Banana</name><source>Store</source></Item>"#;
+    let src = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\
+               <Item><name>Banana</name><source>Store</source></Item>";
     let should_be = Item {
         name: "Banana".to_string(),
         source: "Store".to_string(),
@@ -67,16 +68,16 @@ fn round_trip_list_of_enums() {
     };
 
     let should_be = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\
-        <Nodes>\
-            <items>\
-                <item><Boolean>true</Boolean></item>\
-                <item><Identifier>\
-                    <value>foo</value>\
-                    <index>5</index>\
-                </Identifier></item>\
-                <item>EOF</item>\
-            </items>\
-        </Nodes>";
+                     <Nodes>\
+                     <items>\
+                     <item><Boolean>true</Boolean></item>\
+                     <item><Identifier>\
+                     <value>foo</value>\
+                     <index>5</index>\
+                     </Identifier></item>\
+                     <item>EOF</item>\
+                     </items>\
+                     </Nodes>";
 
     let serialized_nodes = to_string(&nodes).unwrap();
     assert_eq!(serialized_nodes, should_be);

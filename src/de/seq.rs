@@ -18,16 +18,13 @@ impl<'a, R: 'a + Read> SeqAccess<'a, R> {
             match de.peek() {
                 Ok(&XmlEvent::StartElement { ref name, .. }) => Ok(Some(name.local_name.clone())),
                 Ok(&XmlEvent::EndElement { .. }) => Ok(None),
-                other => {
-                    Err(
-                        ErrorKind::Custom(format!(
-                            "Expected StartElement or EndElement, found {:?}",
-                            other
-                        )).into(),
-                    )
-                },
+                other => Err(
+                    ErrorKind::Custom(format!(
+                        "Expected StartElement or EndElement, found {:?}",
+                        other
+                    )).into(),
+                ),
             }
-
         } else {
             Ok(None)
         };

@@ -249,9 +249,9 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
         if let XmlEvent::StartElement { .. } = *self.peek()? {
             self.set_map_value()
         }
-        self.read_inner_value::<V, V::Value, _>(
-            |this| expect!(this.peek()?, &XmlEvent::EndElement { .. } => visitor.visit_unit()),
-        )
+        self.read_inner_value::<V, V::Value, _>(|this| {
+            expect!(this.peek()?, &XmlEvent::EndElement { .. } => visitor.visit_unit())
+        })
     }
 
     fn deserialize_unit_struct<V: de::Visitor<'de>>(
