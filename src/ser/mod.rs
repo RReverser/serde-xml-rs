@@ -103,7 +103,6 @@ where
     }
 }
 
-
 #[allow(unused_variables)]
 impl<'w, W> ser::Serializer for &'w mut Serializer<W>
 where
@@ -112,7 +111,7 @@ where
     type Ok = ();
     type Error = Error;
 
-    type SerializeSeq = Impossible<Self::Ok, Self::Error>;
+    type SerializeSeq = Self;
     type SerializeTuple = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
@@ -234,10 +233,7 @@ where
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq> {
-        // TODO: Figure out how to constrain the things written to only be composites
-        Err(
-            ErrorKind::UnsupportedOperation("serialize_seq".to_string()).into(),
-        )
+        Ok(self)
     }
 
     fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
@@ -288,6 +284,24 @@ where
     }
 }
 
+impl<'a, W> ser::SerializeSeq for &'a mut Serializer<W>
+where
+    W: Write,
+{
+    type Ok = ();
+    type Error = Error;
+
+    fn serialize_element<T>(&mut self, value: &T) -> ::std::result::Result<(), Error>
+    where
+        T: ?Sized + Serialize,
+    {
+        value.serialize(&mut **self)
+    }
+
+    fn end(self) -> ::std::result::Result<(), Error> {
+        Ok(())
+    }
+}
 
 #[cfg(test)]
 mod tests {

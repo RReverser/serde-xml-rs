@@ -41,6 +41,24 @@ fn basic_struct() {
     assert_eq!(src, reserialized_item);
 }
 
+#[test]
+fn repeated_basic_struct() {
+    let src = r#"<Item><name>Banana</name><source>Store</source></Item><Item><name>Split</name><source>Store</source></Item>"#;
+    let should_be = vec![Item {
+        name: "Banana".to_string(),
+        source: "Store".to_string(),
+    }, Item {
+        name: "Split".to_string(),
+        source: "Store".to_string(),
+    }];
+
+    let items: Vec<Item> = from_str(src).unwrap();
+    assert_eq!(items, should_be);
+
+    let reserialized_item = to_string(&items).unwrap();
+    assert_eq!(src, reserialized_item);
+}
+
 
 #[test]
 #[ignore]
