@@ -196,7 +196,7 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
     type Error = Error;
 
     forward_to_deserialize_any! {
-        newtype_struct identifier
+         identifier
     }
 
     fn deserialize_struct<V: de::Visitor<'de>>(
@@ -215,6 +215,13 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
             self.expect_end_element(name)?;
             Ok(map_value)
         })
+    }
+
+    fn deserialize_newtype_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value>
+    where
+        V: de::Visitor<'de>,
+    {
+        visitor.visit_newtype_struct(self)
     }
 
     deserialize_type!(deserialize_i8 => visit_i8);
@@ -249,9 +256,9 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
         if let XmlEvent::StartElement { .. } = *self.peek()? {
             self.set_map_value()
         }
-        self.read_inner_value::<V, V::Value, _>(|this| {
-            expect!(this.peek()?, &XmlEvent::EndElement { .. } => visitor.visit_unit())
-        })
+        self.read_inner_value::<V, V::Value, _>(
+            |this| expect!(this.peek()?, &XmlEvent::EndElement { .. } => visitor.visit_unit()),
+        )
     }
 
     fn deserialize_unit_struct<V: de::Visitor<'de>>(

@@ -219,11 +219,56 @@ pub struct Group {
 
     #[serde(rename = "type")] pub _type: Type,
 
-    #[serde(serialize_with = "serialize_with_item_name")] pub members: Vec<String>,
-
+    #[serde(serialize_with = "serialize_with_item_name")] pub members: MemberList,
     pub active: bool,
 }
 
+impl ::std::convert::From<MemberList> for Vec<String> {
+    fn from(x: MemberList) -> Self {
+        x.0
+    }
+}
+
+impl ::std::ops::Deref for MemberList {
+    type Target = Vec<String>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl serde::ser::Serialize for MemberList {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serialize_with_item_name(&self.0, serializer)
+    }
+}
+
+#[serde(rename = "members")]
+#[derive(Debug, Deserialize, PartialEq)]
+pub struct MemberList(Vec<String>);
+
+#[test]
+fn deserialize_newtype_list() {
+    let s = "\
+             <?xml version=\"1.0\" encoding=\"UTF-8\"?>\
+             <members>\
+             <identity>bill</identity>\
+             <identity>bob</identity>\
+             <identity>dave</identity>\
+             </members>\
+             ";
+
+    let members: MemberList = from_str(s).unwrap();
+    let member_list = MemberList(vec![
+        "bill".to_string(),
+        "bob".to_string(),
+        "dave".to_string(),
+    ]);
+
+    assert_eq!(members, member_list);
+}
 
 #[test]
 fn deserialize_with_wrapped_list() {
@@ -253,7 +298,11 @@ fn deserialize_with_wrapped_list() {
                 Group {
                     name: "my group".to_string(),
                     _type: Type::Simple,
-                    members: vec!["bill".to_string(), "bob".to_string(), "dave".to_string()],
+                    members: MemberList(vec![
+                        "bill".to_string(),
+                        "bob".to_string(),
+                        "dave".to_string(),
+                    ]),
                     active: true,
                 },
             ],
@@ -286,7 +335,11 @@ fn serialize_with_wrapped_list() {
             Group {
                 name: "my group".to_string(),
                 _type: Type::Simple,
-                members: vec!["bill".to_string(), "bob".to_string(), "dave".to_string()],
+                members: MemberList(vec![
+                    "bill".to_string(),
+                    "bob".to_string(),
+                    "dave".to_string(),
+                ]),
                 active: true,
             },
         ],
@@ -316,7 +369,7 @@ fn serialize_with_empty_list() {
             Group {
                 name: "my group".to_string(),
                 _type: Type::Complex,
-                members: vec![],
+                members: MemberList(vec![]),
                 active: true,
             },
         ],
@@ -349,7 +402,7 @@ fn deserialize_with_empty_list() {
                 Group {
                     name: "my group".to_string(),
                     _type: Type::Complex,
-                    members: vec![],
+                    members: MemberList(vec![]),
                     active: true,
                 },
             ],
