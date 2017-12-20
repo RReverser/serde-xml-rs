@@ -42,6 +42,18 @@ fn it_works() {
 
 Alternatively, you can use `serde_xml_rs::Deserializer` to create a deserializer from a preconfigured [`xml_rs::EventReader`](https://netvl.github.io/xml-rs/xml/reader/struct.EventReader.html).
 
+## Parsing the "value" of a tag
+
+If you have an input of the form `<foo abc="xyz">bar</foo>`, and you want to get at the`bar`, you can use the special name `$value`:
+
+```rust
+struct Foo {
+  pub abc String,
+  #[serde(rename = "$value")]
+  pub body String,
+}
+```
+
 ## Parsed representations
 
 Deserializer tries to be as intuitive as possible.
