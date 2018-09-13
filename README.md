@@ -48,9 +48,9 @@ If you have an input of the form `<foo abc="xyz">bar</foo>`, and you want to get
 
 ```rust
 struct Foo {
-  pub abc String,
-  #[serde(rename = "$value")]
-  pub body String,
+    pub abc: String,
+    #[serde(rename = "$value")]
+    pub body: String,
 }
 ```
 
