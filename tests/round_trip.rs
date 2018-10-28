@@ -1,9 +1,10 @@
 #[macro_use]
 extern crate serde_derive;
+extern crate serde;
 extern crate serde_xml_rs;
 
-use serde_xml_rs::{from_str, to_string};
-
+use serde::Deserialize;
+use serde_xml_rs::{from_str, to_string, EventReader, ParserConfig};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 struct Item {
@@ -76,4 +77,34 @@ fn round_trip_list_of_enums() {
     // as the original
     let deserialized_nodes: Nodes = from_str(serialized_nodes.as_str()).unwrap();
     assert_eq!(deserialized_nodes, nodes);
+}
+
+#[test]
+fn whitespace_preserving_config() {
+    // Test a configuration which does not clip whitespace from tags
+
+    let src = r#"
+    <Item>
+        <name>  space banana  </name>
+        <source>   fantasy costco   </source>
+    </Item>"#;
+
+    let item_should_be = Item {
+        name: "  space banana  ".to_string(),
+        source: "   fantasy costco   ".to_string(),
+    };
+    let config = ParserConfig::new()
+        .trim_whitespace(false)
+        .whitespace_to_characters(false);
+    let mut deserializer =
+        serde_xml_rs::Deserializer::new(EventReader::new_with_config(src.as_bytes(), config));
+
+    let item = Item::deserialize(&mut deserializer).unwrap();
+    assert_eq!(item, item_should_be);
+
+    // Space outside values is not preserved.
+    let serialized_should_be =
+        "<Item><name>  space banana  </name><source>   fantasy costco   </source></Item>";
+    let reserialized_item = to_string(&item).unwrap();
+    assert_eq!(reserialized_item, serialized_should_be);
 }
