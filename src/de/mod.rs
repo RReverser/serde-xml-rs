@@ -312,9 +312,21 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
     }
 
     fn deserialize_option<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        match *self.peek()? {
-            XmlEvent::EndElement { .. } => visitor.visit_none(),
-            _ => visitor.visit_some(self),
+        let is_none = match *self.peek()? {
+            XmlEvent::EndElement { .. } => true,
+
+            // Recognise `nil="true"` attribute to mean that no value
+            // is present.
+            XmlEvent::StartElement { ref attributes, .. } => attributes.iter()
+                .any(|attr| attr.name.local_name == "nil" && attr.value == "true"),
+
+            _ => false,
+        };
+
+        if is_none {
+            visitor.visit_none()
+        } else {
+            visitor.visit_some(self)
         }
     }
 

@@ -424,6 +424,7 @@ fn test_option() {
         ("<a></a>", Some("".to_string())),
         ("<a> </a>", Some("".to_string())),
         ("<a>42</a>", Some("42".to_string())),
+        ("<a nil=\"true\" />", None),
     ]);
 }
 
