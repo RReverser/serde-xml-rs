@@ -340,11 +340,14 @@ fn test_parse_u64() {
 
 #[test]
 fn test_parse_bool() {
+    init_logger();
     test_parse_ok(&[
         ("<bla>true</bla>", true),
         ("<bla>false</bla>", false),
         ("<bla> true </bla>", true),
         ("<bla> false </bla>", false),
+        ("<bla>1</bla>", true),
+        ("<bla>0</bla>", false),
     ]);
 }
 
