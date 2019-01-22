@@ -6,13 +6,15 @@ xml-rs based deserializer for Serde (compatible with 0.9+)
 
 ## Usage
 
-Use `serde_xml_rs::deserialize(...)` on any type that implements [`std::io::Read`](https://doc.rust-lang.org/std/io/trait.Read.html) as following:
+Use `serde_xml_rs::from_reader(...)` on any type that implements [`std::io::Read`](https://doc.rust-lang.org/std/io/trait.Read.html) as following:
 
 ```rust
-#[macro_use] extern crate serde_derive;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde;
 extern crate serde_xml_rs;
 
-use serde_xml_rs::deserialize;
+use serde_xml_rs::from_reader;
 
 #[derive(Debug, Deserialize)]
 struct Item {
@@ -28,14 +30,13 @@ struct Project {
     pub items: Vec<Item>
 }
 
-#[test]
-fn it_works() {
+fn main() {
     let s = r##"
         <Project name="my_project">
             <Item name="hello" source="world.rs" />
         </Project>
     "##;
-    let project: Project = deserialize(s.as_bytes()).unwrap();
+    let project: Project = from_reader(s.as_bytes()).unwrap();
     println!("{:#?}", project);
 }
 ```
@@ -46,7 +47,7 @@ Alternatively, you can use `serde_xml_rs::Deserializer` to create a deserializer
 
 If you have an input of the form `<foo abc="xyz">bar</foo>`, and you want to get at the`bar`, you can use the special name `$value`:
 
-```rust
+```rust,ignore
 struct Foo {
     pub abc: String,
     #[serde(rename = "$value")]
