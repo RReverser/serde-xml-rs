@@ -24,6 +24,10 @@ error_chain! {
             description("unexpected token")
             display("Expected token {}, found {}", token, found)
         }
+        InvalidValue(expected: String, found: String) {
+            description("invalid value")
+            display("Expected value {}, found {}", expected, found)
+        }
         Custom(field: String) {
             description("other error")
             display("custom: '{}'", field)
