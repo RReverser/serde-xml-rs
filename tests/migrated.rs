@@ -91,6 +91,18 @@ where
     }
 }
 
+fn test_parse_invalid<'de, 'a, T>(errors: &[&'a str])
+where
+    T: PartialEq + Debug + ser::Serialize + de::Deserialize<'de>,
+{
+    for &s in errors {
+        assert!(match from_str::<T>(s) {
+            Err(Error(ErrorKind::InvalidValue(_, _), _)) => true,
+            _ => false,
+        });
+    }
+}
+
 #[test]
 fn test_namespaces() {
     init_logger();
@@ -349,6 +361,8 @@ fn test_parse_bool() {
         ("<bla>1</bla>", true),
         ("<bla>0</bla>", false),
     ]);
+    
+    test_parse_invalid::<bool>(&["<bla>verum</bla>"]);
 }
 
 #[test]
