@@ -2,6 +2,7 @@
 extern crate serde_derive;
 
 extern crate log;
+extern crate simple_logger;
 
 extern crate serde;
 extern crate serde_xml_rs;
@@ -10,29 +11,6 @@ use std::fmt::Debug;
 
 use serde_xml_rs::{from_str, Error, ErrorKind};
 use serde::{de, ser};
-
-fn init_logger() {
-    use log::{LogLevel, LogMetadata, LogRecord};
-
-    struct SimpleLogger;
-
-    impl log::Log for SimpleLogger {
-        fn enabled(&self, metadata: &LogMetadata) -> bool {
-            metadata.level() <= LogLevel::Debug
-        }
-
-        fn log(&self, record: &LogRecord) {
-            if self.enabled(record.metadata()) {
-                println!("{} - {}", record.level(), record.args());
-            }
-        }
-    }
-
-    let _ = log::set_logger(|max_log_level| {
-        max_log_level.set(log::LogLevelFilter::Debug);
-        Box::new(SimpleLogger)
-    });
-}
 
 #[derive(PartialEq, Debug, Serialize, Deserialize)]
 enum Animal {
@@ -93,7 +71,7 @@ where
 
 #[test]
 fn test_namespaces() {
-    init_logger();
+    let _ = simple_logger::init();
     #[derive(PartialEq, Serialize, Deserialize, Debug)]
     struct Envelope {
         subject: String,
@@ -116,7 +94,7 @@ fn test_namespaces() {
 #[test]
 #[ignore] // FIXME
 fn test_doctype() {
-    init_logger();
+    let _ = simple_logger::init();
     #[derive(PartialEq, Serialize, Deserialize, Debug)]
     struct Envelope {
         subject: String,
@@ -163,7 +141,7 @@ fn test_doctype() {
 
 #[test]
 fn test_doctype_fail() {
-    init_logger();
+    let _ = simple_logger::init();
     #[derive(PartialEq, Serialize, Deserialize, Debug)]
     struct Envelope {
         subject: String,
@@ -223,7 +201,7 @@ fn test_forwarded_namespace() {
 
 #[test]
 fn test_parse_string() {
-    init_logger();
+    let _ = simple_logger::init();
 
     test_parse_ok(&[
         (
@@ -245,7 +223,7 @@ fn test_parse_string() {
 #[test]
 #[ignore] // FIXME
 fn test_parse_string_not_trim() {
-    init_logger();
+    let _ = simple_logger::init();
 
     test_parse_ok(&[("<bla>     </bla>", "     ".to_string())]);
 }
@@ -254,7 +232,7 @@ fn test_parse_string_not_trim() {
 #[ignore] // FIXME
 fn test_parse_enum() {
     use self::Animal::*;
-    init_logger();
+    let _ = simple_logger::init();
 
     test_parse_ok(&[
         ("<Animal xsi:type=\"Dog\"/>", Dog),
@@ -319,7 +297,7 @@ fn test_parse_enum() {
 
 #[test]
 fn test_parse_i64() {
-    init_logger();
+    let _ = simple_logger::init();
     test_parse_ok(&[
         ("<bla>0</bla>", 0),
         ("<bla>-2</bla>", -2),
@@ -330,7 +308,7 @@ fn test_parse_i64() {
 
 #[test]
 fn test_parse_u64() {
-    init_logger();
+    let _ = simple_logger::init();
     test_parse_ok(&[
         ("<bla>0</bla>", 0),
         ("<bla>1234</bla>", 1234),
@@ -350,13 +328,13 @@ fn test_parse_bool() {
 
 #[test]
 fn test_parse_unit() {
-    init_logger();
+    let _ = simple_logger::init();
     test_parse_ok(&[("<bla/>", ())]);
 }
 
 #[test]
 fn test_parse_f64() {
-    init_logger();
+    let _ = simple_logger::init();
     test_parse_ok(&[
         ("<bla>3.0</bla>", 3.0f64),
         ("<bla>3.1</bla>", 3.1),
@@ -371,7 +349,7 @@ fn test_parse_f64() {
 
 #[test]
 fn test_parse_struct() {
-    init_logger();
+    let _ = simple_logger::init();
 
     test_parse_ok(&[
         (
@@ -418,7 +396,7 @@ fn test_parse_struct() {
 
 #[test]
 fn test_option() {
-    init_logger();
+    let _ = simple_logger::init();
     test_parse_ok(&[
         ("<a/>", Some("".to_string())),
         ("<a></a>", Some("".to_string())),
@@ -430,13 +408,13 @@ fn test_option() {
 #[test]
 #[ignore] // FIXME
 fn test_option_not_trim() {
-    init_logger();
+    let _ = simple_logger::init();
     test_parse_ok(&[("<a> </a>", Some(" ".to_string()))]);
 }
 
 #[test]
 fn test_amoskvin() {
-    init_logger();
+    let _ = simple_logger::init();
     #[derive(Debug, Deserialize, PartialEq, Serialize)]
     struct Root {
         foo: Vec<Foo>,
@@ -478,7 +456,7 @@ fn test_amoskvin() {
 #[test]
 #[ignore] // FIXME
 fn test_nicolai86() {
-    init_logger();
+    let _ = simple_logger::init();
     #[derive(Serialize, Deserialize, PartialEq, Debug)]
     struct TheSender {
         name: String,
@@ -569,7 +547,7 @@ fn test_nicolai86() {
 
 #[test]
 fn test_hugo_duncan2() {
-    init_logger();
+    let _ = simple_logger::init();
     let s = r#"
     <?xml version="1.0" encoding="UTF-8"?>
     <DescribeVpcsResponse xmlns="http://ec2.amazonaws.com/doc/2014-10-01/">
@@ -628,7 +606,7 @@ fn test_hugo_duncan2() {
 
 #[test]
 fn test_hugo_duncan() {
-    init_logger();
+    let _ = simple_logger::init();
     let s = "
         <?xml version=\"1.0\" encoding=\"UTF-8\"?>
         <DescribeInstancesResponse xmlns=\"http://ec2.amazonaws.com/doc/2014-10-01/\">
@@ -655,7 +633,7 @@ fn test_hugo_duncan() {
 
 #[test]
 fn test_parse_xml_value() {
-    init_logger();
+    let _ = simple_logger::init();
     #[derive(Eq, Debug, PartialEq, Deserialize, Serialize)]
     struct Test {
         #[serde(rename = "$value")]
@@ -674,7 +652,7 @@ fn test_parse_xml_value() {
 #[test]
 #[ignore] // FIXME
 fn test_parse_complexstruct() {
-    init_logger();
+    let _ = simple_logger::init();
 
     test_parse_ok(&[
         (
@@ -718,7 +696,7 @@ fn test_parse_complexstruct() {
 
 #[test]
 fn test_parse_attributes() {
-    init_logger();
+    let _ = simple_logger::init();
 
     #[derive(PartialEq, Debug, Serialize, Deserialize)]
     struct A {
@@ -810,7 +788,7 @@ fn test_parse_attributes() {
 #[test]
 #[ignore] // FIXME
 fn test_parse_hierarchies() {
-    init_logger();
+    let _ = simple_logger::init();
     #[derive(PartialEq, Debug, Serialize, Deserialize)]
     struct A {
         a1: String,
@@ -964,7 +942,7 @@ fn test_things_qc_found() {
 
 #[test]
 fn futile() {
-    init_logger();
+    let _ = simple_logger::init();
     #[derive(Eq, PartialEq, Debug, Serialize, Deserialize)]
     struct Object {
         id: u8,
@@ -1011,10 +989,9 @@ fn futile() {
     ]);
 }
 
-
 #[test]
 fn futile2() {
-    init_logger();
+    let _ = simple_logger::init();
     #[derive(Eq, PartialEq, Debug, Serialize, Deserialize)]
     struct Null;
 
