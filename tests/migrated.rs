@@ -330,7 +330,7 @@ fn test_parse_u64() {
 
 #[test]
 fn test_parse_bool() {
-    init_logger();
+    let _ = simple_logger::init();
     test_parse_ok(&[
         ("<bla>true</bla>", true),
         ("<bla>false</bla>", false),
