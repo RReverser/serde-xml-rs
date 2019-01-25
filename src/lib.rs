@@ -32,9 +32,12 @@
 //! }
 //! ```
 
-
+#[cfg(feature = "default")]
 #[macro_use]
 extern crate error_chain;
+#[cfg(feature = "legacy-support")]
+#[macro_use]
+extern crate error_chain_no_backtrace as error_chain;
 #[macro_use]
 extern crate log;
 #[macro_use]
@@ -50,7 +53,7 @@ mod error;
 pub mod de;
 pub mod ser;
 
-pub use error::{Error, ErrorKind};
-pub use xml::reader::{EventReader, ParserConfig};
-pub use ser::{to_string, to_writer, Serializer};
 pub use de::{from_reader, from_str, Deserializer};
+pub use error::{Error, ErrorKind};
+pub use ser::{to_string, to_writer, Serializer};
+pub use xml::reader::{EventReader, ParserConfig};
