@@ -5,6 +5,7 @@ rust:
   - nightly
 script:
   - cargo clean -p serde-xml-rs
+  - rm -f target/debug/deps/libserde_xml_rs*.rlib
   - cargo build --verbose
   - cargo test --verbose
 cache: cargo
