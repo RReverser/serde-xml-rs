@@ -4,6 +4,8 @@ rust:
   - beta
   - nightly
 cache: cargo
+before_cache:
+  - cargo clean -p serde-xml-rs
 env:
   global:
     - RUST_BACKTRACE=1
