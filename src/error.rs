@@ -32,6 +32,10 @@ error_chain! {
             description("unsupported operation")
             display("unsupported operation: '{}'", operation)
         }
+        NonPrimitiveKey {
+            description("Map key has non-primitive value")
+            display("Map key has non-primitive value")
+        }
     }
 }
 

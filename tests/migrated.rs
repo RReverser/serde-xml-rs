@@ -156,7 +156,6 @@ fn test_doctype_fail() {
             <Envelope>
             <subject>Reference rates</subject>
             </Envelope>"#,
-
         r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <Envelope>
@@ -175,8 +174,7 @@ fn test_doctype_fail() {
 fn test_forwarded_namespace() {
     #[derive(PartialEq, Serialize, Deserialize, Debug)]
     struct Graphml {
-        #[serde(rename = "xsi:schemaLocation")]
-        schema_location: String,
+        #[serde(rename = "xsi:schemaLocation")] schema_location: String,
     }
     let s = r#"
     <?xml version="1.0" encoding="UTF-8"?>
@@ -417,7 +415,7 @@ fn test_amoskvin() {
     let _ = simple_logger::init();
     #[derive(Debug, Deserialize, PartialEq, Serialize)]
     struct Root {
-        foo: Vec<Foo>,
+        foos: Vec<Foo>,
     }
 
     #[derive(Debug, Deserialize, PartialEq, Serialize)]
@@ -429,16 +427,18 @@ fn test_amoskvin() {
         (
             "
 <root>
-<foo>
- <a>Hello</a>
- <b>World</b>
-</foo>
-<foo>
- <a>Hi</a>
-</foo>
+  <foos>
+  <foo>
+   <a>Hello</a>
+   <b>World</b>
+  </foo>
+  <foo>
+   <a>Hi</a>
+  </foo>
+  </foos>
 </root>",
             Root {
-                foo: vec![
+                foos: vec![
                     Foo {
                         a: "Hello".to_string(),
                         b: Some("World".to_string()),
@@ -553,52 +553,36 @@ fn test_hugo_duncan2() {
     <DescribeVpcsResponse xmlns="http://ec2.amazonaws.com/doc/2014-10-01/">
         <requestId>8d521e9a-509e-4ef6-bbb7-9f1ac0d49cd1</requestId>
         <vpcSet>
-            <item>
+            <Vpc>
                 <vpcId>vpc-ba0d18d8</vpcId>
                 <state>available</state>
-            </item>
+            </Vpc>
         </vpcSet>
     </DescribeVpcsResponse>"#;
     #[derive(PartialEq, Debug, Serialize, Deserialize)]
     #[allow(non_snake_case)]
-    struct VpcSet {
+    struct Vpc {
         vpcId: String,
         state: String,
     }
 
-    #[derive(PartialEq, Debug, Serialize)]
-    struct ItemVec<T>(Vec<T>);
-
-    impl<'de, T: de::Deserialize<'de>> de::Deserialize<'de> for ItemVec<T> {
-        fn deserialize<D>(deserializer: D) -> Result<ItemVec<T>, D::Error>
-        where
-            D: de::Deserializer<'de>,
-        {
-            #[derive(PartialEq, Debug, Serialize, Deserialize)]
-            struct Helper<U> {
-                item: Vec<U>,
-            }
-            let h: Helper<_> = try!(de::Deserialize::deserialize(deserializer));
-            Ok(ItemVec(h.item))
-        }
-    }
     #[derive(PartialEq, Debug, Serialize, Deserialize)]
     #[allow(non_snake_case)]
     struct DescribeVpcsResponse {
         requestId: String,
-        vpcSet: ItemVec<VpcSet>,
+        vpcSet: Vec<Vpc>,
     }
     test_parse_ok(&[
         (
             s,
             DescribeVpcsResponse {
                 requestId: "8d521e9a-509e-4ef6-bbb7-9f1ac0d49cd1".to_string(),
-                vpcSet: ItemVec(vec![
-                    VpcSet {
+                vpcSet: vec![
+                    Vpc {
                         vpcId: "vpc-ba0d18d8".to_string(),
                         state: "available".to_string(),
                     },
-                ]),
+                ],
             },
         ),
     ]);
@@ -636,8 +620,7 @@ fn test_parse_xml_value() {
     let _ = simple_logger::init();
     #[derive(Eq, Debug, PartialEq, Deserialize, Serialize)]
     struct Test {
-        #[serde(rename = "$value")]
-        myval: String,
+        #[serde(rename = "$value")] myval: String,
     }
     test_parse_ok(&[
         (
@@ -701,8 +684,7 @@ fn test_parse_attributes() {
     #[derive(PartialEq, Debug, Serialize, Deserialize)]
     struct A {
         a1: String,
-        #[serde(rename = "$value")]
-        a2: i32,
+        #[serde(rename = "$value")] a2: i32,
     }
 
     test_parse_ok(&[
@@ -782,7 +764,6 @@ fn test_parse_attributes() {
             },
         ),
     ]);
-
 }
 
 #[test]
@@ -904,7 +885,9 @@ fn unknown_field() {
                  <c>5</c>
                </b>
                <other>
-                 <d>6</d>
+                <Other>
+                    <d>6</d>
+                </Other>
                </other>
             </a>",
             A {
