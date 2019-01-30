@@ -3,9 +3,11 @@ rust:
   - stable
   - beta
   - nightly
-cache: cargo
-before_cache:
+script:
   - cargo clean -p serde-xml-rs
+  - cargo build --verbose
+  - cargo test --verbose
+cache: cargo
 env:
   global:
     - RUST_BACKTRACE=1
