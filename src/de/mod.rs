@@ -1,13 +1,13 @@
 use std::io::Read;
 
 use serde::de;
-use xml::reader::{EventReader, ParserConfig, XmlEvent};
 use xml::name::OwnedName;
+use xml::reader::{EventReader, ParserConfig, XmlEvent};
 
-use error::{Error, ErrorKind, Result};
 use self::map::MapAccess;
 use self::seq::SeqAccess;
 use self::var::EnumAccess;
+use error::{Error, ErrorKind, Result};
 
 mod map;
 mod seq;
@@ -35,7 +35,6 @@ mod var;
 pub fn from_str<'de, T: de::Deserialize<'de>>(s: &str) -> Result<T> {
     from_reader(s.as_bytes())
 }
-
 
 /// A convenience method for deserialize some object from a reader.
 ///
@@ -101,9 +100,9 @@ impl<'de, R: Read> Deserializer<R> {
     fn inner_next(&mut self) -> Result<XmlEvent> {
         loop {
             match self.reader.next().map_err(ErrorKind::Syntax)? {
-                XmlEvent::StartDocument { .. } |
-                XmlEvent::ProcessingInstruction { .. } |
-                XmlEvent::Comment(_) => { /* skip */ },
+                XmlEvent::StartDocument { .. }
+                | XmlEvent::ProcessingInstruction { .. }
+                | XmlEvent::Comment(_) => { /* skip */ },
                 other => return Ok(other),
             }
         }
@@ -206,10 +205,11 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
         visitor: V,
     ) -> Result<V::Value> {
         self.unset_map_value();
-        expect!(self.next()?, XmlEvent::StartElement { name, attributes, .. } => {
+        expect!(self.next()?, XmlEvent::StartElement { name, attributes, namespace, .. } => {
             let map_value = visitor.visit_map(MapAccess::new(
                 self,
                 attributes,
+                namespace,
                 fields.contains(&"$value")
             ))?;
             self.expect_end_element(name)?;
@@ -304,8 +304,8 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
 
     fn deserialize_map<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
         self.unset_map_value();
-        expect!(self.next()?, XmlEvent::StartElement { name, attributes, .. } => {
-            let map_value = visitor.visit_map(MapAccess::new(self, attributes, false))?;
+        expect!(self.next()?, XmlEvent::StartElement { name, attributes, namespace, } => {
+            let map_value = visitor.visit_map(MapAccess::new(self, attributes, namespace, false))?;
             self.expect_end_element(name)?;
             Ok(map_value)
         })

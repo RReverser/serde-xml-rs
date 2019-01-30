@@ -9,8 +9,8 @@ extern crate serde_xml_rs;
 
 use std::fmt::Debug;
 
-use serde_xml_rs::{from_str, Error, ErrorKind};
 use serde::{de, ser};
+use serde_xml_rs::{from_str, Error, ErrorKind};
 
 #[derive(PartialEq, Debug, Serialize, Deserialize)]
 enum Animal {
@@ -81,14 +81,35 @@ fn test_namespaces() {
     <gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
         <gesmes:subject>Reference rates</gesmes:subject>
     </gesmes:Envelope>"#;
-    test_parse_ok(&[
-        (
-            s,
-            Envelope {
-                subject: "Reference rates".to_string(),
-            },
-        ),
-    ]);
+    test_parse_ok(&[(
+        s,
+        Envelope {
+            subject: "Reference rates".to_string(),
+        },
+    )]);
+}
+
+#[test]
+fn test_parse_namespace() {
+    let _ = simple_logger::init();
+    #[derive(PartialEq, Serialize, Deserialize, Debug)]
+    struct Envelope {
+        subject: String,
+        #[serde(rename = "$namespace")]
+        ns: String,
+    }
+    let s = r#"
+    <?xml version="1.0" encoding="UTF-8"?>
+    <gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
+        <gesmes:subject>Reference rates</gesmes:subject>
+    </gesmes:Envelope>"#;
+    test_parse_ok(&[(
+        s,
+        Envelope {
+            subject: "Reference rates".to_string(),
+            ns: "Namespace({\"\": \"http://www.ecb.int/vocabulary/2002-08-01/eurofxref\", \"gesmes\": \"http://www.gesmes.org/xml/2002-08-01\", \"xml\": \"http://www.w3.org/XML/1998/namespace\", \"xmlns\": \"http://www.w3.org/2000/xmlns/\"})".to_string(),
+        },
+    )]);
 }
 
 #[test]
@@ -156,7 +177,6 @@ fn test_doctype_fail() {
             <Envelope>
             <subject>Reference rates</subject>
             </Envelope>"#,
-
         r#"
             <?xml version="1.0" encoding="UTF-8"?>
             <Envelope>
@@ -187,16 +207,14 @@ fn test_forwarded_namespace() {
 
 
     </graphml>"#;
-    test_parse_ok(&[
-        (
-            s,
-            Graphml {
-                schema_location: "http://graphml.graphdrawing.org/xmlns
+    test_parse_ok(&[(
+        s,
+        Graphml {
+            schema_location: "http://graphml.graphdrawing.org/xmlns
         http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd"
-                    .to_string(),
-            },
-        ),
-    ]);
+                .to_string(),
+        },
+    )]);
 }
 
 #[test]
@@ -425,9 +443,8 @@ fn test_amoskvin() {
         a: String,
         b: Option<String>,
     }
-    test_parse_ok(&[
-        (
-            "
+    test_parse_ok(&[(
+        "
 <root>
 <foo>
  <a>Hello</a>
@@ -437,20 +454,19 @@ fn test_amoskvin() {
  <a>Hi</a>
 </foo>
 </root>",
-            Root {
-                foo: vec![
-                    Foo {
-                        a: "Hello".to_string(),
-                        b: Some("World".to_string()),
-                    },
-                    Foo {
-                        a: "Hi".to_string(),
-                        b: None,
-                    },
-                ],
-            },
-        ),
-    ]);
+        Root {
+            foo: vec![
+                Foo {
+                    a: "Hello".to_string(),
+                    b: Some("World".to_string()),
+                },
+                Foo {
+                    a: "Hi".to_string(),
+                    b: None,
+                },
+            ],
+        },
+    )]);
 }
 
 #[test]
@@ -588,20 +604,16 @@ fn test_hugo_duncan2() {
         requestId: String,
         vpcSet: ItemVec<VpcSet>,
     }
-    test_parse_ok(&[
-        (
-            s,
-            DescribeVpcsResponse {
-                requestId: "8d521e9a-509e-4ef6-bbb7-9f1ac0d49cd1".to_string(),
-                vpcSet: ItemVec(vec![
-                    VpcSet {
-                        vpcId: "vpc-ba0d18d8".to_string(),
-                        state: "available".to_string(),
-                    },
-                ]),
-            },
-        ),
-    ]);
+    test_parse_ok(&[(
+        s,
+        DescribeVpcsResponse {
+            requestId: "8d521e9a-509e-4ef6-bbb7-9f1ac0d49cd1".to_string(),
+            vpcSet: ItemVec(vec![VpcSet {
+                vpcId: "vpc-ba0d18d8".to_string(),
+                state: "available".to_string(),
+            }]),
+        },
+    )]);
 }
 
 #[test]
@@ -620,15 +632,13 @@ fn test_hugo_duncan() {
         requestId: String,
         reservationSet: (),
     }
-    test_parse_ok(&[
-        (
-            s,
-            DescribeInstancesResponse {
-                requestId: "9474f558-10a5-42e8-84d1-f9ee181fe943".to_string(),
-                reservationSet: (),
-            },
-        ),
-    ]);
+    test_parse_ok(&[(
+        s,
+        DescribeInstancesResponse {
+            requestId: "9474f558-10a5-42e8-84d1-f9ee181fe943".to_string(),
+            reservationSet: (),
+        },
+    )]);
 }
 
 #[test]
@@ -639,14 +649,12 @@ fn test_parse_xml_value() {
         #[serde(rename = "$value")]
         myval: String,
     }
-    test_parse_ok(&[
-        (
-            "<Test>abc</Test>",
-            Test {
-                myval: "abc".to_string(),
-            },
-        ),
-    ]);
+    test_parse_ok(&[(
+        "<Test>abc</Test>",
+        Test {
+            myval: "abc".to_string(),
+        },
+    )]);
 }
 
 #[test]
@@ -705,15 +713,13 @@ fn test_parse_attributes() {
         a2: i32,
     }
 
-    test_parse_ok(&[
-        (
-            r#"<A a1="What is the answer to the ultimate question?">42</A>"#,
-            A {
-                a1: "What is the answer to the ultimate question?".to_string(),
-                a2: 42,
-            },
-        ),
-    ]);
+    test_parse_ok(&[(
+        r#"<A a1="What is the answer to the ultimate question?">42</A>"#,
+        A {
+            a1: "What is the answer to the ultimate question?".to_string(),
+            a2: 42,
+        },
+    )]);
 
     #[derive(PartialEq, Debug, Serialize, Deserialize)]
     struct B {
@@ -721,15 +727,13 @@ fn test_parse_attributes() {
         b2: i32,
     }
 
-    test_parse_ok(&[
-        (
-            r#"<B b1="What is the answer to the ultimate question?" b2="42"/>"#,
-            B {
-                b1: "What is the answer to the ultimate question?".to_string(),
-                b2: 42,
-            },
-        ),
-    ]);
+    test_parse_ok(&[(
+        r#"<B b1="What is the answer to the ultimate question?" b2="42"/>"#,
+        B {
+            b1: "What is the answer to the ultimate question?".to_string(),
+            b2: 42,
+        },
+    )]);
 
     #[derive(PartialEq, Debug, Serialize, Deserialize)]
     struct C {
@@ -771,18 +775,15 @@ fn test_parse_attributes() {
     struct D {
         d1: Option<A>,
     }
-    test_parse_ok(&[
-        (
-            r#"<D><d1 a1="What is the answer to the ultimate question?">42</d1></D>"#,
-            D {
-                d1: Some(A {
-                    a1: "What is the answer to the ultimate question?".to_string(),
-                    a2: 42,
-                }),
-            },
-        ),
-    ]);
-
+    test_parse_ok(&[(
+        r#"<D><d1 a1="What is the answer to the ultimate question?">42</d1></D>"#,
+        D {
+            d1: Some(A {
+                a1: "What is the answer to the ultimate question?".to_string(),
+                a2: 42,
+            }),
+        },
+    )]);
 }
 
 #[test]
@@ -885,7 +886,6 @@ fn test_parse_hierarchies() {
     ]);
 }
 
-
 #[test]
 fn unknown_field() {
     #[derive(Deserialize, Debug, PartialEq, Eq, Serialize)]
@@ -897,9 +897,8 @@ fn unknown_field() {
     struct Other {
         d: i32,
     }
-    test_parse_ok(&[
-        (
-            "<a>
+    test_parse_ok(&[(
+        "<a>
                <b>
                  <c>5</c>
                </b>
@@ -907,11 +906,10 @@ fn unknown_field() {
                  <d>6</d>
                </other>
             </a>",
-            A {
-                other: vec![Other { d: 6 }],
-            },
-        ),
-    ]);
+        A {
+            other: vec![Other { d: 6 }],
+        },
+    )]);
 }
 
 // #[test]
@@ -926,13 +924,11 @@ fn unknown_field() {
 
 #[test]
 fn test_parse_unfinished() {
-    test_parse_err::<Simple>(&[
-        "<Simple>
+    test_parse_err::<Simple>(&["<Simple>
             <c>abc</c>
             <a/>
             <b>2</b>
-            <d/>",
-    ]);
+            <d/>"]);
 }
 
 #[test]

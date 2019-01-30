@@ -2,25 +2,33 @@ use std::io::Read;
 
 use serde::de::{self, IntoDeserializer};
 use xml::attribute::OwnedAttribute;
+use xml::namespace::Namespace;
 use xml::reader::XmlEvent;
 
-use Deserializer;
 use error::{Error, Result};
+use Deserializer;
 
 pub struct MapAccess<'a, R: 'a + Read> {
-    attrs: ::std::vec::IntoIter<OwnedAttribute>,
-    next_value: Option<String>,
     de: &'a mut Deserializer<R>,
+    ns: Option<Namespace>,
+    attrs: ::std::vec::IntoIter<OwnedAttribute>,
     inner_value: bool,
+    next_value: Option<String>,
 }
 
 impl<'a, R: 'a + Read> MapAccess<'a, R> {
-    pub fn new(de: &'a mut Deserializer<R>, attrs: Vec<OwnedAttribute>, inner_value: bool) -> Self {
+    pub fn new(
+        de: &'a mut Deserializer<R>,
+        attrs: Vec<OwnedAttribute>,
+        ns: Namespace,
+        inner_value: bool,
+    ) -> Self {
         MapAccess {
-            attrs: attrs.into_iter(),
-            next_value: None,
             de: de,
+            ns: Some(ns),
+            attrs: attrs.into_iter(),
             inner_value: inner_value,
+            next_value: None,
         }
     }
 }
@@ -29,6 +37,10 @@ impl<'de, 'a, R: 'a + Read> de::MapAccess<'de> for MapAccess<'a, R> {
     type Error = Error;
 
     fn next_key_seed<K: de::DeserializeSeed<'de>>(&mut self, seed: K) -> Result<Option<K::Value>> {
+        if let Some(ns) = self.ns.take() {
+            self.next_value = Some(format!("{:?}", ns));
+            return seed.deserialize("$namespace".into_deserializer()).map(Some);
+        }
         debug_assert_eq!(self.next_value, None);
         match self.attrs.next() {
             Some(OwnedAttribute { name, value }) => {
@@ -37,13 +49,16 @@ impl<'de, 'a, R: 'a + Read> de::MapAccess<'de> for MapAccess<'a, R> {
                     .map(Some)
             },
             None => match *self.de.peek()? {
-                XmlEvent::StartElement { ref name, .. } => seed.deserialize(
-                    if !self.inner_value {
-                        name.local_name.as_str()
-                    } else {
-                        "$value"
-                    }.into_deserializer(),
-                ).map(Some),
+                XmlEvent::StartElement { ref name, .. } => seed
+                    .deserialize(
+                        if !self.inner_value {
+                            name.local_name.as_str()
+                        } else {
+                            "$value"
+                        }
+                        .into_deserializer(),
+                    )
+                    .map(Some),
                 XmlEvent::Characters(_) => seed.deserialize("$value".into_deserializer()).map(Some),
                 _ => Ok(None),
             },
