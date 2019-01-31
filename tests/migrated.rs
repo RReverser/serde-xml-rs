@@ -6,11 +6,14 @@ extern crate simple_logger;
 
 extern crate serde;
 extern crate serde_xml_rs;
+extern crate xml;
 
 use std::fmt::Debug;
 
 use serde::{de, ser};
 use serde_xml_rs::{from_str, Error, ErrorKind};
+use std::collections::BTreeMap;
+use xml::namespace::Namespace;
 
 #[derive(PartialEq, Debug, Serialize, Deserialize)]
 enum Animal {
@@ -46,6 +49,8 @@ where
 {
     for &(s, ref value) in errors {
         let v: T = from_str(s).unwrap();
+        println!("{:#?}", v);
+        println!("{:#?}", value);
         assert_eq!(v, *value);
 
         // // Make sure we can deserialize into an `Element`.
@@ -92,11 +97,17 @@ fn test_namespaces() {
 #[test]
 fn test_parse_namespace() {
     let _ = simple_logger::init();
+
+    #[derive(Serialize, Deserialize)]
+    #[serde(remote = "Namespace")]
+    pub struct LocalNamespace(pub BTreeMap<String, String>);
+
     #[derive(PartialEq, Serialize, Deserialize, Debug)]
     struct Envelope {
         subject: String,
         #[serde(rename = "$namespace")]
-        ns: String,
+        #[serde(with = "LocalNamespace")]
+        ns: Namespace,
     }
     let s = r#"
     <?xml version="1.0" encoding="UTF-8"?>
@@ -107,7 +118,7 @@ fn test_parse_namespace() {
         s,
         Envelope {
             subject: "Reference rates".to_string(),
-            ns: "Namespace({\"\": \"http://www.ecb.int/vocabulary/2002-08-01/eurofxref\", \"gesmes\": \"http://www.gesmes.org/xml/2002-08-01\", \"xml\": \"http://www.w3.org/XML/1998/namespace\", \"xmlns\": \"http://www.w3.org/2000/xmlns/\"})".to_string(),
+            ns: Namespace::empty(),
         },
     )]);
 }
