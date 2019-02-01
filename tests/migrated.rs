@@ -49,8 +49,6 @@ where
 {
     for &(s, ref value) in errors {
         let v: T = from_str(s).unwrap();
-        println!("{:#?}", v);
-        println!("{:#?}", value);
         assert_eq!(v, *value);
 
         // // Make sure we can deserialize into an `Element`.
@@ -114,11 +112,16 @@ fn test_parse_namespace() {
     <gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
         <gesmes:subject>Reference rates</gesmes:subject>
     </gesmes:Envelope>"#;
+    let mut ns = Namespace::empty();
+    ns.put("", "http://www.ecb.int/vocabulary/2002-08-01/eurofxref");
+    ns.put("gesmes", "http://www.gesmes.org/xml/2002-08-01");
+    ns.put("xml", "http://www.w3.org/XML/1998/namespace");
+    ns.put("xmlns", "http://www.w3.org/2000/xmlns/");
     test_parse_ok(&[(
         s,
         Envelope {
             subject: "Reference rates".to_string(),
-            ns: Namespace::empty(),
+            ns: ns,
         },
     )]);
 }
