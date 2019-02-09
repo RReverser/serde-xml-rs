@@ -22,9 +22,9 @@ impl<'a, R: 'a + Read> SeqAccess<'a, R> {
             None
         };
         SeqAccess {
-            de: de,
-            max_size: max_size,
-            expected_name: expected_name,
+            de,
+            max_size,
+            expected_name,
         }
     }
 }
@@ -49,9 +49,9 @@ impl<'de, 'a, R: 'a + Read> de::SeqAccess<'de> for SeqAccess<'a, R> {
             (&XmlEvent::StartElement { ref name, .. }, Some(expected_name)) => {
                 &name.local_name == expected_name
             },
-            (&XmlEvent::EndElement { .. }, None) |
-            (_, Some(_)) |
-            (&XmlEvent::EndDocument { .. }, _) => false,
+            (&XmlEvent::EndElement { .. }, None)
+            | (_, Some(_))
+            | (&XmlEvent::EndDocument { .. }, _) => false,
             (_, None) => true,
         };
         if more {

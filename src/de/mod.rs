@@ -70,7 +70,7 @@ impl<'de, R: Read> Deserializer<R> {
     pub fn new(reader: EventReader<R>) -> Self {
         Deserializer {
             depth: 0,
-            reader: reader,
+            reader,
             peeked: None,
             is_map_value: false,
         }
@@ -176,7 +176,7 @@ impl<'de, R: Read> Deserializer<R> {
             }
 
             expect!(this.next()?, XmlEvent::Characters(s) => {
-                return Ok(s)
+                Ok(s)
             })
         })
     }
@@ -206,11 +206,16 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
     ) -> Result<V::Value> {
         self.unset_map_value();
         expect!(self.next()?, XmlEvent::StartElement { name, attributes, namespace, .. } => {
+            let namespace = if fields.contains(&"$xmlns") {
+                Some(namespace)
+            } else {
+                None
+            };
             let map_value = visitor.visit_map(MapAccess::new(
                 self,
                 attributes,
                 namespace,
-                fields.contains(&"$value")
+                fields.contains(&"$value"),
             ))?;
             self.expect_end_element(name)?;
             Ok(map_value)
@@ -304,8 +309,8 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
 
     fn deserialize_map<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
         self.unset_map_value();
-        expect!(self.next()?, XmlEvent::StartElement { name, attributes, namespace, } => {
-            let map_value = visitor.visit_map(MapAccess::new(self, attributes, namespace, false))?;
+        expect!(self.next()?, XmlEvent::StartElement { name, attributes, namespace } => {
+            let map_value = visitor.visit_map(MapAccess::new(self, attributes, None, false))?;
             self.expect_end_element(name)?;
             Ok(map_value)
         })

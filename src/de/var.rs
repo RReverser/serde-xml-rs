@@ -13,7 +13,7 @@ pub struct EnumAccess<'a, R: 'a + Read> {
 
 impl<'a, R: 'a + Read> EnumAccess<'a, R> {
     pub fn new(de: &'a mut Deserializer<R>) -> Self {
-        EnumAccess { de: de }
+        EnumAccess { de }
     }
 }
 
@@ -44,7 +44,7 @@ pub struct VariantAccess<'a, R: 'a + Read> {
 
 impl<'a, R: 'a + Read> VariantAccess<'a, R> {
     pub fn new(de: &'a mut Deserializer<R>) -> Self {
-        VariantAccess { de: de }
+        VariantAccess { de }
     }
 }
 
