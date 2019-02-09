@@ -12,8 +12,7 @@ use std::fmt::Debug;
 
 use serde::{de, ser};
 use serde_xml_rs::{from_str, Error, ErrorKind};
-use std::collections::BTreeMap;
-use xml::namespace::Namespace;
+use std::collections::HashMap;
 
 #[derive(PartialEq, Debug, Serialize, Deserialize)]
 enum Animal {
@@ -96,32 +95,39 @@ fn test_namespaces() {
 fn test_parse_namespace() {
     let _ = simple_logger::init();
 
-    #[derive(Serialize, Deserialize)]
-    #[serde(remote = "Namespace")]
-    pub struct LocalNamespace(pub BTreeMap<String, String>);
-
     #[derive(PartialEq, Serialize, Deserialize, Debug)]
     struct Envelope {
         subject: String,
-        #[serde(rename = "$namespace")]
-        #[serde(with = "LocalNamespace")]
-        ns: Namespace,
+        #[serde(rename = "$xmlns")]
+        xmlns: HashMap<String, String>,
     }
     let s = r#"
     <?xml version="1.0" encoding="UTF-8"?>
     <gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
         <gesmes:subject>Reference rates</gesmes:subject>
     </gesmes:Envelope>"#;
-    let mut ns = Namespace::empty();
-    ns.put("", "http://www.ecb.int/vocabulary/2002-08-01/eurofxref");
-    ns.put("gesmes", "http://www.gesmes.org/xml/2002-08-01");
-    ns.put("xml", "http://www.w3.org/XML/1998/namespace");
-    ns.put("xmlns", "http://www.w3.org/2000/xmlns/");
+    let mut xmlns: HashMap<String, String> = HashMap::new();
+    xmlns.insert(
+        "".to_string(),
+        "http://www.ecb.int/vocabulary/2002-08-01/eurofxref".to_string(),
+    );
+    xmlns.insert(
+        "gesmes".to_string(),
+        "http://www.gesmes.org/xml/2002-08-01".to_string(),
+    );
+    xmlns.insert(
+        "xml".to_string(),
+        "http://www.w3.org/XML/1998/namespace".to_string(),
+    );
+    xmlns.insert(
+        "xmlns".to_string(),
+        "http://www.w3.org/2000/xmlns/".to_string(),
+    );
     test_parse_ok(&[(
         s,
         Envelope {
             subject: "Reference rates".to_string(),
-            ns: ns,
+            xmlns,
         },
     )]);
 }

@@ -1,10 +1,7 @@
 use std::io::Read;
 
 use serde::de::value::MapDeserializer;
-use serde::de::{self, Deserialize, IntoDeserializer, Visitor};
-use std::fmt;
-use std::marker::PhantomData;
-use std::result;
+use serde::de::{self, IntoDeserializer};
 use xml::attribute::OwnedAttribute;
 use xml::namespace::Namespace;
 use xml::reader::XmlEvent;
@@ -28,10 +25,10 @@ impl<'a, R: 'a + Read> MapAccess<'a, R> {
         inner_value: bool,
     ) -> Self {
         MapAccess {
-            de: de,
+            de,
             ns: Some(ns),
             attrs: attrs.into_iter(),
-            inner_value: inner_value,
+            inner_value,
             next_value: None,
         }
     }
@@ -42,7 +39,7 @@ impl<'de, 'a, R: 'a + Read> de::MapAccess<'de> for MapAccess<'a, R> {
 
     fn next_key_seed<K: de::DeserializeSeed<'de>>(&mut self, seed: K) -> Result<Option<K::Value>> {
         if self.ns.is_some() {
-            return seed.deserialize("$namespace".into_deserializer()).map(Some);
+            return seed.deserialize("$xmlns".into_deserializer()).map(Some);
         }
         debug_assert_eq!(self.next_value, None);
         match self.attrs.next() {
@@ -69,11 +66,9 @@ impl<'de, 'a, R: 'a + Read> de::MapAccess<'de> for MapAccess<'a, R> {
     }
 
     fn next_value_seed<V: de::DeserializeSeed<'de>>(&mut self, seed: V) -> Result<V::Value> {
+        // Insert the xmlns
         if let Some(ns) = self.ns.take() {
-            // return seed
-            //     .deserialize(MapDeserializer::new(ns.into_iter()))
-            //     .map(|m| V::Value(m));
-            return seed.deserialize(NamespaceDeserializer::new(ns));
+            return seed.deserialize(MapDeserializer::new(ns.into_iter()));
         }
         match self.next_value.take() {
             Some(value) => seed.deserialize(AttrValueDeserializer(value)),
@@ -145,68 +140,68 @@ impl<'de> de::Deserializer<'de> for AttrValueDeserializer {
     }
 }
 
-#[derive(Debug)]
-pub struct NamespaceDeserializer<E> {
-    value: Namespace,
-    marker: PhantomData<E>,
-}
-impl<E> NamespaceDeserializer<E> {
-    pub fn new(ns: Namespace) -> Self {
-        Self {
-            value: ns,
-            marker: PhantomData,
-        }
-    }
-}
+// #[derive(Debug)]
+// pub struct NamespaceDeserializer<E> {
+//     value: Namespace,
+//     marker: PhantomData<E>,
+// }
+// impl<E> NamespaceDeserializer<E> {
+//     pub fn new(ns: Namespace) -> Self {
+//         Self {
+//             value: ns,
+//             marker: PhantomData,
+//         }
+//     }
+// }
 
-impl<'de, E> de::Deserializer<'de> for NamespaceDeserializer<E>
-where
-    E: de::Error,
-{
-    type Error = E;
+// impl<'de, E> de::Deserializer<'de> for NamespaceDeserializer<E>
+// where
+//     E: de::Error,
+// {
+//     type Error = E;
 
-    fn deserialize_any<V: de::Visitor<'de>>(
-        self,
-        visitor: V,
-    ) -> result::Result<V::Value, Self::Error> {
-        println!("deserializer any");
-        visitor.visit_newtype_struct(self)
-    }
+//     fn deserialize_any<V: de::Visitor<'de>>(
+//         self,
+//         visitor: V,
+//     ) -> result::Result<V::Value, Self::Error> {
+//         println!("deserializer any");
+//         visitor.visit_map(self.value.0.into_iter())
+//     }
 
-    fn deserialize_newtype_struct<V: de::Visitor<'de>>(
-        self,
-        name: &str,
-        visitor: V,
-    ) -> result::Result<V::Value, Self::Error> {
-        println!("deserializer newtype_struct {}", name);
-        visitor.visit_newtype_struct(self)
-    }
-    fn deserialize_map<V>(self, visitor: V) -> result::Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        println!("deserializer map");
-        visitor.visit_map(self.value.0.into_deserializer())
-    }
+//     fn deserialize_newtype_struct<V: de::Visitor<'de>>(
+//         self,
+//         name: &str,
+//         visitor: V,
+//     ) -> result::Result<V::Value, Self::Error> {
+//         println!("deserializer newtype_struct {}", name);
+//         visitor.visit_newtype_struct(self)
+//     }
+//     fn deserialize_map<V>(self, visitor: V) -> result::Result<V::Value, Self::Error>
+//     where
+//         V: Visitor<'de>,
+//     {
+//         println!("deserializer map");
+//         visitor.visit_map(self.value.0.into_deserializer())
+//     }
 
-    forward_to_deserialize_any! {
-        bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
-        bytes byte_buf enum option unit unit_struct tuple_struct seq tuple
-        struct identifier ignored_any
-    }
-}
+//     forward_to_deserialize_any! {
+//         bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
+//         bytes byte_buf enum option unit unit_struct tuple_struct seq tuple
+//         struct identifier ignored_any
+//     }
+// }
 
-impl<'de, E> Visitor<'de> for NamespaceDeserializer<E> {
-    type Value = Namespace;
+// impl<'de, E> Visitor<'de> for NamespaceDeserializer<E> {
+//     type Value = HashMap<;
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, "a Namespace newtype struct")
-    }
+//     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+//         write!(formatter, "a Namespace newtype struct")
+//     }
 
-    fn visit_newtype_struct<D>(self, _deserializer: D) -> result::Result<Self::Value, D::Error>
-    where
-        D: de::Deserializer<'de>,
-    {
-        Ok(self.value)
-    }
-}
+//     fn visit_newtype_struct<D>(self, _deserializer: D) -> result::Result<Self::Value, D::Error>
+//     where
+//         D: de::Deserializer<'de>,
+//     {
+//         Ok(self.value)
+//     }
+// }
