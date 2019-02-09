@@ -1,26 +1,36 @@
 use std::io::Read;
 
+use serde::de::value::MapDeserializer;
 use serde::de::{self, IntoDeserializer};
 use xml::attribute::OwnedAttribute;
+use xml::namespace::Namespace;
 use xml::reader::XmlEvent;
 
-use Deserializer;
 use error::{Error, Result};
+use Deserializer;
 
 pub struct MapAccess<'a, R: 'a + Read> {
-    attrs: ::std::vec::IntoIter<OwnedAttribute>,
-    next_value: Option<String>,
     de: &'a mut Deserializer<R>,
+    ns: Option<Namespace>,
+    attrs: ::std::vec::IntoIter<OwnedAttribute>,
     inner_value: bool,
+    next_value: Option<String>,
 }
 
 impl<'a, R: 'a + Read> MapAccess<'a, R> {
-    pub fn new(de: &'a mut Deserializer<R>, attrs: Vec<OwnedAttribute>, inner_value: bool) -> Self {
+    /// ns should only be Some if the map has a "$xmlns" field.
+    pub fn new(
+        de: &'a mut Deserializer<R>,
+        attrs: Vec<OwnedAttribute>,
+        ns: Option<Namespace>,
+        inner_value: bool,
+    ) -> Self {
         MapAccess {
+            de,
+            ns,
             attrs: attrs.into_iter(),
+            inner_value,
             next_value: None,
-            de: de,
-            inner_value: inner_value,
         }
     }
 }
@@ -29,7 +39,9 @@ impl<'de, 'a, R: 'a + Read> de::MapAccess<'de> for MapAccess<'a, R> {
     type Error = Error;
 
     fn next_key_seed<K: de::DeserializeSeed<'de>>(&mut self, seed: K) -> Result<Option<K::Value>> {
-        debug_assert_eq!(self.next_value, None);
+        if self.ns.is_some() {
+            return seed.deserialize("$xmlns".into_deserializer()).map(Some);
+        }
         match self.attrs.next() {
             Some(OwnedAttribute { name, value }) => {
                 self.next_value = Some(value);
@@ -37,13 +49,16 @@ impl<'de, 'a, R: 'a + Read> de::MapAccess<'de> for MapAccess<'a, R> {
                     .map(Some)
             },
             None => match *self.de.peek()? {
-                XmlEvent::StartElement { ref name, .. } => seed.deserialize(
-                    if !self.inner_value {
-                        name.local_name.as_str()
-                    } else {
-                        "$value"
-                    }.into_deserializer(),
-                ).map(Some),
+                XmlEvent::StartElement { ref name, .. } => seed
+                    .deserialize(
+                        if !self.inner_value {
+                            name.local_name.as_str()
+                        } else {
+                            "$value"
+                        }
+                        .into_deserializer(),
+                    )
+                    .map(Some),
                 XmlEvent::Characters(_) => seed.deserialize("$value".into_deserializer()).map(Some),
                 _ => Ok(None),
             },
@@ -51,6 +66,10 @@ impl<'de, 'a, R: 'a + Read> de::MapAccess<'de> for MapAccess<'a, R> {
     }
 
     fn next_value_seed<V: de::DeserializeSeed<'de>>(&mut self, seed: V) -> Result<V::Value> {
+        // Insert the xmlns
+        if let Some(ns) = self.ns.take() {
+            return seed.deserialize(MapDeserializer::new(ns.into_iter()));
+        }
         match self.next_value.take() {
             Some(value) => seed.deserialize(AttrValueDeserializer(value)),
             None => {

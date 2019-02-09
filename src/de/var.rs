@@ -13,7 +13,7 @@ pub struct EnumAccess<'a, R: 'a + Read> {
 
 impl<'a, R: 'a + Read> EnumAccess<'a, R> {
     pub fn new(de: &'a mut Deserializer<R>) -> Self {
-        EnumAccess { de: de }
+        EnumAccess { de }
     }
 }
 
@@ -44,7 +44,7 @@ pub struct VariantAccess<'a, R: 'a + Read> {
 
 impl<'a, R: 'a + Read> VariantAccess<'a, R> {
     pub fn new(de: &'a mut Deserializer<R>) -> Self {
-        VariantAccess { de: de }
+        VariantAccess { de }
     }
 }
 
@@ -56,10 +56,12 @@ impl<'de, 'a, R: 'a + Read> de::VariantAccess<'de> for VariantAccess<'a, R> {
         match self.de.next()? {
             XmlEvent::StartElement {
                 name, attributes, ..
-            } => if attributes.is_empty() {
-                self.de.expect_end_element(name)
-            } else {
-                Err(de::Error::invalid_length(attributes.len(), &"0"))
+            } => {
+                if attributes.is_empty() {
+                    self.de.expect_end_element(name)
+                } else {
+                    Err(de::Error::invalid_length(attributes.len(), &"0"))
+                }
             },
             XmlEvent::Characters(_) => Ok(()),
             _ => unreachable!(),
