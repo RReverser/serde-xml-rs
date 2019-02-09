@@ -18,6 +18,7 @@ pub struct MapAccess<'a, R: 'a + Read> {
 }
 
 impl<'a, R: 'a + Read> MapAccess<'a, R> {
+    /// ns should only be Some if the map has a "$xmlns" field.
     pub fn new(
         de: &'a mut Deserializer<R>,
         attrs: Vec<OwnedAttribute>,
