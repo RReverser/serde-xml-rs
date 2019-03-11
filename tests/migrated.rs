@@ -69,6 +69,18 @@ where
     }
 }
 
+fn test_parse_invalid<'de, 'a, T>(errors: &[&'a str])
+where
+    T: PartialEq + Debug + ser::Serialize + de::Deserialize<'de>,
+{
+    for &s in errors {
+        assert!(match from_str::<T>(s) {
+            Err(Error(_, _)) => true,
+            _ => false,
+        });
+    }
+}
+
 #[test]
 fn test_namespaces() {
     let _ = simple_logger::init();
@@ -318,12 +330,17 @@ fn test_parse_u64() {
 
 #[test]
 fn test_parse_bool() {
+    let _ = simple_logger::init();
     test_parse_ok(&[
         ("<bla>true</bla>", true),
         ("<bla>false</bla>", false),
         ("<bla> true </bla>", true),
         ("<bla> false </bla>", false),
+        ("<bla>1</bla>", true),
+        ("<bla>0</bla>", false),
     ]);
+
+    test_parse_invalid::<bool>(&["<bla>verum</bla>"]);
 }
 
 #[test]

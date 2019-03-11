@@ -1,6 +1,6 @@
 use std::io::Read;
 
-use serde::de;
+use serde::de::{self, Unexpected};
 use xml::reader::{EventReader, ParserConfig, XmlEvent};
 use xml::name::OwnedName;
 
@@ -228,7 +228,25 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
     deserialize_type!(deserialize_u64 => visit_u64);
     deserialize_type!(deserialize_f32 => visit_f32);
     deserialize_type!(deserialize_f64 => visit_f64);
-    deserialize_type!(deserialize_bool => visit_bool);
+
+    fn deserialize_bool<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
+        if let XmlEvent::StartElement { .. } = *self.peek()? {
+            self.set_map_value()
+        }
+        self.read_inner_value::<V, V::Value, _>(|this| {
+            if let XmlEvent::EndElement { .. } = *this.peek()? {
+                return visitor.visit_bool(false);
+            }
+            expect!(this.next()?, XmlEvent::Characters(s) => {
+                match s.as_str() {
+                    "true" | "1" => visitor.visit_bool(true),
+                    "false" | "0" => visitor.visit_bool(false),
+                    _ => Err(de::Error::invalid_value(Unexpected::Str(&s), &"a boolean")),
+                }
+
+            })
+        })
+    }
 
     fn deserialize_char<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
         self.deserialize_string(visitor)
