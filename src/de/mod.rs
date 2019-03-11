@@ -240,7 +240,7 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
                 match s.as_str() {
                     "true" | "1" => visitor.visit_bool(true),
                     "false" | "0" => visitor.visit_bool(false),
-                    _ => Err(ErrorKind::InvalidValue(
+                    _ => Err(ErrorKind::UnexpectedToken(
                         "boolean [true,false,1,0]".into(),
                         format!("{}", s)
                     ).into()),
