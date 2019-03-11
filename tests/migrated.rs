@@ -75,7 +75,7 @@ where
 {
     for &s in errors {
         assert!(match from_str::<T>(s) {
-            Err(Error(ErrorKind::InvalidValue(_, _), _)) => true,
+            Err(Error(_, _)) => true,
             _ => false,
         });
     }
@@ -339,7 +339,7 @@ fn test_parse_bool() {
         ("<bla>1</bla>", true),
         ("<bla>0</bla>", false),
     ]);
-    
+
     test_parse_invalid::<bool>(&["<bla>verum</bla>"]);
 }
 
