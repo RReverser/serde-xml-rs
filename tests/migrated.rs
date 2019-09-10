@@ -329,7 +329,7 @@ fn test_parse_u64() {
 }
 
 #[test]
-fn test_parse_bool() {
+fn test_parse_bool_element() {
     let _ = simple_logger::init();
     test_parse_ok(&[
         ("<bla>true</bla>", true),
@@ -341,6 +341,31 @@ fn test_parse_bool() {
     ]);
 
     test_parse_invalid::<bool>(&["<bla>verum</bla>"]);
+}
+
+#[test]
+fn test_parse_bool_attribute() {
+
+    #[derive(PartialEq, Debug, Deserialize, Serialize)]
+    struct Dummy {
+        foo: bool
+    }
+
+    let _ = simple_logger::init();
+    test_parse_ok(&[
+        ("<bla foo=\"true\"/>", Dummy{foo: true}),
+        ("<bla foo=\"false\"/>", Dummy{foo: false}),
+        ("<bla foo=\"1\"/>", Dummy{foo: true}),
+        ("<bla foo=\"0\"/>", Dummy{foo: false}),
+    ]);
+
+    test_parse_invalid::<Dummy>(&[
+        "<bla foo=\"bar\"/>",
+        "<bla foo=\" true \"/>",
+        "<bla foo=\"10\"/>",
+        "<bla foo=\"\"/>",
+        "<bla/>",
+    ]);
 }
 
 #[test]
