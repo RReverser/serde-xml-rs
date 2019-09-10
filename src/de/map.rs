@@ -114,7 +114,7 @@ impl<'de> de::Deserializer<'de> for AttrValueDeserializer {
     fn deserialize_bool<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
         match self.0.as_str() {
             "true" | "1" => visitor.visit_bool(true),
-            "" | "false" | "0" => visitor.visit_bool(false),
+            "false" | "0" => visitor.visit_bool(false),
             _ => Err(de::Error::invalid_value(Unexpected::Str(&self.0), &"a boolean")),
         }
     }
