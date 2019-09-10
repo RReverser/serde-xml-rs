@@ -138,7 +138,7 @@ fn collection_of_enums() {
     let s = r##"
         <enums>
             <A>test</A>
-            <B name="hello" flag="t" />
+            <B name="hello" flag="true" />
             <C />
         </enums>
     "##;
