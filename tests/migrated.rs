@@ -1078,3 +1078,16 @@ fn futile2() {
         ),
     ]);
 }
+
+#[test]
+fn newtype_struct() {
+    #[derive(PartialEq, Debug, Serialize, Deserialize)]
+    struct Wrapper(String);
+
+    test_parse_ok(&[
+        (
+            r###"<wrapper>Content</wrapper>"###,
+            Wrapper("Content".into())
+        ),
+    ]);
+}
