@@ -197,7 +197,7 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
     type Error = Error;
 
     forward_to_deserialize_any! {
-        newtype_struct identifier
+        identifier
     }
 
     fn deserialize_struct<V: de::Visitor<'de>>(
@@ -279,6 +279,14 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
         visitor: V,
     ) -> Result<V::Value> {
         self.deserialize_unit(visitor)
+    }
+
+    fn deserialize_newtype_struct<V: de::Visitor<'de>>(
+        self,
+        _name: &'static str,
+        visitor: V,
+    ) -> Result<V::Value> {
+        visitor.visit_newtype_struct(self)
     }
 
     fn deserialize_tuple_struct<V: de::Visitor<'de>>(
