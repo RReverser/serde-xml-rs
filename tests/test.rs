@@ -7,7 +7,7 @@ extern crate simple_logger;
 
 use serde_xml_rs::from_str;
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 struct Item {
     name: String,
     source: String,
@@ -85,6 +85,9 @@ struct Project {
 
     #[serde(rename = "item", default)]
     items: Vec<Item>,
+
+    #[serde(default)]
+    sub_projects: Option<Vec<SubProject>>,
 }
 
 #[test]
@@ -114,6 +117,71 @@ fn nested_collection() {
                     source: "world2.rs".to_string(),
                 },
             ],
+            sub_projects: None,
+        }
+    );
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+struct SubProject {
+    name: String,
+
+    #[serde(default)]
+    items: Vec<Item>,
+}
+
+#[test]
+fn nested_collection_with_nested_collection() {
+    let _ = simple_logger::init();
+
+    let s = r##"
+        <project name="my_project">
+          <!-- these items do not have a wrapping 'items' tag -->
+          <item name="hello1" source="world1.rs" />
+          <item name="hello2" source="world2.rs" />
+          <sub_projects>
+            <sub_project name="child1">
+              <!-- these items are wrapped in a 'items' tag -->
+              <items>
+                <item name="foo1" source="bar1.rs" />
+                <item name="foo2" source="bar2.rs" />
+              </items>
+            </sub_project>
+          </sub_projects>
+        </project>
+    "##;
+
+    let project: Project = from_str(s).unwrap();
+
+    assert_eq!(
+        project,
+        Project {
+            name: "my_project".to_string(),
+            items: vec![
+                Item {
+                    name: "hello1".to_string(),
+                    source: "world1.rs".to_string(),
+                },
+                Item {
+                    name: "hello2".to_string(),
+                    source: "world2.rs".to_string(),
+                },
+            ],
+            sub_projects: Some(vec![
+                SubProject {
+                    name: "child1".to_string(),
+                    items: vec![
+                        Item {
+                            name: "foo1".to_string(),
+                            source: "bar1.rs".to_string(),
+                        },
+                        Item {
+                            name: "foo2".to_string(),
+                            source: "bar2.rs".to_string(),
+                        },
+                    ],
+                },
+            ]),
         }
     );
 }
@@ -157,5 +225,48 @@ fn collection_of_enums() {
                 MyEnum::C,
             ],
         }
+    );
+}
+
+
+#[derive(Debug, Deserialize, PartialEq)]
+struct Shelter {
+    animals: Vec<Animal>,
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+struct Animal {
+    name: String,
+    foo: String,
+}
+
+/// don't require a wrapper struct Vec<?>
+#[test]
+fn vec_container() {
+    let _ = simple_logger::init();
+
+    let s = r##"
+    <shelter>
+      <animals>
+        <animal name="rover" foo="dog" />
+        <animal name="max" foo="cat" />
+      </animals>
+    </shelter>
+    "##;
+
+    let shelter: Shelter = from_str(s).unwrap();
+
+    assert_eq!(
+        shelter.animals,
+        vec![
+            Animal {
+                name: "rover".to_string(),
+                foo: "dog".to_string(),
+            },
+            Animal {
+                name: "max".to_string(),
+                foo: "cat".to_string(),
+            },
+        ]
     );
 }
