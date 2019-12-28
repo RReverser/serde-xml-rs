@@ -620,7 +620,7 @@ fn test_hugo_duncan2() {
             struct Helper<U> {
                 item: Vec<U>,
             }
-            let h: Helper<_> = try!(de::Deserialize::deserialize(deserializer));
+            let h: Helper<_> = de::Deserialize::deserialize(deserializer)?;
             Ok(ItemVec(h.item))
         }
     }
