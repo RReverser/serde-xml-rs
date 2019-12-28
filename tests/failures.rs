@@ -15,7 +15,7 @@ struct Item {
 }
 
 #[test]
-fn simple_struct_from_attributes_should_fail() {
+fn unclosed_attributes_should_fail() {
     let _ = simple_logger::init();
 
     let s = r##"
@@ -26,7 +26,7 @@ fn simple_struct_from_attributes_should_fail() {
     match item {
         Ok(_) => assert!(false),
         Err(e) => {
-            info!("simple_struct_from_attributes_should_fail(): {}", e);
+            info!("unclosed_attributes_should_fail(): {}", e);
             assert!(true)
         }
     }
