@@ -353,17 +353,17 @@ fn test_parse_bool_attribute() {
 
     let _ = simple_logger::init();
     test_parse_ok(&[
-        ("<bla foo=\"true\"/>", Dummy{foo: true}),
-        ("<bla foo=\"false\"/>", Dummy{foo: false}),
-        ("<bla foo=\"1\"/>", Dummy{foo: true}),
-        ("<bla foo=\"0\"/>", Dummy{foo: false}),
+        ("<bla foo='true'/>", Dummy{foo: true}),
+        ("<bla foo='false'/>", Dummy{foo: false}),
+        ("<bla foo='1'/>", Dummy{foo: true}),
+        ("<bla foo='0'/>", Dummy{foo: false}),
     ]);
 
     test_parse_invalid::<Dummy>(&[
-        "<bla foo=\"bar\"/>",
-        "<bla foo=\" true \"/>",
-        "<bla foo=\"10\"/>",
-        "<bla foo=\"\"/>",
+        "<bla foo='bar'/>",
+        "<bla foo=' true '/>",
+        "<bla foo='10'/>",
+        "<bla foo=''/>",
         "<bla/>",
     ]);
 }
@@ -421,7 +421,7 @@ fn test_parse_struct() {
             },
         ),
         (
-            "<Simple d=\"Foo\"><!-- this is a comment -->
+            "<Simple d='Foo'><!-- this is a comment -->
                 <c>abc</c>
                 <a/>
                 <b>2</b>
@@ -650,8 +650,8 @@ fn test_hugo_duncan2() {
 fn test_hugo_duncan() {
     let _ = simple_logger::init();
     let s = "
-        <?xml version=\"1.0\" encoding=\"UTF-8\"?>
-        <DescribeInstancesResponse xmlns=\"http://ec2.amazonaws.com/doc/2014-10-01/\">
+        <?xml version='1.0' encoding='UTF-8'?>
+        <DescribeInstancesResponse xmlns='http://ec2.amazonaws.com/doc/2014-10-01/'>
             <requestId>9474f558-10a5-42e8-84d1-f9ee181fe943</requestId>
             <reservationSet/>
         </DescribeInstancesResponse>
