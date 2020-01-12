@@ -1,13 +1,13 @@
 use std::io::Read;
 
 use serde::de::{self, Unexpected};
-use xml::reader::{EventReader, ParserConfig, XmlEvent};
 use xml::name::OwnedName;
+use xml::reader::{EventReader, ParserConfig, XmlEvent};
 
-use error::{Error, ErrorKind, Result};
 use self::map::MapAccess;
 use self::seq::SeqAccess;
 use self::var::EnumAccess;
+use error::{Error, Result};
 
 mod map;
 mod seq;
@@ -35,7 +35,6 @@ mod var;
 pub fn from_str<'de, T: de::Deserialize<'de>>(s: &str) -> Result<T> {
     from_reader(s.as_bytes())
 }
-
 
 /// A convenience method for deserialize some object from a reader.
 ///
@@ -100,11 +99,11 @@ impl<'de, R: Read> Deserializer<R> {
 
     fn inner_next(&mut self) -> Result<XmlEvent> {
         loop {
-            match self.reader.next().map_err(ErrorKind::Syntax)? {
-                XmlEvent::StartDocument { .. } |
-                XmlEvent::ProcessingInstruction { .. } |
-                XmlEvent::Whitespace { .. } |
-                XmlEvent::Comment(_) => { /* skip */ },
+            match self.reader.next()? {
+                XmlEvent::StartDocument { .. }
+                | XmlEvent::ProcessingInstruction { .. }
+                | XmlEvent::Whitespace { .. }
+                | XmlEvent::Comment(_) => { /* skip */ },
                 other => return Ok(other),
             }
         }
@@ -119,11 +118,11 @@ impl<'de, R: Read> Deserializer<R> {
         match next {
             XmlEvent::StartElement { .. } => {
                 self.depth += 1;
-            },
+            }
             XmlEvent::EndElement { .. } => {
                 self.depth -= 1;
-            },
-            _ => {},
+            }
+            _ => {}
         }
         debug!("Fetched {:?}", next);
         Ok(next)
@@ -157,11 +156,11 @@ impl<'de, R: Read> Deserializer<R> {
             if name == start_name {
                 Ok(())
             } else {
-                Err(ErrorKind::Custom(format!(
+                Err(Error::Custom { field: format!(
                     "End tag </{}> didn't match the start tag <{}>",
                     name.local_name,
                     start_name.local_name
-                )).into())
+                ) })
             }
         })
     }
@@ -172,9 +171,10 @@ impl<'de, R: Read> Deserializer<R> {
         }
         self.read_inner_value::<V, String, _>(|this| {
             if let XmlEvent::EndElement { .. } = *this.peek()? {
-                return Err(
-                    ErrorKind::UnexpectedToken("EndElement".into(), "Characters".into()).into(),
-                );
+                return Err(Error::UnexpectedToken {
+                    token: "EndElement".into(),
+                    found: "Characters".into(),
+                });
             }
 
             expect!(this.next()?, XmlEvent::Characters(s) => {
