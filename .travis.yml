@@ -5,7 +5,7 @@ rust:
   - nightly
 cache: cargo
 before_cache:
-  - cargo clean -p serde-xml-rs
+  - cargo clean
   - rm -f target/debug/deps/libserde_xml_rs*.rlib
 env:
   global:
