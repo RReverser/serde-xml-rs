@@ -1,13 +1,12 @@
-use std::io::Write;
 use std::fmt::Display;
+use std::io::Write;
 
 use serde::ser::{self, Impossible, Serialize};
 
-use error::{Error, ErrorKind, Result};
 use self::var::{Map, Struct};
+use error::{Error, Result};
 
 mod var;
-
 
 /// A convenience method for serializing some object to a buffer.
 ///
@@ -39,7 +38,6 @@ pub fn to_writer<W: Write, S: Serialize>(writer: W, value: &S) -> Result<()> {
     let mut ser = Serializer::new(writer);
     value.serialize(&mut ser)
 }
-
 
 /// A convenience method for serializing some object to a string.
 ///
@@ -102,7 +100,6 @@ where
         Ok(())
     }
 }
-
 
 #[allow(unused_variables)]
 impl<'w, W> ser::Serializer for &'w mut Serializer<W>
@@ -181,9 +178,9 @@ where
     fn serialize_bytes(self, value: &[u8]) -> Result<Self::Ok> {
         // TODO: I imagine you'd want to use base64 here.
         // Not sure how to roundtrip effectively though...
-        Err(
-            ErrorKind::UnsupportedOperation("serialize_bytes".to_string()).into(),
-        )
+        Err(Error::UnsupportedOperation {
+            operation: "serialize_bytes".to_string(),
+        })
     }
 
     fn serialize_none(self) -> Result<Self::Ok> {
@@ -208,9 +205,9 @@ where
         variant_index: u32,
         variant: &'static str,
     ) -> Result<Self::Ok> {
-        Err(
-            ErrorKind::UnsupportedOperation("serialize_unit_variant".to_string()).into(),
-        )
+        Err(Error::UnsupportedOperation {
+            operation: "serialize_unit_variant".to_string(),
+        })
     }
 
     fn serialize_newtype_struct<T: ?Sized + Serialize>(
@@ -218,9 +215,9 @@ where
         name: &'static str,
         value: &T,
     ) -> Result<Self::Ok> {
-        Err(
-            ErrorKind::UnsupportedOperation("serialize_newtype_struct".to_string()).into(),
-        )
+        Err(Error::UnsupportedOperation {
+            operation: "serialize_newtype_struct".to_string(),
+        })
     }
 
     fn serialize_newtype_variant<T: ?Sized + Serialize>(
@@ -235,15 +232,15 @@ where
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq> {
         // TODO: Figure out how to constrain the things written to only be composites
-        Err(
-            ErrorKind::UnsupportedOperation("serialize_seq".to_string()).into(),
-        )
+        Err(Error::UnsupportedOperation {
+            operation: "serialize_seq".to_string(),
+        })
     }
 
     fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
-        Err(
-            ErrorKind::UnsupportedOperation("serialize_tuple".to_string()).into(),
-        )
+        Err(Error::UnsupportedOperation {
+            operation: "serialize_tuple".to_string(),
+        })
     }
 
     fn serialize_tuple_struct(
@@ -251,9 +248,9 @@ where
         name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleStruct> {
-        Err(
-            ErrorKind::UnsupportedOperation("serialize_tuple_struct".to_string()).into(),
-        )
+        Err(Error::UnsupportedOperation {
+            operation: "serialize_tuple_struct".to_string(),
+        })
     }
 
     fn serialize_tuple_variant(
@@ -263,9 +260,9 @@ where
         variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleVariant> {
-        Err(
-            ErrorKind::UnsupportedOperation("serialize_tuple_variant".to_string()).into(),
-        )
+        Err(Error::UnsupportedOperation {
+            operation: "serialize_tuple_variant".to_string(),
+        })
     }
 
     fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap> {
@@ -284,16 +281,17 @@ where
         variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStructVariant> {
-        Err(ErrorKind::UnsupportedOperation("Result".to_string()).into())
+        Err(Error::UnsupportedOperation {
+            operation: "Result".to_string(),
+        })
     }
 }
-
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde::Serializer as SerSerializer;
     use serde::ser::{SerializeMap, SerializeStruct};
+    use serde::Serializer as SerSerializer;
 
     #[test]
     fn test_serialize_bool() {
