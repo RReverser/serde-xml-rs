@@ -4,8 +4,10 @@ extern crate serde_xml_rs;
 
 extern crate log;
 extern crate simple_logger;
+extern crate serde;
 
 use serde_xml_rs::from_str;
+use serde::Deserializer;
 
 #[derive(Debug, Deserialize, PartialEq)]
 struct Item {
@@ -158,4 +160,25 @@ fn collection_of_enums() {
             ],
         }
     );
+}
+
+fn _to_xml<'a>(deserializer: impl Deserializer<'a>) -> Result<String, Box<dyn std::error::Error>> {
+    let mut out = vec![];
+    let mut serializer = serde_xml_rs::ser::Serializer::new(&mut out);
+    serde_transcode::transcode(deserializer, &mut serializer)?;
+    Ok(String::from_utf8(out)?)
+}
+fn _to_json<'a>(deserializer: impl Deserializer<'a>) -> Result<String, Box<dyn std::error::Error>> {
+    let mut out = vec![];
+    let mut serializer = serde_json::ser::Serializer::new(&mut out);
+    serde_transcode::transcode(deserializer, &mut serializer)?;
+    Ok(String::from_utf8(out)?)
+}
+
+#[test]
+fn arbitrary_transcoded_value() {
+    let example_json = r##"{ "Asdasd": ["asdadsda"] }"##;
+    let mut deserializer = serde_json::de::Deserializer::from_str(example_json);
+    let xml = _to_xml(&mut deserializer).expect("failed to transcode json into xml");
+    assert_eq!(r##"<map><field fieldName="Asdasd"><list><item>asdadsda</item></list></field></map>"##.to_string(), xml)
 }

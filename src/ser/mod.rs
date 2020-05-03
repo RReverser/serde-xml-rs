@@ -3,7 +3,7 @@ use std::io::Write;
 
 use serde::ser::{self, Impossible, Serialize};
 
-use self::var::{Map, Struct};
+use self::var::{Map, Struct, Seq};
 use error::{Error, Result};
 
 mod var;
@@ -109,7 +109,7 @@ where
     type Ok = ();
     type Error = Error;
 
-    type SerializeSeq = Impossible<Self::Ok, Self::Error>;
+    type SerializeSeq = Seq<'w, W>;
     type SerializeTuple = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
@@ -205,9 +205,7 @@ where
         variant_index: u32,
         variant: &'static str,
     ) -> Result<Self::Ok> {
-        Err(Error::UnsupportedOperation {
-            operation: "serialize_unit_variant".to_string(),
-        })
+        self.serialize_none()
     }
 
     fn serialize_newtype_struct<T: ?Sized + Serialize>(
@@ -231,10 +229,8 @@ where
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq> {
-        // TODO: Figure out how to constrain the things written to only be composites
-        Err(Error::UnsupportedOperation {
-            operation: "serialize_seq".to_string(),
-        })
+        write!(self.writer, "<list>")?;
+        Ok(Self::SerializeSeq::new(self))
     }
 
     fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple> {
@@ -266,6 +262,7 @@ where
     }
 
     fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap> {
+        write!(self.writer, "<map>")?;
         Ok(Map::new(self))
     }
 
@@ -285,6 +282,28 @@ where
             operation: "Result".to_string(),
         })
     }
+
+    // fn collect_seq<I>(self, iter: I) -> Result<Self::Ok> where
+    //     I: IntoIterator,
+    //     <I as IntoIterator>::Item: Serialize, {
+    //     unimplemented!()
+    // }
+
+    // fn collect_map<K, V, I>(self, iter: I) -> Result<Self::Ok> where
+    //     K: Serialize,
+    //     V: Serialize,
+    //     I: IntoIterator<Item=(K, V)>, {
+    //     unimplemented!()
+    // }
+
+    // fn collect_str<T: ?Sized>(self, value: &T) -> Result<Self::Ok> where
+    //     T: Display, {
+    //     unimplemented!()
+    // }
+
+    // fn is_human_readable(&self) -> bool {
+    //     false
+    // }
 }
 
 #[cfg(test)]
@@ -359,6 +378,19 @@ mod tests {
 
         let got = String::from_utf8(buffer).unwrap();
         assert_eq!(got, should_be);
+    }
+
+    #[test]
+    fn test_serialize_simple_map() {
+        let mut hashmap = std::collections::HashMap::new();
+        let mut buffer = Vec::new();
+        hashmap.insert("key1", "val1");
+        {
+            let mut ser = Serializer::new(&mut buffer);
+            hashmap.serialize(&mut ser).expect("unable to serialize a hashmap instance");
+        }
+        let got = String::from_utf8(buffer).unwrap();
+        assert_eq!("<map><key1>val1</key1></map>", got)
     }
 
     #[test]

@@ -29,15 +29,16 @@ where
     type Ok = ();
     type Error = Error;
 
-    fn serialize_key<T: ?Sized + Serialize>(&mut self, _: &T) -> Result<()> {
-        panic!("impossible to serialize the key on its own, please use serialize_entry()")
+    fn serialize_key<T: ?Sized + Serialize>(&mut self, key: &T) -> Result<()> {
+        write!(self.parent.writer, "<field fieldName=\"")?;
+        key.serialize(&mut *self.parent)?;
+        write!(self.parent.writer, "\">")?;
+        Ok(())
     }
 
     fn serialize_value<T: ?Sized + Serialize>(&mut self, value: &T) -> Result<()> {
-        value.serialize(&mut *self.parent)
-    }
-
-    fn end(self) -> Result<Self::Ok> {
+        value.serialize(&mut *self.parent)?;
+        write!(self.parent.writer, "</field>")?;
         Ok(())
     }
 
@@ -57,6 +58,11 @@ where
         write!(self.parent.writer, "</")?;
         key.serialize(&mut *self.parent)?;
         write!(self.parent.writer, ">")?;
+        Ok(())
+    }
+
+    fn end(self) -> Result<Self::Ok> {
+        write!(self.parent.writer, "</map>")?;
         Ok(())
     }
 }
@@ -99,5 +105,43 @@ where
 
     fn end(self) -> Result<Self::Ok> {
         write!(self.parent.writer, "</{}>", self.name).map_err(|e| e.into())
+    }
+}
+
+/// An implementation of `SerializeSequence` for serializing to XML.
+pub struct Seq<'w, W>
+    where
+        W: 'w + Write,
+{
+    parent: &'w mut Serializer<W>,
+}
+
+impl<'w, W> ser::SerializeSeq for Seq<'w, W>
+    where
+        W: 'w + Write,
+{
+    type Ok = ();
+    type Error = Error;
+
+    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<()> where
+        T: Serialize {
+        write!(self.parent.writer, "<item>")?;
+        value.serialize(&mut *self.parent)?;
+        write!(self.parent.writer, "</item>")?;
+        Ok(())
+    }
+
+    fn end(self) -> Result<Self::Ok> {
+        write!(self.parent.writer, "</list>")?;
+        Ok(())
+    }
+}
+
+impl<'w, W> Seq<'w, W>
+    where
+        W: 'w + Write,
+{
+    pub fn new(parent: &'w mut Serializer<W>) -> Seq<'w, W> {
+        Self { parent }
     }
 }
