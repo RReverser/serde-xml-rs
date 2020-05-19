@@ -150,7 +150,6 @@ fn test_doctype() {
 }
 
 #[test]
-#[ignore] // FIXME
 fn test_doctype_fail() {
     let _ = simple_logger::init();
     #[derive(PartialEq, Serialize, Deserialize, Debug)]
