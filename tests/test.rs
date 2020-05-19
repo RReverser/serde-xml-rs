@@ -228,6 +228,49 @@ fn collection_of_enums() {
     );
 }
 
+#[test]
+fn nested_collection_with_nested_empty_collection() {
+    let _ = simple_logger::init();
+
+    let s = r##"
+        <project name="my_project">
+          <!-- these items do not have a wrapping 'items' tag -->
+          <item name="hello1" source="world1.rs" />
+          <item name="hello2" source="world2.rs" />
+          <sub_projects>
+            <sub_project name="child1">
+              <!-- these items are wrapped in a 'items' tag -->
+              <items></items>
+            </sub_project>
+          </sub_projects>
+        </project>
+    "##;
+
+    let project: Project = from_str(s).unwrap();
+
+    assert_eq!(
+        project,
+        Project {
+            name: "my_project".to_string(),
+            items: vec![
+                Item {
+                    name: "hello1".to_string(),
+                    source: "world1.rs".to_string(),
+                },
+                Item {
+                    name: "hello2".to_string(),
+                    source: "world2.rs".to_string(),
+                },
+            ],
+            sub_projects: Some(vec![
+                SubProject {
+                    name: "child1".to_string(),
+                    items: vec![],
+                },
+            ]),
+        }
+    );
+}
 
 #[derive(Debug, Deserialize, PartialEq)]
 struct Shelter {
@@ -248,7 +291,7 @@ fn vec_container() {
     let s = r##"
     <shelter>
       <animals>
-        <animal name="rover" foo="dog" />
+        <animal name="walter" foo="dog" />
         <animal name="max" foo="cat" />
       </animals>
     </shelter>
@@ -260,7 +303,7 @@ fn vec_container() {
         shelter.animals,
         vec![
             Animal {
-                name: "rover".to_string(),
+                name: "walter".to_string(),
                 foo: "dog".to_string(),
             },
             Animal {
@@ -269,4 +312,28 @@ fn vec_container() {
             },
         ]
     );
+}
+
+#[test]
+fn empty_vec_container() {
+    let _ = simple_logger::init();
+
+    let s = r##"
+    <shelter>
+      <animals>
+      </animals>
+    </shelter>
+    "##;
+
+    let shelter: Shelter = from_str(s).unwrap();
+    assert_eq!(shelter.animals, Vec::new());
+
+    let s = r##"
+    <shelter>
+      <animals/>
+    </shelter>
+    "##;
+
+    let shelter: Shelter = from_str(s).unwrap();
+    assert_eq!(shelter.animals, Vec::new());
 }

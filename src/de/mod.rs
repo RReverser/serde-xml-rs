@@ -365,6 +365,7 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
 
     fn deserialize_seq<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
         match self.peek()? {
+            // node without attributes: <container>...
             XmlEvent::StartElement { attributes, .. } if attributes.is_empty() => {
                 match (self.next()?, self.peek()?) {
                     (next, XmlEvent::StartElement { .. }) => {
@@ -376,21 +377,31 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
                         }
                         self.prior = prior;
                         result
-                    },
-                    (next, _) => { // rewind
+                    }
+                    (next, XmlEvent::EndElement { .. }) => {
+                        // empty node <container></container> or <container/>
+                        self.push(next);
+                        let result = visitor.visit_seq(SeqAccess::new(self, Some(0)));
+
+                        let _start = self.next()?;
+                        let _end = self.next()?;
+
+                        result
+                    }
+                    (next, _peeked) => { // rewind
                         if let Some(prior) = self.prior.take() {
                             self.push(next);
                             self.push(prior);
                             visitor.visit_seq(SeqAccess::new(self, None))
                         } else {
                             self.push(next);
-                            let result = visitor.visit_seq(SeqAccess::new(self, None));
-                            result
+                            visitor.visit_seq(SeqAccess::new(self, None))
                         }
                     },
                 }
             }
             _ => {
+                // node with attributes: <container name="library">...
                 visitor.visit_seq(SeqAccess::new(self, None))
             }
         }
