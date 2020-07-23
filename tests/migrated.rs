@@ -393,7 +393,8 @@ fn test_parse_struct() {
 
     test_parse_ok(&[
         (
-            "<Simple>
+            "<!-- ignore me -->
+            <Simple>
                 <c>abc</c>
                 <a/>
                 <b>2</b>
