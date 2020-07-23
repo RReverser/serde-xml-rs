@@ -22,6 +22,8 @@ enum Animal {
 
 #[derive(PartialEq, Debug, Serialize, Deserialize)]
 struct Simple {
+    #[serde(rename = "$comment")]
+    comments: Option<String>,
     a: (),
     b: usize,
     c: String,
@@ -250,6 +252,7 @@ fn test_parse_enum() {
         (
             "<Animal xsi:type=\"Ant\"><a/><c>bla</c><b>15</b><d>Foo</d></Animal>",
             Ant(Simple {
+                comments: None,
                 a: (),
                 b: 15,
                 c: "bla".to_string(),
@@ -259,6 +262,7 @@ fn test_parse_enum() {
         (
             "<Animal xsi:type=\"Ant\"><a/><c>bla</c><b>15</b></Animal>",
             Ant(Simple {
+                comments: None,
                 a: (),
                 b: 15,
                 c: "bla".to_string(),
@@ -395,6 +399,7 @@ fn test_parse_struct() {
                 <b>2</b>
             </Simple>",
             Simple {
+                comments: None,
                 a: (),
                 b: 2,
                 c: "abc".to_string(),
@@ -403,11 +408,14 @@ fn test_parse_struct() {
         ),
         (
             "<Simple><!-- this is a comment -->
+                text
                 <c>abc</c>
+                more text
                 <a/>
                 <b>2</b>
             </Simple>",
             Simple {
+                comments: Some(" this is a comment ".to_string()),
                 a: (),
                 b: 2,
                 c: "abc".to_string(),
@@ -421,6 +429,7 @@ fn test_parse_struct() {
                 <b>2</b>
             </Simple>",
             Simple {
+                comments: Some(" this is a comment ".to_string()),
                 a: (),
                 b: 2,
                 c: "abc".to_string(),

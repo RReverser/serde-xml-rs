@@ -81,7 +81,7 @@ impl<'de, R: Read> Deserializer<R> {
             .trim_whitespace(true)
             .whitespace_to_characters(true)
             .cdata_to_characters(true)
-            .ignore_comments(true)
+            .ignore_comments(false)
             .coalesce_characters(true);
 
         Self::new(EventReader::new_with_config(reader, config))
@@ -100,9 +100,9 @@ impl<'de, R: Read> Deserializer<R> {
     fn inner_next(&mut self) -> Result<XmlEvent> {
         loop {
             match self.reader.next()? {
-                XmlEvent::StartDocument { .. }
-                | XmlEvent::ProcessingInstruction { .. }
-                | XmlEvent::Comment(_) => { /* skip */ }
+                XmlEvent::StartDocument { .. } | XmlEvent::ProcessingInstruction { .. } => {
+                    /* skip */
+                },
                 other => return Ok(other),
             }
         }
@@ -318,7 +318,7 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
             if let XmlEvent::EndElement { .. } = *this.peek()? {
                 return visitor.visit_str("");
             }
-            expect!(this.next()?, XmlEvent::Characters(s) => {
+            expect!(this.next()?, XmlEvent::Characters(s) | XmlEvent::Comment(s) => {
                 visitor.visit_string(s)
             })
         })
