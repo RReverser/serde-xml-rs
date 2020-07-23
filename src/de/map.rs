@@ -45,6 +45,7 @@ impl<'de, 'a, R: 'a + Read> de::MapAccess<'de> for MapAccess<'a, R> {
                     }.into_deserializer(),
                 ).map(Some),
                 XmlEvent::Characters(_) => seed.deserialize("$value".into_deserializer()).map(Some),
+                XmlEvent::Comment(_) => seed.deserialize("$comment".into_deserializer()).map(Some),
                 _ => Ok(None),
             },
         }
