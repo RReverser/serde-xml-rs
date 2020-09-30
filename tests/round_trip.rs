@@ -2,9 +2,11 @@
 extern crate serde_derive;
 extern crate serde;
 extern crate serde_xml_rs;
+extern crate xml;
 
 use serde::Deserialize;
-use serde_xml_rs::{from_str, to_string, EventReader, ParserConfig};
+use serde_xml_rs::{from_str, to_string};
+use serde_xml_rs::{EventReader, ParserConfig};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 struct Item {
@@ -90,18 +92,14 @@ fn whitespace_preserving_config() {
         name: "  space banana  ".to_string(),
         source: "   fantasy costco   ".to_string(),
     };
-    let config = ParserConfig::new()
-        .trim_whitespace(false)
-        .whitespace_to_characters(false);
-    let mut deserializer =
-        serde_xml_rs::Deserializer::new(EventReader::new_with_config(src.as_bytes(), config));
+    let config = ParserConfig::new().trim_whitespace(false).whitespace_to_characters(false);
+    let mut deserializer = serde_xml_rs::Deserializer::new(EventReader::new_with_config(src.as_bytes(), config));
 
     let item = Item::deserialize(&mut deserializer).unwrap();
     assert_eq!(item, item_should_be);
 
     // Space outside values is not preserved.
-    let serialized_should_be =
-        "<Item><name>  space banana  </name><source>   fantasy costco   </source></Item>";
+    let serialized_should_be = "<Item><name>  space banana  </name><source>   fantasy costco   </source></Item>";
     let reserialized_item = to_string(&item).unwrap();
     assert_eq!(reserialized_item, serialized_should_be);
 }
