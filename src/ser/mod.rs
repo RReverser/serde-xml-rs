@@ -3,7 +3,7 @@ use std::io::Write;
 
 use serde::ser::{self, Impossible, Serialize};
 
-use self::var::{Map, Struct, Seq};
+use self::var::{Map, Seq, Struct};
 use error::{Error, Result};
 
 mod var;
@@ -85,7 +85,7 @@ where
     W: Write,
 {
     pub fn new(writer: W) -> Self {
-        Self { writer: writer }
+        Self { writer }
     }
 
     fn write_primitive<P: Display>(&mut self, primitive: P) -> Result<()> {
@@ -229,7 +229,6 @@ where
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq> {
-        write!(self.writer, "<list>")?;
         Ok(Self::SerializeSeq::new(self))
     }
 
@@ -262,7 +261,6 @@ where
     }
 
     fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap> {
-        write!(self.writer, "<map>")?;
         Ok(Map::new(self))
     }
 
@@ -288,6 +286,7 @@ where
 mod tests {
     use super::*;
     use serde::ser::{SerializeMap, SerializeStruct};
+    use serde::Serialize;
     use serde::Serializer as SerSerializer;
 
     #[test]
@@ -361,14 +360,41 @@ mod tests {
     #[test]
     fn test_serialize_simple_map() {
         let mut hashmap = std::collections::HashMap::new();
-        let mut buffer = Vec::new();
         hashmap.insert("key1", "val1");
+        let mut buffer = Vec::new();
         {
             let mut ser = Serializer::new(&mut buffer);
-            hashmap.serialize(&mut ser).expect("unable to serialize a hashmap instance");
+            hashmap
+                .serialize(&mut ser)
+                .expect("unable to serialize a hashmap instance");
         }
         let got = String::from_utf8(buffer).unwrap();
-        assert_eq!("<map><key1>val1</key1></map>", got)
+        assert_eq!("<key1>val1</key1>", got)
+    }
+
+    #[test]
+    fn test_serialize_map_within_struct() {
+        #[derive(Serialize)]
+        struct Thing {
+            things: std::collections::HashMap<String, String>,
+        }
+
+        let mut hashmap = std::collections::HashMap::new();
+        hashmap.insert("key1".to_string(), "val1".to_string());
+        hashmap.insert("key2".to_string(), "val2".to_string());
+        let sut = Thing { things: hashmap };
+
+        let mut buffer = Vec::new();
+        {
+            let mut ser = Serializer::new(&mut buffer);
+            sut.serialize(&mut ser)
+                .expect("unable to serialize a struct with a hashmap");
+        }
+        let got = String::from_utf8(buffer).unwrap();
+        assert_eq!(
+            "<Thing><things><key1>val1</key1><key2>val2</key2></things></Thing>",
+            got
+        )
     }
 
     #[test]
@@ -411,19 +437,70 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
-    fn serialize_a_list() {
-        let inputs = vec![1, 2, 3, 4];
-
+    fn test_serialize_vector() {
+        let vector = vec![1, 2, 3];
         let mut buffer = Vec::new();
-
         {
             let mut ser = Serializer::new(&mut buffer);
-            inputs.serialize(&mut ser).unwrap();
+            vector.serialize(&mut ser).unwrap();
+        }
+        let got = String::from_utf8(buffer).unwrap();
+        assert_eq!("123", got);
+    }
+
+    #[test]
+    fn test_serialize_vector_of_primitives_within_struct() {
+        #[derive(Serialize)]
+        struct Thing {
+            things: Vec<String>,
+        }
+
+        let sut = Thing {
+            things: vec!["thing_1".to_string(), "thing two".to_string()],
+        };
+
+        let mut buffer = Vec::new();
+        {
+            let mut ser = Serializer::new(&mut buffer);
+            sut.serialize(&mut ser).unwrap();
         }
 
         let got = String::from_utf8(buffer).unwrap();
-        println!("{}", got);
-        panic!();
+        assert_eq!("<Thing><things>thing_1thing two</things></Thing>", got);
+    }
+
+    #[test]
+    fn test_serialize_vector_of_structs_within_struct() {
+        #[derive(Serialize)]
+        #[serde(rename = "thing")]
+        struct Thing {
+            things: Vec<SubThing>,
+        }
+
+        #[derive(Serialize)]
+        #[serde(rename = "sub_thing")]
+        struct SubThing {
+            message: String,
+        }
+
+        let sut = Thing {
+            things: vec![
+                SubThing {
+                    message: "stuff".to_string(),
+                },
+                SubThing {
+                    message: "more stuff".to_string(),
+                },
+            ],
+        };
+
+        let mut buffer = Vec::new();
+        {
+            let mut ser = Serializer::new(&mut buffer);
+            sut.serialize(&mut ser).unwrap();
+        }
+
+        let got = String::from_utf8(buffer).unwrap();
+        assert_eq!("<thing><things><sub_thing><message>stuff</message></sub_thing><sub_thing><message>more stuff</message></sub_thing></things></thing>", got);
     }
 }
