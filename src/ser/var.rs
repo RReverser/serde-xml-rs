@@ -62,7 +62,6 @@ where
     }
 
     fn end(self) -> Result<Self::Ok> {
-        write!(self.parent.writer, "</map>")?;
         Ok(())
     }
 }
@@ -110,36 +109,35 @@ where
 
 /// An implementation of `SerializeSequence` for serializing to XML.
 pub struct Seq<'w, W>
-    where
-        W: 'w + Write,
+where
+    W: 'w + Write,
 {
     parent: &'w mut Serializer<W>,
 }
 
 impl<'w, W> ser::SerializeSeq for Seq<'w, W>
-    where
-        W: 'w + Write,
+where
+    W: 'w + Write,
 {
     type Ok = ();
     type Error = Error;
 
-    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<()> where
-        T: Serialize {
-        write!(self.parent.writer, "<item>")?;
+    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<()>
+    where
+        T: Serialize,
+    {
         value.serialize(&mut *self.parent)?;
-        write!(self.parent.writer, "</item>")?;
         Ok(())
     }
 
     fn end(self) -> Result<Self::Ok> {
-        write!(self.parent.writer, "</list>")?;
         Ok(())
     }
 }
 
 impl<'w, W> Seq<'w, W>
-    where
-        W: 'w + Write,
+where
+    W: 'w + Write,
 {
     pub fn new(parent: &'w mut Serializer<W>) -> Seq<'w, W> {
         Self { parent }
