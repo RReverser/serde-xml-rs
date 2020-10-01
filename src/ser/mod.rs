@@ -448,12 +448,12 @@ mod tests {
     #[test]
     fn test_serialize_vector_of_primitives_within_struct() {
         #[derive(Serialize)]
-        struct Thing {
-            things: Vec<String>,
+        struct Team {
+            projects: Vec<String>,
         }
 
-        let sut = Thing {
-            things: vec!["thing_1".to_string(), "thing two".to_string()],
+        let sut = Team {
+            projects: vec!["thing_1".to_string(), "thing two".to_string()],
         };
 
         let mut buffer = Vec::new();
@@ -463,30 +463,30 @@ mod tests {
         }
 
         let got = String::from_utf8(buffer).unwrap();
-        assert_eq!("<Thing><things>thing_1thing two</things></Thing>", got);
+        assert_eq!("<Team><projects>thing_1thing two</projects></Team>", got);
     }
 
     #[test]
     fn test_serialize_vector_of_structs_within_struct() {
         #[derive(Serialize)]
-        #[serde(rename = "thing")]
-        struct Thing {
-            things: Vec<SubThing>,
+        #[serde(rename = "team")]
+        struct Team {
+            people: Vec<Person>,
         }
 
         #[derive(Serialize)]
-        #[serde(rename = "sub_thing")]
-        struct SubThing {
-            message: String,
+        #[serde(rename = "person")]
+        struct Person {
+            name: String,
         }
 
-        let sut = Thing {
-            things: vec![
-                SubThing {
-                    message: "stuff".to_string(),
+        let sut = Team {
+            people: vec![
+                Person {
+                    name: "Joe".to_string(),
                 },
-                SubThing {
-                    message: "more stuff".to_string(),
+                Person {
+                    name: "Jane".to_string(),
                 },
             ],
         };
@@ -498,6 +498,6 @@ mod tests {
         }
 
         let got = String::from_utf8(buffer).unwrap();
-        assert_eq!("<thing><things><sub_thing><message>stuff</message></sub_thing><sub_thing><message>more stuff</message></sub_thing></things></thing>", got);
+        assert_eq!("<team><people><person><name>Joe</name></person><person><name>Jane</name></person></people></team>", got);
     }
 }
