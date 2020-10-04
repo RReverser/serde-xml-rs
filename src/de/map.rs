@@ -15,20 +15,17 @@ pub struct MapAccess<'a, R: 'a + Read, B: BufferedXmlReader<R>> {
     /// by visitor call to `next_value_seed`
     next_attr_value: Option<String>,
     de: &'a mut Deserializer<R, B>,
-    inner_text_value: bool,
+    /// Whether this `MapAccess` is to deserialize all inner contents of an outer element.
+    inner_value: bool,
 }
 
 impl<'a, R: 'a + Read, B: BufferedXmlReader<R>> MapAccess<'a, R, B> {
-    pub fn new(
-        de: &'a mut Deserializer<R, B>,
-        attrs: Vec<OwnedAttribute>,
-        inner_text_value: bool,
-    ) -> Self {
+    pub fn new(de: &'a mut Deserializer<R, B>, attrs: Vec<OwnedAttribute>, inner_value: bool) -> Self {
         MapAccess {
             attrs: attrs.into_iter(),
             next_attr_value: None,
             de: de,
-            inner_text_value: inner_text_value,
+            inner_value: inner_value,
         }
     }
 }
@@ -46,16 +43,13 @@ impl<'de, 'a, R: 'a + Read, B: BufferedXmlReader<R>> de::MapAccess<'de> for MapA
                     .map(Some)
             },
             None => match *self.de.peek()? {
-                XmlEvent::StartElement { ref name, .. } => seed
-                    .deserialize(
-                        if !self.inner_text_value {
-                            name.local_name.as_str()
-                        } else {
-                            "$value"
-                        }
-                        .into_deserializer(),
-                    )
-                    .map(Some),
+                XmlEvent::StartElement { ref name, .. } => seed.deserialize(
+                    if !self.inner_value {
+                        name.local_name.as_str()
+                    } else {
+                        "$value"
+                    }.into_deserializer(),
+                ).map(Some),
                 XmlEvent::Characters(_) => seed.deserialize("$value".into_deserializer()).map(Some),
                 // Any other event: assume end of map values (actual check for `EndElement` done by the originating
                 // `Deserializer`)
@@ -68,7 +62,7 @@ impl<'de, 'a, R: 'a + Read, B: BufferedXmlReader<R>> de::MapAccess<'de> for MapA
         match self.next_attr_value.take() {
             Some(value) => seed.deserialize(AttrValueDeserializer(value)),
             None => {
-                if !self.inner_text_value {
+                if !self.inner_value {
                     if let XmlEvent::StartElement { .. } = *self.de.peek()? {
                         self.de.set_map_value();
                     }
