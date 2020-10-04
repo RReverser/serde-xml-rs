@@ -7,24 +7,26 @@ use xml::reader::XmlEvent;
 use de::Deserializer;
 use error::{Error, Result};
 
-pub struct EnumAccess<'a, R: 'a + Read> {
-    de: &'a mut Deserializer<R>,
+use super::buffer::BufferedXmlReader;
+
+pub struct EnumAccess<'a, R: 'a + Read, B: BufferedXmlReader<R>> {
+    de: &'a mut Deserializer<R, B>,
 }
 
-impl<'a, R: 'a + Read> EnumAccess<'a, R> {
-    pub fn new(de: &'a mut Deserializer<R>) -> Self {
+impl<'a, R: 'a + Read, B: BufferedXmlReader<R>> EnumAccess<'a, R, B> {
+    pub fn new(de: &'a mut Deserializer<R, B>) -> Self {
         EnumAccess { de: de }
     }
 }
 
-impl<'de, 'a, R: 'a + Read> de::EnumAccess<'de> for EnumAccess<'a, R> {
+impl<'de, 'a, R: 'a + Read, B: BufferedXmlReader<R>> de::EnumAccess<'de> for EnumAccess<'a, R, B> {
     type Error = Error;
-    type Variant = VariantAccess<'a, R>;
+    type Variant = VariantAccess<'a, R, B>;
 
     fn variant_seed<V: de::DeserializeSeed<'de>>(
         self,
         seed: V,
-    ) -> Result<(V::Value, VariantAccess<'a, R>)> {
+    ) -> Result<(V::Value, VariantAccess<'a, R, B>)> {
         let name = expect!(
             self.de.peek()?,
 
@@ -38,17 +40,19 @@ impl<'de, 'a, R: 'a + Read> de::EnumAccess<'de> for EnumAccess<'a, R> {
     }
 }
 
-pub struct VariantAccess<'a, R: 'a + Read> {
-    de: &'a mut Deserializer<R>,
+pub struct VariantAccess<'a, R: 'a + Read, B: BufferedXmlReader<R>> {
+    de: &'a mut Deserializer<R, B>,
 }
 
-impl<'a, R: 'a + Read> VariantAccess<'a, R> {
-    pub fn new(de: &'a mut Deserializer<R>) -> Self {
+impl<'a, R: 'a + Read, B: BufferedXmlReader<R>> VariantAccess<'a, R, B> {
+    pub fn new(de: &'a mut Deserializer<R, B>) -> Self {
         VariantAccess { de: de }
     }
 }
 
-impl<'de, 'a, R: 'a + Read> de::VariantAccess<'de> for VariantAccess<'a, R> {
+impl<'de, 'a, R: 'a + Read, B: BufferedXmlReader<R>> de::VariantAccess<'de>
+    for VariantAccess<'a, R, B>
+{
     type Error = Error;
 
     fn unit_variant(self) -> Result<()> {

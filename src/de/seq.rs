@@ -3,28 +3,35 @@ use std::io::Read;
 use serde::de;
 use xml::reader::XmlEvent;
 
-use de::Deserializer;
+use de::ChildDeserializer;
 use error::{Error, Result};
 
 pub struct SeqAccess<'a, R: 'a + Read> {
-    de: &'a mut Deserializer<R>,
+    de: ChildDeserializer<'a, R>,
     max_size: Option<usize>,
-    expected_name: Option<String>,
+    seq_type: SeqType,
+}
+
+pub enum SeqType {
+    /// Sequence is of elements with the same name.
+    ByElementName { expected_name: String },
+    /// Sequence is of all elements/text at current depth.
+    AllMembers,
 }
 
 impl<'a, R: 'a + Read> SeqAccess<'a, R> {
-    pub fn new(de: &'a mut Deserializer<R>, max_size: Option<usize>) -> Self {
-        let expected_name = if de.unset_map_value() {
+    pub fn new(mut de: ChildDeserializer<'a, R>, max_size: Option<usize>) -> Self {
+        let seq_type = if de.unset_map_value() {
             debug_expect!(de.peek(), Ok(&XmlEvent::StartElement { ref name, .. }) => {
-                Some(name.local_name.clone())
+                SeqType::ByElementName { expected_name: name.local_name.clone() }
             })
         } else {
-            None
+            SeqType::AllMembers
         };
         SeqAccess {
-            de: de,
-            max_size: max_size,
-            expected_name: expected_name,
+            de,
+            max_size,
+            seq_type,
         }
     }
 }
@@ -45,22 +52,48 @@ impl<'de, 'a, R: 'a + Read> de::SeqAccess<'de> for SeqAccess<'a, R> {
             },
             None => {},
         }
-        let more = match (self.de.peek()?, self.expected_name.as_ref()) {
-            (&XmlEvent::StartElement { ref name, .. }, Some(expected_name)) => {
-                &name.local_name == expected_name
+
+        let mut local_depth = 0;
+
+        match &self.seq_type {
+            SeqType::ByElementName { expected_name } => loop {
+                let next_element = self.de.peek()?;
+
+                match next_element {
+                    XmlEvent::StartElement { name, .. } if &name.local_name == expected_name => {
+                        self.de.set_map_value();
+                        return seed.deserialize(&mut self.de).map(Some);
+                    }
+                    XmlEvent::StartElement { .. } => {
+                        self.de.buffered_reader.skip();
+                        local_depth += 1;
+                    }
+                    XmlEvent::EndElement { .. } => {
+                        if local_depth == 0 {
+                            return Ok(None);
+                        } else {
+                            local_depth -= 1;
+                            self.de.buffered_reader.skip();
+                        }
+                    }
+                    XmlEvent::EndDocument => {
+                        return Ok(None);
+                    }
+                    _ => {
+                        self.de.buffered_reader.skip();
+                    }
+                }
             },
-            (&XmlEvent::EndElement { .. }, None) |
-            (_, Some(_)) |
-            (&XmlEvent::EndDocument { .. }, _) => false,
-            (_, None) => true,
-        };
-        if more {
-            if self.expected_name.is_some() {
-                self.de.set_map_value();
+            SeqType::AllMembers => {
+                let next_element = self.de.peek()?;
+
+                match next_element {
+                    XmlEvent::EndElement { .. } | XmlEvent::EndDocument => return Ok(None),
+                    _ => {
+                        return seed.deserialize(&mut self.de).map(Some);
+                    }
+                }
             }
-            seed.deserialize(&mut *self.de).map(Some)
-        } else {
-            Ok(None)
         }
     }
 
