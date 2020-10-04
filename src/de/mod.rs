@@ -66,7 +66,7 @@ type ChildDeserializer<'parent, R> = Deserializer<R, ChildXmlBuffer<'parent, R>>
 
 pub struct Deserializer<
     R: Read, // Kept as type param to avoid type signature breaking-change
-    B: BufferedXmlReader<R>,
+    B: BufferedXmlReader<R> = RootXmlBuffer<R>,
 > {
     /// XML document nested element depth
     depth: usize,
