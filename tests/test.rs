@@ -333,3 +333,47 @@ fn out_of_order_tuple() {
 
     assert_eq!(should_be, actual);
 }
+
+/// Ensure that identically-named elements at different depths are not deserialized as if they were
+/// at the same depth.
+#[test]
+fn nested_collection_repeated_elements() {
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct OuterCollection {
+        a: Vec<A>,
+        inner: Inner,
+    }
+
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct Inner {
+        a: A,
+    }
+
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct A {
+        name: String,
+    }
+
+    let _ = simple_logger::init();
+
+    let in_xml = r#"
+        <collection>
+            <a name="a1" />
+            <inner>
+                <a name="a2" />
+            </inner>
+            <a name="a3" />
+        </collection>
+    "#;
+
+    let should_be = OuterCollection {
+        a: vec![A { name: "a1".into() }, A { name: "a3".into() }],
+        inner: Inner {
+            a: A { name: "a2".into() },
+        },
+    };
+
+    let actual: OuterCollection = from_str(&in_xml).unwrap();
+
+    assert_eq!(should_be, actual);
+}

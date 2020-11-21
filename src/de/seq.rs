@@ -53,34 +53,38 @@ impl<'de, 'a, R: 'a + Read> de::SeqAccess<'de> for SeqAccess<'a, R> {
             None => {},
         }
 
-        let mut local_depth = 0;
-
         match &self.seq_type {
-            SeqType::ByElementName { expected_name } => loop {
-                let next_element = self.de.peek()?;
+            SeqType::ByElementName { expected_name } => {
+                let mut local_depth = 0;
 
-                match next_element {
-                    XmlEvent::StartElement { name, .. } if &name.local_name == expected_name => {
-                        self.de.set_map_value();
-                        return seed.deserialize(&mut self.de).map(Some);
-                    }
-                    XmlEvent::StartElement { .. } => {
-                        self.de.buffered_reader.skip();
-                        local_depth += 1;
-                    }
-                    XmlEvent::EndElement { .. } => {
-                        if local_depth == 0 {
-                            return Ok(None);
-                        } else {
-                            local_depth -= 1;
-                            self.de.buffered_reader.skip();
+                loop {
+                    let next_element = self.de.peek()?;
+
+                    match next_element {
+                        XmlEvent::StartElement { name, .. }
+                            if &name.local_name == expected_name && local_depth == 0 =>
+                        {
+                            self.de.set_map_value();
+                            return seed.deserialize(&mut self.de).map(Some);
                         }
-                    }
-                    XmlEvent::EndDocument => {
-                        return Ok(None);
-                    }
-                    _ => {
-                        self.de.buffered_reader.skip();
+                        XmlEvent::StartElement { .. } => {
+                            self.de.buffered_reader.skip();
+                            local_depth += 1;
+                        },
+                        XmlEvent::EndElement { .. } => {
+                            if local_depth == 0 {
+                                return Ok(None);
+                            } else {
+                                local_depth -= 1;
+                                self.de.buffered_reader.skip();
+                            }
+                        },
+                        XmlEvent::EndDocument => {
+                            return Ok(None);
+                        },
+                        _ => {
+                            self.de.buffered_reader.skip();
+                        },
                     }
                 }
             },
@@ -91,9 +95,9 @@ impl<'de, 'a, R: 'a + Read> de::SeqAccess<'de> for SeqAccess<'a, R> {
                     XmlEvent::EndElement { .. } | XmlEvent::EndDocument => return Ok(None),
                     _ => {
                         return seed.deserialize(&mut self.de).map(Some);
-                    }
+                    },
                 }
-            }
+            },
         }
     }
 
