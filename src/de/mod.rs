@@ -62,17 +62,21 @@ pub fn from_reader<'de, R: Read, T: de::Deserialize<'de>>(reader: R) -> Result<T
 pub struct Deserializer<R: Read> {
     depth: usize,
     reader: EventReader<R>,
+    prior: Option<XmlEvent>,
     peeked: Option<XmlEvent>,
     is_map_value: bool,
+    stack: Option<Vec<XmlEvent>>,
 }
 
 impl<'de, R: Read> Deserializer<R> {
     pub fn new(reader: EventReader<R>) -> Self {
         Deserializer {
             depth: 0,
-            reader: reader,
+            reader,
+            prior: None,
             peeked: None,
             is_map_value: false,
+            stack: None,
         }
     }
 
@@ -87,9 +91,38 @@ impl<'de, R: Read> Deserializer<R> {
         Self::new(EventReader::new_with_config(reader, config))
     }
 
+    fn push(&mut self, event: XmlEvent) {
+        let mut stack = self.stack.take().unwrap_or_else(|| Vec::new());
+        if let Some(peeked) = self.peeked.take() {
+            debug!("Pushed {:?}", peeked);
+            stack.push(peeked);
+        }
+
+        match event {
+            XmlEvent::StartElement { .. } => {
+                self.depth -= 1;
+            }
+            XmlEvent::EndElement { .. } => {
+                self.depth += 1;
+            }
+            _ => {}
+        }
+
+        debug!("Pushed {:?}", event);
+        stack.push(event);
+        self.stack = Some(stack);
+    }
+
     fn peek(&mut self) -> Result<&XmlEvent> {
         if self.peeked.is_none() {
-            self.peeked = Some(self.inner_next()?);
+            if let Some(mut stack) = self.stack.take() {
+                self.peeked = stack.pop();
+                if stack.len() != 0 {
+                    self.stack = Some(stack);
+                }
+            } else {
+                self.peeked = Some(self.inner_next()?);
+            }
         }
         debug_expect!(self.peeked.as_ref(), Some(peeked) => {
             debug!("Peeked {:?}", peeked);
@@ -111,6 +144,12 @@ impl<'de, R: Read> Deserializer<R> {
 
     fn next(&mut self) -> Result<XmlEvent> {
         let next = if let Some(peeked) = self.peeked.take() {
+            peeked
+        } else if let Some(mut stack) = self.stack.take() {
+            let peeked = stack.pop().unwrap();
+            if !stack.is_empty() {
+                self.stack = Some(stack);
+            }
             peeked
         } else {
             self.inner_next()?
@@ -326,7 +365,47 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
     }
 
     fn deserialize_seq<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        visitor.visit_seq(SeqAccess::new(self, None))
+        match self.peek()? {
+            // node without attributes: <container>...
+            XmlEvent::StartElement { attributes, .. } if attributes.is_empty() => {
+                match (self.next()?, self.peek()?) {
+                    (next, XmlEvent::StartElement { .. }) => {
+                        let prior = self.prior.take();
+                        self.prior = Some(next);
+                        let result = self.deserialize_seq(visitor);
+                        if let Some(XmlEvent::StartElement { name, .. }) = self.prior.take() {
+                            self.expect_end_element(name)?;
+                        }
+                        self.prior = prior;
+                        result
+                    }
+                    (next, XmlEvent::EndElement { .. }) => {
+                        // empty node <container></container> or <container/>
+                        self.push(next);
+                        let result = visitor.visit_seq(SeqAccess::new(self, Some(0)));
+
+                        let _start = self.next()?;
+                        let _end = self.next()?;
+
+                        result
+                    }
+                    (next, _peeked) => { // rewind
+                        if let Some(prior) = self.prior.take() {
+                            self.push(next);
+                            self.push(prior);
+                            visitor.visit_seq(SeqAccess::new(self, None))
+                        } else {
+                            self.push(next);
+                            visitor.visit_seq(SeqAccess::new(self, None))
+                        }
+                    },
+                }
+            }
+            _ => {
+                // node with attributes: <container name="library">...
+                visitor.visit_seq(SeqAccess::new(self, None))
+            }
+        }
     }
 
     fn deserialize_map<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {

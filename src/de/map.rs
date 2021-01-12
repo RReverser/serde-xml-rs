@@ -19,8 +19,8 @@ impl<'a, R: 'a + Read> MapAccess<'a, R> {
         MapAccess {
             attrs: attrs.into_iter(),
             next_value: None,
-            de: de,
-            inner_value: inner_value,
+            de,
+            inner_value,
         }
     }
 }
