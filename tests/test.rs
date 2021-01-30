@@ -1,3 +1,4 @@
+extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_xml_rs;
@@ -5,7 +6,8 @@ extern crate serde_xml_rs;
 extern crate log;
 extern crate simple_logger;
 
-use serde_xml_rs::from_str;
+use serde::Deserialize;
+use serde_xml_rs::{from_str, Deserializer};
 
 #[derive(Debug, Deserialize, PartialEq)]
 struct Item {
@@ -209,7 +211,8 @@ fn out_of_order_collection() {
         c: C { name: "c".into() },
     };
 
-    let actual: Collection = from_str(&in_xml).unwrap();
+    let mut de = Deserializer::new_from_reader(in_xml.as_bytes()).non_contiguous_seq_elements(true);
+    let actual = Collection::deserialize(&mut de).unwrap();
 
     assert_eq!(should_be, actual);
 }
@@ -277,7 +280,8 @@ fn nested_out_of_order_collection() {
         ],
     };
 
-    let actual: OuterCollection = from_str(&in_xml).unwrap();
+    let mut de = Deserializer::new_from_reader(in_xml.as_bytes()).non_contiguous_seq_elements(true);
+    let actual = OuterCollection::deserialize(&mut de).unwrap();
 
     assert_eq!(should_be, actual);
 }
@@ -329,7 +333,8 @@ fn out_of_order_tuple() {
         },
     };
 
-    let actual: Collection = from_str(&in_xml).unwrap();
+    let mut de = Deserializer::new_from_reader(in_xml.as_bytes()).non_contiguous_seq_elements(true);
+    let actual = Collection::deserialize(&mut de).unwrap();
 
     assert_eq!(should_be, actual);
 }
@@ -373,7 +378,8 @@ fn nested_collection_repeated_elements() {
         },
     };
 
-    let actual: OuterCollection = from_str(&in_xml).unwrap();
+    let mut de = Deserializer::new_from_reader(in_xml.as_bytes()).non_contiguous_seq_elements(true);
+    let actual = OuterCollection::deserialize(&mut de).unwrap();
 
     assert_eq!(should_be, actual);
 }
