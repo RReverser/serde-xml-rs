@@ -72,6 +72,7 @@ pub struct Deserializer<
     depth: usize,
     buffered_reader: B,
     is_map_value: bool,
+    non_contiguous_seq_elements: bool,
     marker: PhantomData<R>,
 }
 
@@ -83,6 +84,7 @@ impl<'de, R: Read> RootDeserializer<R> {
             buffered_reader,
             depth: 0,
             is_map_value: false,
+            non_contiguous_seq_elements: false,
             marker: PhantomData,
         }
     }
@@ -97,6 +99,43 @@ impl<'de, R: Read> RootDeserializer<R> {
 
         Self::new(EventReader::new_with_config(reader, config))
     }
+
+    /// Configures whether the deserializer should search all sibling elements when building a
+    /// sequence. Not required if all XML elements for sequences are adjacent. Disabled by
+    /// default. Enabling this option may incur additional memory usage.
+    ///
+    /// ```rust
+    /// # #[macro_use]
+    /// # extern crate serde_derive;
+    /// # extern crate serde;
+    /// # extern crate serde_xml_rs;
+    /// # use serde_xml_rs::from_reader;
+    /// # use serde::Deserialize;
+    /// #[derive(Debug, Deserialize, PartialEq)]
+    /// struct Foo {
+    ///     bar: Vec<usize>,
+    ///     baz: String,
+    /// }
+    /// # fn main() {
+    /// let s = r##"
+    ///     <foo>
+    ///         <bar>1</bar>
+    ///         <bar>2</bar>
+    ///         <baz>Hello, world</baz>
+    ///         <bar>3</bar>
+    ///         <bar>4</bar>
+    ///     </foo>
+    /// "##;
+    /// let mut de = serde_xml_rs::Deserializer::new_from_reader(s.as_bytes())
+    ///     .non_contiguous_seq_elements(true);
+    /// let foo = Foo::deserialize(&mut de).unwrap();
+    /// assert_eq!(foo, Foo { bar: vec![1, 2, 3, 4], baz: "Hello, world".to_string()});
+    /// # }
+    /// ```
+    pub fn non_contiguous_seq_elements(mut self, set: bool) -> Self {
+        self.non_contiguous_seq_elements = set;
+        self
+    }
 }
 
 impl<'de, R: Read, B: BufferedXmlReader<R>> Deserializer<R, B> {
@@ -105,6 +144,7 @@ impl<'de, R: Read, B: BufferedXmlReader<R>> Deserializer<R, B> {
             buffered_reader,
             depth,
             is_map_value,
+            non_contiguous_seq_elements,
             ..
         } = self;
 
@@ -112,6 +152,7 @@ impl<'de, R: Read, B: BufferedXmlReader<R>> Deserializer<R, B> {
             buffered_reader: buffered_reader.child_buffer(),
             depth: *depth,
             is_map_value: *is_map_value,
+            non_contiguous_seq_elements: *non_contiguous_seq_elements,
             marker: PhantomData,
         }
     }
@@ -131,11 +172,11 @@ impl<'de, R: Read, B: BufferedXmlReader<R>> Deserializer<R, B> {
         match next {
             XmlEvent::StartElement { .. } => {
                 self.depth += 1;
-            }
+            },
             XmlEvent::EndElement { .. } => {
                 self.depth -= 1;
-            }
-            _ => {}
+            },
+            _ => {},
         }
         debug!("Fetched {:?}", next);
         Ok(next)
@@ -207,7 +248,7 @@ macro_rules! deserialize_type {
             let value = self.prepare_parse_type::<V>()?.parse()?;
             visitor.$visit(value)
         }
-    }
+    };
 }
 
 impl<'de, 'a, R: Read, B: BufferedXmlReader<R>> de::Deserializer<'de>

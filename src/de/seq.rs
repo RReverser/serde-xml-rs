@@ -14,7 +14,10 @@ pub struct SeqAccess<'a, R: 'a + Read> {
 
 pub enum SeqType {
     /// Sequence is of elements with the same name.
-    ByElementName { expected_name: String },
+    ByElementName {
+        expected_name: String,
+        search_non_contiguous: bool,
+    },
     /// Sequence is of all elements/text at current depth.
     AllMembers,
 }
@@ -23,7 +26,10 @@ impl<'a, R: 'a + Read> SeqAccess<'a, R> {
     pub fn new(mut de: ChildDeserializer<'a, R>, max_size: Option<usize>) -> Self {
         let seq_type = if de.unset_map_value() {
             debug_expect!(de.peek(), Ok(&XmlEvent::StartElement { ref name, .. }) => {
-                SeqType::ByElementName { expected_name: name.local_name.clone() }
+                SeqType::ByElementName {
+                    expected_name: name.local_name.clone(),
+                    search_non_contiguous: de.non_contiguous_seq_elements
+                }
             })
         } else {
             SeqType::AllMembers
@@ -54,7 +60,10 @@ impl<'de, 'a, R: 'a + Read> de::SeqAccess<'de> for SeqAccess<'a, R> {
         }
 
         match &self.seq_type {
-            SeqType::ByElementName { expected_name } => {
+            SeqType::ByElementName {
+                expected_name,
+                search_non_contiguous,
+            } => {
                 let mut local_depth = 0;
 
                 loop {
@@ -68,8 +77,12 @@ impl<'de, 'a, R: 'a + Read> de::SeqAccess<'de> for SeqAccess<'a, R> {
                             return seed.deserialize(&mut self.de).map(Some);
                         }
                         XmlEvent::StartElement { .. } => {
-                            self.de.buffered_reader.skip();
-                            local_depth += 1;
+                            if *search_non_contiguous {
+                                self.de.buffered_reader.skip();
+                                local_depth += 1;
+                            } else {
+                                return Ok(None);
+                            }
                         },
                         XmlEvent::EndElement { .. } => {
                             if local_depth == 0 {
