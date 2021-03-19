@@ -1,3 +1,4 @@
+extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_xml_rs;
@@ -5,7 +6,8 @@ extern crate serde_xml_rs;
 extern crate log;
 extern crate simple_logger;
 
-use serde_xml_rs::from_str;
+use serde::Deserialize;
+use serde_xml_rs::{from_str, Deserializer};
 
 #[derive(Debug, Deserialize, PartialEq)]
 struct Item {
@@ -158,4 +160,226 @@ fn collection_of_enums() {
             ],
         }
     );
+}
+
+#[test]
+fn out_of_order_collection() {
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct Collection {
+        a: Vec<A>,
+        b: Vec<B>,
+        c: C,
+    }
+
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct A {
+        name: String,
+    }
+
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct B {
+        name: String,
+    }
+
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct C {
+        name: String,
+    }
+
+    let _ = simple_logger::init();
+
+    let in_xml = r#"
+        <collection>
+            <a name="a1" />
+            <a name="a2" />
+            <b name="b1" />
+            <a name="a3" />
+            <c name="c" />
+            <b name="b2" />
+            <a name="a4" />
+        </collection>
+    "#;
+
+    let should_be = Collection {
+        a: vec![
+            A { name: "a1".into() },
+            A { name: "a2".into() },
+            A { name: "a3".into() },
+            A { name: "a4".into() },
+        ],
+        b: vec![B { name: "b1".into() }, B { name: "b2".into() }],
+        c: C { name: "c".into() },
+    };
+
+    let mut de = Deserializer::new_from_reader(in_xml.as_bytes()).non_contiguous_seq_elements(true);
+    let actual = Collection::deserialize(&mut de).unwrap();
+
+    assert_eq!(should_be, actual);
+}
+
+#[test]
+fn nested_out_of_order_collection() {
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct OuterCollection {
+        a: A,
+        inner: Vec<InnerCollection>,
+    }
+
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct InnerCollection {
+        b: Vec<B>,
+        c: Vec<C>,
+    }
+
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct A {
+        name: String,
+    }
+
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct B {
+        name: String,
+    }
+
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct C {
+        name: String,
+    }
+
+    let _ = simple_logger::init();
+
+    let in_xml = r#"
+        <collection>
+            <inner>
+                <b name="b1" />
+                <c name="c1" />
+                <b name="b2" />
+                <c name="c2" />
+            </inner>
+            <a name="a" />
+            <inner>
+                <c name="c3" />
+                <b name="b3" />
+                <c name="c4" />
+                <b name="b4" />
+            </inner>
+        </collection>
+    "#;
+
+    let should_be = OuterCollection {
+        a: A { name: "a".into() },
+        inner: vec![
+            InnerCollection {
+                b: vec![B { name: "b1".into() }, B { name: "b2".into() }],
+                c: vec![C { name: "c1".into() }, C { name: "c2".into() }],
+            },
+            InnerCollection {
+                b: vec![B { name: "b3".into() }, B { name: "b4".into() }],
+                c: vec![C { name: "c3".into() }, C { name: "c4".into() }],
+            },
+        ],
+    };
+
+    let mut de = Deserializer::new_from_reader(in_xml.as_bytes()).non_contiguous_seq_elements(true);
+    let actual = OuterCollection::deserialize(&mut de).unwrap();
+
+    assert_eq!(should_be, actual);
+}
+
+#[test]
+fn out_of_order_tuple() {
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct Collection {
+        val: (A, B, C),
+        other: A,
+    }
+
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct A {
+        name_a: String,
+    }
+
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct B {
+        name_b: String,
+    }
+
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct C {
+        name_c: String,
+    }
+
+    let _ = simple_logger::init();
+
+    let in_xml = r#"
+        <collection>
+            <val name_a="a1" />
+            <val name_b="b" />
+            <other name_a="a2" />
+            <val name_c="c" />
+        </collection>
+    "#;
+
+    let should_be = Collection {
+        val: (
+            A {
+                name_a: "a1".into(),
+            },
+            B { name_b: "b".into() },
+            C { name_c: "c".into() },
+        ),
+        other: A {
+            name_a: "a2".into(),
+        },
+    };
+
+    let mut de = Deserializer::new_from_reader(in_xml.as_bytes()).non_contiguous_seq_elements(true);
+    let actual = Collection::deserialize(&mut de).unwrap();
+
+    assert_eq!(should_be, actual);
+}
+
+/// Ensure that identically-named elements at different depths are not deserialized as if they were
+/// at the same depth.
+#[test]
+fn nested_collection_repeated_elements() {
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct OuterCollection {
+        a: Vec<A>,
+        inner: Inner,
+    }
+
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct Inner {
+        a: A,
+    }
+
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct A {
+        name: String,
+    }
+
+    let _ = simple_logger::init();
+
+    let in_xml = r#"
+        <collection>
+            <a name="a1" />
+            <inner>
+                <a name="a2" />
+            </inner>
+            <a name="a3" />
+        </collection>
+    "#;
+
+    let should_be = OuterCollection {
+        a: vec![A { name: "a1".into() }, A { name: "a3".into() }],
+        inner: Inner {
+            a: A { name: "a2".into() },
+        },
+    };
+
+    let mut de = Deserializer::new_from_reader(in_xml.as_bytes()).non_contiguous_seq_elements(true);
+    let actual = OuterCollection::deserialize(&mut de).unwrap();
+
+    assert_eq!(should_be, actual);
 }

@@ -1,14 +1,16 @@
-use std::io::Read;
+use std::{io::Read, marker::PhantomData};
 
 use serde::de::{self, Unexpected};
 use xml::name::OwnedName;
 use xml::reader::{EventReader, ParserConfig, XmlEvent};
 
+use self::buffer::{BufferedXmlReader, ChildXmlBuffer, RootXmlBuffer};
 use self::map::MapAccess;
 use self::seq::SeqAccess;
 use self::var::EnumAccess;
 use error::{Error, Result};
 
+mod buffer;
 mod map;
 mod seq;
 mod var;
@@ -59,20 +61,31 @@ pub fn from_reader<'de, R: Read, T: de::Deserialize<'de>>(reader: R) -> Result<T
     T::deserialize(&mut Deserializer::new_from_reader(reader))
 }
 
-pub struct Deserializer<R: Read> {
+type RootDeserializer<R> = Deserializer<R, RootXmlBuffer<R>>;
+type ChildDeserializer<'parent, R> = Deserializer<R, ChildXmlBuffer<'parent, R>>;
+
+pub struct Deserializer<
+    R: Read, // Kept as type param to avoid type signature breaking-change
+    B: BufferedXmlReader<R> = RootXmlBuffer<R>,
+> {
+    /// XML document nested element depth
     depth: usize,
-    reader: EventReader<R>,
-    peeked: Option<XmlEvent>,
+    buffered_reader: B,
     is_map_value: bool,
+    non_contiguous_seq_elements: bool,
+    marker: PhantomData<R>,
 }
 
-impl<'de, R: Read> Deserializer<R> {
+impl<'de, R: Read> RootDeserializer<R> {
     pub fn new(reader: EventReader<R>) -> Self {
+        let buffered_reader = RootXmlBuffer::new(reader);
+
         Deserializer {
+            buffered_reader,
             depth: 0,
-            reader: reader,
-            peeked: None,
             is_map_value: false,
+            non_contiguous_seq_elements: false,
+            marker: PhantomData,
         }
     }
 
@@ -87,42 +100,83 @@ impl<'de, R: Read> Deserializer<R> {
         Self::new(EventReader::new_with_config(reader, config))
     }
 
+    /// Configures whether the deserializer should search all sibling elements when building a
+    /// sequence. Not required if all XML elements for sequences are adjacent. Disabled by
+    /// default. Enabling this option may incur additional memory usage.
+    ///
+    /// ```rust
+    /// # #[macro_use]
+    /// # extern crate serde_derive;
+    /// # extern crate serde;
+    /// # extern crate serde_xml_rs;
+    /// # use serde_xml_rs::from_reader;
+    /// # use serde::Deserialize;
+    /// #[derive(Debug, Deserialize, PartialEq)]
+    /// struct Foo {
+    ///     bar: Vec<usize>,
+    ///     baz: String,
+    /// }
+    /// # fn main() {
+    /// let s = r##"
+    ///     <foo>
+    ///         <bar>1</bar>
+    ///         <bar>2</bar>
+    ///         <baz>Hello, world</baz>
+    ///         <bar>3</bar>
+    ///         <bar>4</bar>
+    ///     </foo>
+    /// "##;
+    /// let mut de = serde_xml_rs::Deserializer::new_from_reader(s.as_bytes())
+    ///     .non_contiguous_seq_elements(true);
+    /// let foo = Foo::deserialize(&mut de).unwrap();
+    /// assert_eq!(foo, Foo { bar: vec![1, 2, 3, 4], baz: "Hello, world".to_string()});
+    /// # }
+    /// ```
+    pub fn non_contiguous_seq_elements(mut self, set: bool) -> Self {
+        self.non_contiguous_seq_elements = set;
+        self
+    }
+}
+
+impl<'de, R: Read, B: BufferedXmlReader<R>> Deserializer<R, B> {
+    fn child<'a>(&'a mut self) -> Deserializer<R, ChildXmlBuffer<'a, R>> {
+        let Deserializer {
+            buffered_reader,
+            depth,
+            is_map_value,
+            non_contiguous_seq_elements,
+            ..
+        } = self;
+
+        Deserializer {
+            buffered_reader: buffered_reader.child_buffer(),
+            depth: *depth,
+            is_map_value: *is_map_value,
+            non_contiguous_seq_elements: *non_contiguous_seq_elements,
+            marker: PhantomData,
+        }
+    }
+
+    /// Gets the next XML event without advancing the cursor.
     fn peek(&mut self) -> Result<&XmlEvent> {
-        if self.peeked.is_none() {
-            self.peeked = Some(self.inner_next()?);
-        }
-        debug_expect!(self.peeked.as_ref(), Some(peeked) => {
-            debug!("Peeked {:?}", peeked);
-            Ok(peeked)
-        })
+        let peeked = self.buffered_reader.peek()?;
+
+        debug!("Peeked {:?}", peeked);
+        Ok(peeked)
     }
 
-    fn inner_next(&mut self) -> Result<XmlEvent> {
-        loop {
-            match self.reader.next()? {
-                XmlEvent::StartDocument { .. }
-                | XmlEvent::ProcessingInstruction { .. }
-                | XmlEvent::Whitespace { .. }
-                | XmlEvent::Comment(_) => { /* skip */ }
-                other => return Ok(other),
-            }
-        }
-    }
-
+    /// Gets the XML event at the cursor and advances the cursor.
     fn next(&mut self) -> Result<XmlEvent> {
-        let next = if let Some(peeked) = self.peeked.take() {
-            peeked
-        } else {
-            self.inner_next()?
-        };
+        let next = self.buffered_reader.next()?;
+
         match next {
             XmlEvent::StartElement { .. } => {
                 self.depth += 1;
-            }
+            },
             XmlEvent::EndElement { .. } => {
                 self.depth -= 1;
-            }
-            _ => {}
+            },
+            _ => {},
         }
         debug!("Fetched {:?}", next);
         Ok(next)
@@ -136,6 +190,10 @@ impl<'de, R: Read> Deserializer<R> {
         ::std::mem::replace(&mut self.is_map_value, false)
     }
 
+    /// If `self.is_map_value`: Performs the read operations specified by `f` on the inner content of an XML element.
+    /// `f` is expected to consume the entire inner contents of the element. The cursor will be moved to the end of the
+    /// element.
+    /// If `!self.is_map_value`: `f` will be performed without additional checks/advances for an outer XML element.
     fn read_inner_value<V: de::Visitor<'de>, T, F: FnOnce(&mut Self) -> Result<T>>(
         &mut self,
         f: F,
@@ -190,10 +248,12 @@ macro_rules! deserialize_type {
             let value = self.prepare_parse_type::<V>()?.parse()?;
             visitor.$visit(value)
         }
-    }
+    };
 }
 
-impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
+impl<'de, 'a, R: Read, B: BufferedXmlReader<R>> de::Deserializer<'de>
+    for &'a mut Deserializer<R, B>
+{
     type Error = Error;
 
     forward_to_deserialize_any! {
@@ -299,7 +359,9 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
     }
 
     fn deserialize_tuple<V: de::Visitor<'de>>(self, len: usize, visitor: V) -> Result<V::Value> {
-        visitor.visit_seq(SeqAccess::new(self, Some(len)))
+        let child_deserializer = self.child();
+
+        visitor.visit_seq(SeqAccess::new(child_deserializer, Some(len)))
     }
 
     fn deserialize_enum<V: de::Visitor<'de>>(
@@ -326,7 +388,9 @@ impl<'de, 'a, R: Read> de::Deserializer<'de> for &'a mut Deserializer<R> {
     }
 
     fn deserialize_seq<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-        visitor.visit_seq(SeqAccess::new(self, None))
+        let child_deserializer = self.child();
+
+        visitor.visit_seq(SeqAccess::new(child_deserializer, None))
     }
 
     fn deserialize_map<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
