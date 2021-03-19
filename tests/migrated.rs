@@ -102,7 +102,6 @@ fn test_namespaces() {
 }
 
 #[test]
-#[ignore] // FIXME
 fn test_doctype() {
     let _ = simple_logger::init();
     #[derive(PartialEq, Serialize, Deserialize, Debug)]
@@ -147,36 +146,6 @@ fn test_doctype() {
             },
         ),
     ]);
-}
-
-#[test]
-fn test_doctype_fail() {
-    let _ = simple_logger::init();
-    #[derive(PartialEq, Serialize, Deserialize, Debug)]
-    struct Envelope {
-        subject: String,
-    }
-
-    test_parse_err::<Envelope>(&[
-        r#"
-            <?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE Envelope [
-                <!ELEMENT subject (#PCDATA)>
-            >
-            <Envelope>
-            <subject>Reference rates</subject>
-            </Envelope>"#,
-        r#"
-            <?xml version="1.0" encoding="UTF-8"?>
-            <Envelope>
-            <subject>Reference rates</subject>
-
-            <!DOCTYPE Envelope [
-                <!ELEMENT subject (#PCDATA)>
-            ]>
-
-            </Envelope>"#,
-    ])
 }
 
 #[test]
