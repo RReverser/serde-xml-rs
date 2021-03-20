@@ -20,7 +20,11 @@ pub struct MapAccess<'a, R: 'a + Read, B: BufferedXmlReader<R>> {
 }
 
 impl<'a, R: 'a + Read, B: BufferedXmlReader<R>> MapAccess<'a, R, B> {
-    pub fn new(de: &'a mut Deserializer<R, B>, attrs: Vec<OwnedAttribute>, inner_value: bool) -> Self {
+    pub fn new(
+        de: &'a mut Deserializer<R, B>,
+        attrs: Vec<OwnedAttribute>,
+        inner_value: bool,
+    ) -> Self {
         MapAccess {
             attrs: attrs.into_iter(),
             next_attr_value: None,
@@ -43,13 +47,16 @@ impl<'de, 'a, R: 'a + Read, B: BufferedXmlReader<R>> de::MapAccess<'de> for MapA
                     .map(Some)
             },
             None => match *self.de.peek()? {
-                XmlEvent::StartElement { ref name, .. } => seed.deserialize(
-                    if !self.inner_value {
-                        name.local_name.as_str()
-                    } else {
-                        "$value"
-                    }.into_deserializer(),
-                ).map(Some),
+                XmlEvent::StartElement { ref name, .. } => seed
+                    .deserialize(
+                        if !self.inner_value {
+                            name.local_name.as_str()
+                        } else {
+                            "$value"
+                        }
+                        .into_deserializer(),
+                    )
+                    .map(Some),
                 XmlEvent::Characters(_) => seed.deserialize("$value".into_deserializer()).map(Some),
                 // Any other event: assume end of map values (actual check for `EndElement` done by the originating
                 // `Deserializer`)
@@ -85,7 +92,7 @@ macro_rules! deserialize_type_attr {
         fn $deserialize<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
             visitor.$visit(self.0.parse()?)
         }
-    }
+    };
 }
 
 impl<'de> de::Deserializer<'de> for AttrValueDeserializer {
@@ -123,7 +130,10 @@ impl<'de> de::Deserializer<'de> for AttrValueDeserializer {
         match self.0.as_str() {
             "true" | "1" => visitor.visit_bool(true),
             "false" | "0" => visitor.visit_bool(false),
-            _ => Err(de::Error::invalid_value(Unexpected::Str(&self.0), &"a boolean")),
+            _ => Err(de::Error::invalid_value(
+                Unexpected::Str(&self.0),
+                &"a boolean",
+            )),
         }
     }
 

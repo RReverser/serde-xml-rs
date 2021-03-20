@@ -12,7 +12,6 @@ struct Item {
     source: String,
 }
 
-
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 enum Node {
     Boolean(bool),
@@ -25,7 +24,6 @@ struct Nodes {
     #[serde(rename = "$value")]
     items: Vec<Node>,
 }
-
 
 #[test]
 fn basic_struct() {
@@ -41,7 +39,6 @@ fn basic_struct() {
     let reserialized_item = to_string(&item).unwrap();
     assert_eq!(src, reserialized_item);
 }
-
 
 #[test]
 #[ignore]

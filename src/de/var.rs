@@ -60,10 +60,12 @@ impl<'de, 'a, R: 'a + Read, B: BufferedXmlReader<R>> de::VariantAccess<'de>
         match self.de.next()? {
             XmlEvent::StartElement {
                 name, attributes, ..
-            } => if attributes.is_empty() {
-                self.de.expect_end_element(name)
-            } else {
-                Err(de::Error::invalid_length(attributes.len(), &"0"))
+            } => {
+                if attributes.is_empty() {
+                    self.de.expect_end_element(name)
+                } else {
+                    Err(de::Error::invalid_length(attributes.len(), &"0"))
+                }
             },
             XmlEvent::Characters(_) => Ok(()),
             _ => unreachable!(),
