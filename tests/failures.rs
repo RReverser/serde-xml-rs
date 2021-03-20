@@ -1,13 +1,7 @@
-#[macro_use]
-extern crate serde_derive;
-
-
-#[macro_use]
-extern crate log;
-
-
 use serde_xml_rs::from_str;
 use simple_logger::SimpleLogger;
+use serde_derive::Deserialize;
+use log::info;
 
 fn init_logger() {
     let _ = SimpleLogger::new().init();

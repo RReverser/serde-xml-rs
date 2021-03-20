@@ -4,6 +4,7 @@ use serde::de::{self, Deserializer as SerdeDeserializer, IntoDeserializer};
 use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 
+use crate::expect;
 use crate::de::Deserializer;
 use crate::error::{Error, Result};
 

@@ -1,4 +1,5 @@
 use crate::error::Result;
+use crate::debug_expect;
 use std::{collections::VecDeque, io::Read};
 use xml::reader::{EventReader, XmlEvent};
 

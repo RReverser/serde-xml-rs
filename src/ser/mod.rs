@@ -292,6 +292,7 @@ mod tests {
     use super::*;
     use serde::ser::{SerializeMap, SerializeStruct};
     use serde::Serializer as SerSerializer;
+    use serde_derive::Serialize;
 
     #[test]
     fn test_serialize_bool() {

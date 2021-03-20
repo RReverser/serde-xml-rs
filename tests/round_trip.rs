@@ -1,10 +1,6 @@
-#[macro_use]
-extern crate serde_derive;
-
-use serde_xml_rs;
-
 use serde::Deserialize;
-use serde_xml_rs::{from_str, to_string, EventReader, ParserConfig};
+use serde_derive::{Serialize, Deserialize};
+use serde_xml_rs::{self, from_str, to_string, EventReader, ParserConfig};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 struct Item {

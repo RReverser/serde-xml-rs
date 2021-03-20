@@ -3,6 +3,7 @@ use std::io::Read;
 use serde::de;
 use xml::reader::XmlEvent;
 
+use crate::debug_expect;
 use crate::de::ChildDeserializer;
 use crate::error::{Error, Result};
 

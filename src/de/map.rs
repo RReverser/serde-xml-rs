@@ -1,5 +1,6 @@
 use std::io::Read;
 
+use serde::forward_to_deserialize_any;
 use serde::de::{self, IntoDeserializer, Unexpected};
 use xml::attribute::OwnedAttribute;
 use xml::reader::XmlEvent;

@@ -32,19 +32,6 @@
 //! }
 //! ```
 
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate serde;
-
-
-
-
-#[cfg(test)]
-#[macro_use]
-extern crate serde_derive;
-
-#[macro_use]
 mod error;
 pub mod de;
 pub mod ser;
