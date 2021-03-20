@@ -9,7 +9,7 @@ use crate::Deserializer;
 
 use super::buffer::BufferedXmlReader;
 
-pub struct MapAccess<'a, R: 'a + Read, B: BufferedXmlReader<R>> {
+pub struct MapAccess<'a, R: Read, B: BufferedXmlReader<R>> {
     attrs: ::std::vec::IntoIter<OwnedAttribute>,
     /// Cache of attribute value, populated when visitor calls `next_key_seed`; should be read & emptied straight after
     /// by visitor call to `next_value_seed`

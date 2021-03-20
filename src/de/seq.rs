@@ -6,7 +6,7 @@ use xml::reader::XmlEvent;
 use crate::de::ChildDeserializer;
 use crate::error::{Error, Result};
 
-pub struct SeqAccess<'a, R: 'a + Read> {
+pub struct SeqAccess<'a, R: Read> {
     de: ChildDeserializer<'a, R>,
     max_size: Option<usize>,
     seq_type: SeqType,

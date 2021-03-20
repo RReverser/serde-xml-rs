@@ -9,7 +9,7 @@ use crate::error::{Error, Result};
 
 use super::buffer::BufferedXmlReader;
 
-pub struct EnumAccess<'a, R: 'a + Read, B: BufferedXmlReader<R>> {
+pub struct EnumAccess<'a, R: Read, B: BufferedXmlReader<R>> {
     de: &'a mut Deserializer<R, B>,
 }
 
@@ -40,7 +40,7 @@ impl<'de, 'a, R: 'a + Read, B: BufferedXmlReader<R>> de::EnumAccess<'de> for Enu
     }
 }
 
-pub struct VariantAccess<'a, R: 'a + Read, B: BufferedXmlReader<R>> {
+pub struct VariantAccess<'a, R: Read, B: BufferedXmlReader<R>> {
     de: &'a mut Deserializer<R, B>,
 }
 

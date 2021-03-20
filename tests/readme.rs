@@ -1,4 +1,4 @@
-extern crate docmatic;
+use docmatic;
 
 #[test]
 fn test_readme() {

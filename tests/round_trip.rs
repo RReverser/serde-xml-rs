@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate serde_derive;
-extern crate serde;
-extern crate serde_xml_rs;
+
+use serde_xml_rs;
 
 use serde::Deserialize;
 use serde_xml_rs::{from_str, to_string, EventReader, ParserConfig};

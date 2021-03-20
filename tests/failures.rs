@@ -1,10 +1,10 @@
 #[macro_use]
 extern crate serde_derive;
-extern crate serde_xml_rs;
+
 
 #[macro_use]
 extern crate log;
-extern crate simple_logger;
+
 
 use serde_xml_rs::from_str;
 use simple_logger::SimpleLogger;
