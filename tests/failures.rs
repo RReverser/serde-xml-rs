@@ -33,7 +33,7 @@ fn simple_struct_from_attributes_should_fail() {
         Err(e) => {
             info!("simple_struct_from_attributes_should_fail(): {}", e);
             assert!(true)
-        }
+        },
     }
 }
 
@@ -52,6 +52,6 @@ fn multiple_roots_attributes_should_fail() {
         Err(e) => {
             info!("multiple_roots_attributes_should_fail(): {}", e);
             assert!(true)
-        }
+        },
     }
 }
