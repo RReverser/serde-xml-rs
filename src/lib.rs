@@ -49,7 +49,7 @@ mod error;
 pub mod de;
 pub mod ser;
 
-pub use de::{from_reader, from_str, Deserializer};
-pub use error::Error;
-pub use ser::{to_string, to_writer, Serializer};
+pub use crate::de::{from_reader, from_str, Deserializer};
+pub use crate::error::Error;
+pub use crate::ser::{to_string, to_writer, Serializer};
 pub use xml::reader::{EventReader, ParserConfig};

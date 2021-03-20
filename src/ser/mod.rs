@@ -4,7 +4,7 @@ use std::io::Write;
 use serde::ser::{self, Impossible, Serialize};
 
 use self::var::{Map, Struct};
-use error::{Error, Result};
+use crate::error::{Error, Result};
 
 mod var;
 

@@ -2,8 +2,8 @@ use std::io::Write;
 
 use serde::ser::{self, Serialize};
 
-use error::{Error, Result};
-use ser::Serializer;
+use crate::error::{Error, Result};
+use crate::ser::Serializer;
 
 /// An implementation of `SerializeMap` for serializing to XML.
 pub struct Map<'w, W>

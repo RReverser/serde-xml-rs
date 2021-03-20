@@ -3,8 +3,8 @@ use std::io::Read;
 use serde::de;
 use xml::reader::XmlEvent;
 
-use de::ChildDeserializer;
-use error::{Error, Result};
+use crate::de::ChildDeserializer;
+use crate::error::{Error, Result};
 
 pub struct SeqAccess<'a, R: 'a + Read> {
     de: ChildDeserializer<'a, R>,

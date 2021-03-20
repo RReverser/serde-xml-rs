@@ -8,7 +8,7 @@ use self::buffer::{BufferedXmlReader, ChildXmlBuffer, RootXmlBuffer};
 use self::map::MapAccess;
 use self::seq::SeqAccess;
 use self::var::EnumAccess;
-use error::{Error, Result};
+use crate::error::{Error, Result};
 
 mod buffer;
 mod map;

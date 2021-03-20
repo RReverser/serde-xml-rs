@@ -4,8 +4,8 @@ use serde::de::{self, Deserializer as SerdeDeserializer, IntoDeserializer};
 use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 
-use de::Deserializer;
-use error::{Error, Result};
+use crate::de::Deserializer;
+use crate::error::{Error, Result};
 
 use super::buffer::BufferedXmlReader;
 
