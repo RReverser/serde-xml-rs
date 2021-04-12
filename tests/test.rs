@@ -4,6 +4,7 @@ extern crate serde_xml_rs;
 
 extern crate log;
 extern crate simple_logger;
+extern crate serde;
 
 use serde::Deserialize;
 use serde_xml_rs::{from_str, Deserializer};
