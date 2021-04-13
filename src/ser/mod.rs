@@ -388,10 +388,25 @@ mod tests {
                 .expect("unable to serialize a struct with a hashmap");
         }
         let got = String::from_utf8(buffer).unwrap();
-        assert_eq!(
-            "<Thing><things><key1>val1</key1><key2>val2</key2></things></Thing>",
-            got
-        )
+
+        /*
+         * Since there is no defined order when serializing a map,
+         * this test has to verify the Thing tags at beginning and end
+         * of the result string and also the existence of the two
+         * key/value map entries.
+         */
+        let expected_start = "<Thing><things>";
+        let key_val1 = "<key1>val1</key1>";
+        let key_val2 = "<key2>val2</key2>";
+        let expected_end = "</things></Thing>";
+        assert!(got.starts_with(expected_start));
+        assert!(got.contains(key_val1));
+        assert!(got.contains(key_val2));
+        assert!(got.ends_with(expected_end));
+
+        // ensure that the result does only contain the expected strings
+        assert_eq!(expected_start.len() + key_val1.len() + key_val2.len() + expected_end.len(),
+                   got.len());
     }
 
     #[test]
