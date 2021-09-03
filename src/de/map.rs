@@ -1,7 +1,7 @@
 use std::io::Read;
 
-use serde::forward_to_deserialize_any;
 use serde::de::{self, IntoDeserializer, Unexpected};
+use serde::forward_to_deserialize_any;
 use xml::attribute::OwnedAttribute;
 use xml::reader::XmlEvent;
 
@@ -46,7 +46,7 @@ impl<'de, 'a, R: 'a + Read, B: BufferedXmlReader<R>> de::MapAccess<'de> for MapA
                 self.next_attr_value = Some(value);
                 seed.deserialize(name.local_name.into_deserializer())
                     .map(Some)
-            },
+            }
             None => match *self.de.peek()? {
                 XmlEvent::StartElement { ref name, .. } => seed
                     .deserialize(
@@ -77,7 +77,7 @@ impl<'de, 'a, R: 'a + Read, B: BufferedXmlReader<R>> de::MapAccess<'de> for MapA
                 }
                 let result = seed.deserialize(&mut *self.de)?;
                 Ok(result)
-            },
+            }
         }
     }
 

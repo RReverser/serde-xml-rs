@@ -32,8 +32,8 @@
 //! }
 //! ```
 
-mod error;
 pub mod de;
+mod error;
 pub mod ser;
 
 pub use crate::de::{from_reader, from_str, Deserializer};

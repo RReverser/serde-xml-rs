@@ -1,7 +1,7 @@
+use log::info;
+use serde_derive::Deserialize;
 use serde_xml_rs::from_str;
 use simple_logger::SimpleLogger;
-use serde_derive::Deserialize;
-use log::info;
 
 fn init_logger() {
     let _ = SimpleLogger::new().init();
@@ -27,7 +27,7 @@ fn simple_struct_from_attributes_should_fail() {
         Err(e) => {
             info!("simple_struct_from_attributes_should_fail(): {}", e);
             assert!(true)
-        },
+        }
     }
 }
 
@@ -46,6 +46,6 @@ fn multiple_roots_attributes_should_fail() {
         Err(e) => {
             info!("multiple_roots_attributes_should_fail(): {}", e);
             assert!(true)
-        },
+        }
     }
 }

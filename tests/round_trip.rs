@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use serde_derive::{Serialize, Deserialize};
+use serde_derive::{Deserialize, Serialize};
 use serde_xml_rs::{self, from_str, to_string, EventReader, ParserConfig};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]

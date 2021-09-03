@@ -1,5 +1,5 @@
-use crate::error::Result;
 use crate::debug_expect;
+use crate::error::Result;
 use std::{collections::VecDeque, io::Read};
 use xml::reader::{EventReader, XmlEvent};
 
@@ -86,7 +86,7 @@ impl<'parent, R: Read> BufferedXmlReader<R> for ChildXmlBuffer<'parent, R> {
                     };
 
                     return debug_expect!(taken, CachedXmlEvent::Unused(ev) => Ok(ev));
-                },
+                }
                 Some(CachedXmlEvent::Used) => {
                     debug_assert!(
                         self.cursor != 0,
@@ -94,13 +94,13 @@ impl<'parent, R: Read> BufferedXmlReader<R> for ChildXmlBuffer<'parent, R> {
                     );
                     self.cursor += 1;
                     continue;
-                },
+                }
                 None => {
                     debug_assert_eq!(self.buffer.len(), self.cursor);
 
                     // Skip creation of buffer entry when consuming event straight away
                     return next_significant_event(&mut self.reader);
-                },
+                }
             }
         }
     }
@@ -143,11 +143,11 @@ fn get_from_buffer_or_reader<'buf>(
             Some(CachedXmlEvent::Unused(_)) => break,
             Some(CachedXmlEvent::Used) => {
                 *index += 1;
-            },
+            }
             None => {
                 let next = next_significant_event(reader)?;
                 buffer.push_back(CachedXmlEvent::Unused(next));
-            },
+            }
         }
     }
 
@@ -162,7 +162,7 @@ fn next_significant_event(reader: &mut EventReader<impl Read>) -> Result<XmlEven
             XmlEvent::StartDocument { .. }
             | XmlEvent::ProcessingInstruction { .. }
             | XmlEvent::Whitespace { .. }
-            | XmlEvent::Comment(_) => { /* skip */ },
+            | XmlEvent::Comment(_) => { /* skip */ }
             other => return Ok(other),
         }
     }

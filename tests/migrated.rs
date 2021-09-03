@@ -2,7 +2,7 @@ use simple_logger::SimpleLogger;
 use std::fmt::Debug;
 
 use serde::{de, ser};
-use serde_derive::{Serialize, Deserialize};
+use serde_derive::{Deserialize, Serialize};
 use serde_xml_rs::{from_str, Error};
 
 fn init_logger() {

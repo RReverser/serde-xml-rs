@@ -4,9 +4,9 @@ use serde::de::{self, Deserializer as SerdeDeserializer, IntoDeserializer};
 use xml::name::OwnedName;
 use xml::reader::XmlEvent;
 
-use crate::expect;
 use crate::de::Deserializer;
 use crate::error::{Error, Result};
+use crate::expect;
 
 use super::buffer::BufferedXmlReader;
 
@@ -67,7 +67,7 @@ impl<'de, 'a, R: 'a + Read, B: BufferedXmlReader<R>> de::VariantAccess<'de>
                 } else {
                     Err(de::Error::invalid_length(attributes.len(), &"0"))
                 }
-            },
+            }
             XmlEvent::Characters(_) => Ok(()),
             _ => unreachable!(),
         }

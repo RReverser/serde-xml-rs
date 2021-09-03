@@ -3,8 +3,8 @@ use std::io::Read;
 use serde::de;
 use xml::reader::XmlEvent;
 
-use crate::debug_expect;
 use crate::de::ChildDeserializer;
+use crate::debug_expect;
 use crate::error::{Error, Result};
 
 pub struct SeqAccess<'a, R: Read> {
@@ -53,11 +53,11 @@ impl<'de, 'a, R: 'a + Read> de::SeqAccess<'de> for SeqAccess<'a, R> {
         match self.max_size.as_mut() {
             Some(&mut 0) => {
                 return Ok(None);
-            },
+            }
             Some(max_size) => {
                 *max_size -= 1;
-            },
-            None => {},
+            }
+            None => {}
         }
 
         match &self.seq_type {
@@ -84,7 +84,7 @@ impl<'de, 'a, R: 'a + Read> de::SeqAccess<'de> for SeqAccess<'a, R> {
                             } else {
                                 return Ok(None);
                             }
-                        },
+                        }
                         XmlEvent::EndElement { .. } => {
                             if local_depth == 0 {
                                 return Ok(None);
@@ -92,16 +92,16 @@ impl<'de, 'a, R: 'a + Read> de::SeqAccess<'de> for SeqAccess<'a, R> {
                                 local_depth -= 1;
                                 self.de.buffered_reader.skip();
                             }
-                        },
+                        }
                         XmlEvent::EndDocument => {
                             return Ok(None);
-                        },
+                        }
                         _ => {
                             self.de.buffered_reader.skip();
-                        },
+                        }
                     }
                 }
-            },
+            }
             SeqType::AllMembers => {
                 let next_element = self.de.peek()?;
 
@@ -109,9 +109,9 @@ impl<'de, 'a, R: 'a + Read> de::SeqAccess<'de> for SeqAccess<'a, R> {
                     XmlEvent::EndElement { .. } | XmlEvent::EndDocument => return Ok(None),
                     _ => {
                         return seed.deserialize(&mut self.de).map(Some);
-                    },
+                    }
                 }
-            },
+            }
         }
     }
 
