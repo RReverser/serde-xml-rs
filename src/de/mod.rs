@@ -1,6 +1,8 @@
 use std::{io::Read, marker::PhantomData};
 
+use serde::forward_to_deserialize_any;
 use serde::de::{self, Unexpected};
+use log::debug;
 use xml::name::OwnedName;
 use xml::reader::{EventReader, ParserConfig, XmlEvent};
 
@@ -8,7 +10,8 @@ use self::buffer::{BufferedXmlReader, ChildXmlBuffer, RootXmlBuffer};
 use self::map::MapAccess;
 use self::seq::SeqAccess;
 use self::var::EnumAccess;
-use error::{Error, Result};
+use crate::{debug_expect, expect};
+use crate::error::{Error, Result};
 
 mod buffer;
 mod map;

@@ -5,6 +5,7 @@ license = "MIT"
 name = "serde-xml-rs"
 repository = "https://github.com/RReverser/serde-xml-rs"
 version = "0.5.0"
+edition = "2018"
 
 [dependencies]
 log = "0.4"

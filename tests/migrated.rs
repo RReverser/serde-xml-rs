@@ -1,16 +1,8 @@
-#[macro_use]
-extern crate serde_derive;
-
-extern crate log;
-extern crate simple_logger;
-
-extern crate serde;
-extern crate serde_xml_rs;
-
 use simple_logger::SimpleLogger;
 use std::fmt::Debug;
 
 use serde::{de, ser};
+use serde_derive::{Serialize, Deserialize};
 use serde_xml_rs::{from_str, Error};
 
 fn init_logger() {

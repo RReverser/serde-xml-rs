@@ -51,6 +51,7 @@ pub enum Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+#[macro_export]
 macro_rules! expect {
     ($actual: expr, $($expected: pat)|+ => $if_ok: expr) => {
         match $actual {
@@ -64,6 +65,7 @@ macro_rules! expect {
 }
 
 #[cfg(debug_assertions)]
+#[macro_export]
 macro_rules! debug_expect {
     ($actual: expr, $($expected: pat)|+ => $if_ok: expr) => {
         match $actual {
@@ -78,6 +80,7 @@ macro_rules! debug_expect {
 }
 
 #[cfg(not(debug_assertions))]
+#[macro_export]
 macro_rules! debug_expect {
     ($actual: expr, $($expected: pat)|+ => $if_ok: expr) => {
         match $actual {

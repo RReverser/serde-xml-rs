@@ -4,7 +4,7 @@ use std::io::Write;
 use serde::ser::{self, Impossible, Serialize};
 
 use self::var::{Map, Struct};
-use error::{Error, Result};
+use crate::error::{Error, Result};
 
 mod var;
 
@@ -292,6 +292,7 @@ mod tests {
     use super::*;
     use serde::ser::{SerializeMap, SerializeStruct};
     use serde::Serializer as SerSerializer;
+    use serde_derive::Serialize;
 
     #[test]
     fn test_serialize_bool() {

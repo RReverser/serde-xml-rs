@@ -2,13 +2,13 @@ use std::io::Write;
 
 use serde::ser::{self, Serialize};
 
-use error::{Error, Result};
-use ser::Serializer;
+use crate::error::{Error, Result};
+use crate::ser::Serializer;
 
 /// An implementation of `SerializeMap` for serializing to XML.
 pub struct Map<'w, W>
 where
-    W: 'w + Write,
+    W: Write,
 {
     parent: &'w mut Serializer<W>,
 }
@@ -64,7 +64,7 @@ where
 /// An implementation of `SerializeStruct` for serializing to XML.
 pub struct Struct<'w, W>
 where
-    W: 'w + Write,
+    W: Write,
 {
     parent: &'w mut Serializer<W>,
     name: &'w str,
