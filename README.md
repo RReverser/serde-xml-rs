@@ -2,61 +2,32 @@
 
 [![Build Status](https://travis-ci.org/RReverser/serde-xml-rs.svg?branch=master)](https://travis-ci.org/RReverser/serde-xml-rs)
 
-xml-rs based deserializer for Serde (compatible with 0.9+)
+`xml-rs` based deserializer for Serde (compatible with 1.0)
 
-## Usage
-
-Use `serde_xml_rs::from_reader(...)` on any type that implements [`std::io::Read`](https://doc.rust-lang.org/std/io/trait.Read.html) as following:
+## Example usage
 
 ```rust
-#[macro_use]
-extern crate serde_derive;
-extern crate serde;
-extern crate serde_xml_rs;
+use serde;
+use serde_derive::{Deserialize, Serialize};
+use serde_xml_rs::{from_str, to_string};
 
-use serde_xml_rs::from_reader;
-
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 struct Item {
-    pub name: String,
-    pub source: String
-}
-
-#[derive(Debug, Deserialize)]
-struct Project {
-    pub name: String,
-
-    #[serde(rename = "Item", default)]
-    pub items: Vec<Item>
+    name: String,
+    source: String,
 }
 
 fn main() {
-    let s = r##"
-        <Project name="my_project">
-            <Item name="hello" source="world.rs" />
-        </Project>
-    "##;
-    let project: Project = from_reader(s.as_bytes()).unwrap();
-    println!("{:#?}", project);
+    let src = r#"<Item><name>Banana</name><source>Store</source></Item>"#;
+    let should_be = Item {
+        name: "Banana".to_string(),
+        source: "Store".to_string(),
+    };
+
+    let item: Item = from_str(src).unwrap();
+    assert_eq!(item, should_be);
+
+    let reserialized_item = to_string(&item).unwrap();
+    assert_eq!(src, reserialized_item);
 }
 ```
-
-Alternatively, you can use `serde_xml_rs::Deserializer` to create a deserializer from a preconfigured [`xml_rs::EventReader`](https://netvl.github.io/xml-rs/xml/reader/struct.EventReader.html).
-
-## Parsing the "value" of a tag
-
-If you have an input of the form `<foo abc="xyz">bar</foo>`, and you want to get at the`bar`, you can use the special name `$value`:
-
-```rust,ignore
-struct Foo {
-    pub abc: String,
-    #[serde(rename = "$value")]
-    pub body: String,
-}
-```
-
-## Parsed representations
-
-Deserializer tries to be as intuitive as possible.
-
-However, there are some edge cases where you might get unexpected errors, so it's best to check out [`tests`](tests/test.rs) for expectations.
