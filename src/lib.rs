@@ -156,6 +156,37 @@
 //!     assert_eq!(plate_appearance.events[0], Event::Pitch(Pitch { speed: 95, r#type: PitchType::FourSeam, outcome: PitchOutcome::Ball }));
 //! }
 //! ```
+//!
+//! ## Custom EventReader
+//!
+//! ```rust
+//! use serde::Deserialize;
+//! use serde_derive::{Deserialize, Serialize};
+//! use serde_xml_rs::{from_str, to_string, de::Deserializer};
+//! use xml::reader::{EventReader, ParserConfig};
+//!
+//! #[derive(Debug, Serialize, Deserialize, PartialEq)]
+//! struct Item {
+//!     name: String,
+//!     source: String,
+//! }
+//!
+//! fn main() {
+//!     let src = r#"<Item><name>  Banana  </name><source>Store</source></Item>"#;
+//!     let should_be = Item {
+//!         name: "  Banana  ".to_string(),
+//!         source: "Store".to_string(),
+//!     };
+//!
+//!     let config = ParserConfig::new()
+//!         .trim_whitespace(false)
+//!         .whitespace_to_characters(true);
+//!     let event_reader = EventReader::new_with_config(src.as_bytes(), config);
+//!     let item = Item::deserialize(&mut Deserializer::new(event_reader)).unwrap();
+//!     assert_eq!(item, should_be);
+//! }
+//! ```
+//!
 
 pub mod de;
 mod error;
