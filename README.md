@@ -7,8 +7,7 @@
 ## Example usage
 
 ```rust
-use serde;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use serde_xml_rs::{from_str, to_string};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
