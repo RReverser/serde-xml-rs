@@ -1,5 +1,5 @@
 use log::info;
-use serde_derive::Deserialize;
+use serde::Deserialize;
 use serde_xml_rs::from_str;
 use simple_logger::SimpleLogger;
 

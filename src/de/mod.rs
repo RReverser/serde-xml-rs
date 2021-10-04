@@ -22,7 +22,6 @@ mod var;
 ///
 /// ```rust
 /// # #[macro_use]
-/// # extern crate serde_derive;
 /// # extern crate serde;
 /// # extern crate serde_xml_rs;
 /// # use serde_xml_rs::from_str;
@@ -45,7 +44,6 @@ pub fn from_str<'de, T: de::Deserialize<'de>>(s: &str) -> Result<T> {
 ///
 /// ```rust
 /// # #[macro_use]
-/// # extern crate serde_derive;
 /// # extern crate serde;
 /// # extern crate serde_xml_rs;
 /// # use serde_xml_rs::from_reader;
@@ -109,7 +107,6 @@ impl<'de, R: Read> RootDeserializer<R> {
     ///
     /// ```rust
     /// # #[macro_use]
-    /// # extern crate serde_derive;
     /// # extern crate serde;
     /// # extern crate serde_xml_rs;
     /// # use serde_xml_rs::from_reader;

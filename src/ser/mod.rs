@@ -14,7 +14,6 @@ mod var;
 ///
 /// ```rust
 /// # #[macro_use]
-/// # extern crate serde_derive;
 /// # extern crate serde;
 /// # extern crate serde_xml_rs;
 /// # use serde_xml_rs::to_writer;
@@ -45,7 +44,6 @@ pub fn to_writer<W: Write, S: Serialize>(writer: W, value: &S) -> Result<()> {
 ///
 /// ```rust
 /// # #[macro_use]
-/// # extern crate serde_derive;
 /// # extern crate serde;
 /// # extern crate serde_xml_rs;
 /// # use serde_xml_rs::to_string;
@@ -291,8 +289,7 @@ where
 mod tests {
     use super::*;
     use serde::ser::{SerializeMap, SerializeStruct};
-    use serde::Serializer as SerSerializer;
-    use serde_derive::Serialize;
+    use serde::{Serialize, Serializer as SerSerializer};
 
     #[test]
     fn test_serialize_bool() {
