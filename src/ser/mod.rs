@@ -13,9 +13,7 @@ mod var;
 /// # Examples
 ///
 /// ```rust
-/// # #[macro_use]
-/// # extern crate serde;
-/// # extern crate serde_xml_rs;
+/// # use serde::Serialize;
 /// # use serde_xml_rs::to_writer;
 /// #[derive(Serialize)]
 /// struct Person {
@@ -43,9 +41,7 @@ pub fn to_writer<W: Write, S: Serialize>(writer: W, value: &S) -> Result<()> {
 /// # Examples
 ///
 /// ```rust
-/// # #[macro_use]
-/// # extern crate serde;
-/// # extern crate serde_xml_rs;
+/// # use serde::Serialize;
 /// # use serde_xml_rs::to_string;
 /// #[derive(Serialize)]
 /// struct Person {

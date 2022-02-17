@@ -76,7 +76,7 @@
 //! ## Tag contents
 //!
 //! ```rust
-//! # use serde::{self, Deserialize, Serialize};
+//! # use serde::{Deserialize, Serialize};
 //! # use serde_xml_rs::{from_str, to_string};
 //!
 //! #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -100,7 +100,7 @@
 //! ## Repeated tags
 //!
 //! ```rust
-//! # use serde::{self, Deserialize, Serialize};
+//! # use serde::{Deserialize, Serialize};
 //! # use serde_xml_rs::{from_str, to_string};
 //!
 //! #[derive(Debug, Serialize, Deserialize, PartialEq)]
