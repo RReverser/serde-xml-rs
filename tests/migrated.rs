@@ -1,12 +1,9 @@
-use simple_logger::SimpleLogger;
-use std::fmt::Debug;
+mod common;
 
+use common::init_logger;
 use serde::{de, ser, Deserialize, Serialize};
 use serde_xml_rs::{from_str, Error};
-
-fn init_logger() {
-    let _ = SimpleLogger::new().init();
-}
+use std::fmt::Debug;
 
 #[derive(PartialEq, Debug, Serialize, Deserialize)]
 enum Animal {
