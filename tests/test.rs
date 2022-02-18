@@ -1,10 +1,8 @@
+mod common;
+
+use common::init_logger;
 use serde::Deserialize;
 use serde_xml_rs::{from_str, Deserializer};
-use simple_logger::SimpleLogger;
-
-fn init_logger() {
-    let _ = SimpleLogger::new().init();
-}
 
 #[derive(Debug, Deserialize, PartialEq)]
 struct Item {

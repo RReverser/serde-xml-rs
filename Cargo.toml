@@ -15,5 +15,5 @@ thiserror = "1.0"
 
 [dev-dependencies]
 serde = { version = "1.0", features = ["derive"] }
-simple_logger = "1.0"
+simple_logger = "2.1"
 docmatic = "0.1"
