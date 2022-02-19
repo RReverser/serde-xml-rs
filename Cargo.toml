@@ -17,3 +17,4 @@ thiserror = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 simple_logger = "2.1"
 docmatic = "0.1"
+rstest = "0.12"

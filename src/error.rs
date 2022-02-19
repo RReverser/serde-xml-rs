@@ -47,6 +47,12 @@ pub enum Error {
         #[from]
         source: ::xml::reader::Error,
     },
+
+    #[error("Writer: {source}")]
+    Writer {
+        #[from]
+        source: ::xml::writer::Error,
+    },
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
