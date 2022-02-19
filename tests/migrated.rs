@@ -62,18 +62,6 @@ where
     }
 }
 
-fn test_parse_invalid<'de, 'a, T>(errors: &[&'a str])
-where
-    T: PartialEq + Debug + ser::Serialize + de::Deserialize<'de>,
-{
-    for &s in errors {
-        assert!(match from_str::<T>(s) {
-            Err(_) => true,
-            _ => false,
-        });
-    }
-}
-
 #[test]
 fn test_namespaces() {
     init_logger();
@@ -169,27 +157,6 @@ fn test_forwarded_namespace() {
 }
 
 #[test]
-fn test_parse_string() {
-    init_logger();
-
-    test_parse_ok(&[
-        (
-            "<bla>This is a String</bla>",
-            "This is a String".to_string(),
-        ),
-        ("<bla></bla>", "".to_string()),
-        ("<bla>     </bla>", "".to_string()),
-        ("<bla>&lt;boom/&gt;</bla>", "<boom/>".to_string()),
-        ("<bla>&#9835;</bla>", "♫".to_string()),
-        ("<bla>&#x266B;</bla>", "♫".to_string()),
-        (
-            "<bla>♫<![CDATA[<cookies/>]]>♫</bla>",
-            "♫<cookies/>♫".to_string(),
-        ),
-    ]);
-}
-
-#[test]
 #[ignore] // FIXME
 fn test_parse_string_not_trim() {
     init_logger();
@@ -265,87 +232,6 @@ fn test_parse_enum() {
 }
 
 #[test]
-fn test_parse_i64() {
-    init_logger();
-    test_parse_ok(&[
-        ("<bla>0</bla>", 0),
-        ("<bla>-2</bla>", -2),
-        ("<bla>-1234</bla>", -1234),
-        ("<bla> -1234 </bla>", -1234),
-    ]);
-}
-
-#[test]
-fn test_parse_u64() {
-    init_logger();
-    test_parse_ok(&[
-        ("<bla>0</bla>", 0),
-        ("<bla>1234</bla>", 1234),
-        ("<bla> 1234 </bla>", 1234),
-    ]);
-}
-
-#[test]
-fn test_parse_bool_element() {
-    init_logger();
-    test_parse_ok(&[
-        ("<bla>true</bla>", true),
-        ("<bla>false</bla>", false),
-        ("<bla> true </bla>", true),
-        ("<bla> false </bla>", false),
-        ("<bla>1</bla>", true),
-        ("<bla>0</bla>", false),
-    ]);
-
-    test_parse_invalid::<bool>(&["<bla>verum</bla>"]);
-}
-
-#[test]
-fn test_parse_bool_attribute() {
-    #[derive(PartialEq, Debug, Deserialize, Serialize)]
-    struct Dummy {
-        foo: bool,
-    }
-
-    init_logger();
-    test_parse_ok(&[
-        ("<bla foo=\"true\"/>", Dummy { foo: true }),
-        ("<bla foo=\"false\"/>", Dummy { foo: false }),
-        ("<bla foo=\"1\"/>", Dummy { foo: true }),
-        ("<bla foo=\"0\"/>", Dummy { foo: false }),
-    ]);
-
-    test_parse_invalid::<Dummy>(&[
-        "<bla foo=\"bar\"/>",
-        "<bla foo=\" true \"/>",
-        "<bla foo=\"10\"/>",
-        "<bla foo=\"\"/>",
-        "<bla/>",
-    ]);
-}
-
-#[test]
-fn test_parse_unit() {
-    init_logger();
-    test_parse_ok(&[("<bla/>", ())]);
-}
-
-#[test]
-fn test_parse_f64() {
-    init_logger();
-    test_parse_ok(&[
-        ("<bla>3.0</bla>", 3.0f64),
-        ("<bla>3.1</bla>", 3.1),
-        ("<bla>-1.2</bla>", -1.2),
-        ("<bla>0.4</bla>", 0.4),
-        ("<bla>0.4e5</bla>", 0.4e5),
-        ("<bla>0.4e15</bla>", 0.4e15),
-        ("<bla>0.4e-01</bla>", 0.4e-01), // precision troubles
-        ("<bla> 0.4e-01 </bla>", 0.4e-01),
-    ]);
-}
-
-#[test]
 fn test_parse_struct() {
     init_logger();
 
@@ -389,17 +275,6 @@ fn test_parse_struct() {
                 d: Some("Foo".to_string()),
             },
         ),
-    ]);
-}
-
-#[test]
-fn test_option() {
-    init_logger();
-    test_parse_ok(&[
-        ("<a/>", Some("".to_string())),
-        ("<a></a>", Some("".to_string())),
-        ("<a> </a>", Some("".to_string())),
-        ("<a>42</a>", Some("42".to_string())),
     ]);
 }
 
