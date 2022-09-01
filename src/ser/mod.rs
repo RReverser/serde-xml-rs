@@ -100,6 +100,10 @@ where
         Self::new_from_writer(EmitterConfig::new().create_writer(writer))
     }
 
+    pub fn with_writer(writer: EventWriter<W>) -> Self {
+        Self::new_from_writer(writer)
+    }
+
     fn next(&mut self, event: XmlEvent) -> Result<()> {
         self.writer.write(event)?;
         Ok(())
