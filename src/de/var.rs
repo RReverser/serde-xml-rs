@@ -16,7 +16,7 @@ pub struct EnumAccess<'a, R: Read, B: BufferedXmlReader<R>> {
 
 impl<'a, R: 'a + Read, B: BufferedXmlReader<R>> EnumAccess<'a, R, B> {
     pub fn new(de: &'a mut Deserializer<R, B>) -> Self {
-        EnumAccess { de: de }
+        EnumAccess { de }
     }
 }
 
@@ -47,7 +47,7 @@ pub struct VariantAccess<'a, R: Read, B: BufferedXmlReader<R>> {
 
 impl<'a, R: 'a + Read, B: BufferedXmlReader<R>> VariantAccess<'a, R, B> {
     pub fn new(de: &'a mut Deserializer<R, B>) -> Self {
-        VariantAccess { de: de }
+        VariantAccess { de }
     }
 }
 

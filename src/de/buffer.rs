@@ -12,7 +12,7 @@ pub trait BufferedXmlReader<R: Read> {
     fn peek(&mut self) -> Result<&XmlEvent>;
 
     /// Spawn a child buffer whose cursor starts at the same position as this buffer.
-    fn child_buffer<'a>(&'a mut self) -> ChildXmlBuffer<'a, R>;
+    fn child_buffer(&mut self) -> ChildXmlBuffer<R>;
 }
 
 pub struct RootXmlBuffer<R: Read> {
@@ -45,7 +45,7 @@ impl<R: Read> BufferedXmlReader<R> for RootXmlBuffer<R> {
         get_from_buffer_or_reader(&mut self.buffer, &mut self.reader, &mut 0)
     }
 
-    fn child_buffer<'root>(&'root mut self) -> ChildXmlBuffer<'root, R> {
+    fn child_buffer(&mut self) -> ChildXmlBuffer<R> {
         let RootXmlBuffer { reader, buffer } = self;
         ChildXmlBuffer {
             reader,
@@ -99,7 +99,7 @@ impl<'parent, R: Read> BufferedXmlReader<R> for ChildXmlBuffer<'parent, R> {
                     debug_assert_eq!(self.buffer.len(), self.cursor);
 
                     // Skip creation of buffer entry when consuming event straight away
-                    return next_significant_event(&mut self.reader);
+                    return next_significant_event(self.reader);
                 }
             }
         }
@@ -109,7 +109,7 @@ impl<'parent, R: Read> BufferedXmlReader<R> for ChildXmlBuffer<'parent, R> {
         get_from_buffer_or_reader(self.buffer, self.reader, &mut self.cursor)
     }
 
-    fn child_buffer<'a>(&'a mut self) -> ChildXmlBuffer<'a, R> {
+    fn child_buffer(&mut self) -> ChildXmlBuffer<R> {
         let ChildXmlBuffer {
             reader,
             buffer,
