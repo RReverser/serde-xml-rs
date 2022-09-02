@@ -106,9 +106,9 @@ impl<'de, 'a, R: 'a + Read> de::SeqAccess<'de> for SeqAccess<'a, R> {
                 let next_element = self.de.peek()?;
 
                 match next_element {
-                    XmlEvent::EndElement { .. } | XmlEvent::EndDocument => return Ok(None),
+                    XmlEvent::EndElement { .. } | XmlEvent::EndDocument => Ok(None),
                     _ => {
-                        return seed.deserialize(&mut self.de).map(Some);
+                        seed.deserialize(&mut self.de).map(Some)
                     }
                 }
             }

@@ -73,7 +73,7 @@ pub struct Deserializer<
     marker: PhantomData<R>,
 }
 
-impl<'de, R: Read> RootDeserializer<R> {
+impl<R: Read> RootDeserializer<R> {
     pub fn new(reader: EventReader<R>) -> Self {
         let buffered_reader = RootXmlBuffer::new(reader);
 
@@ -132,7 +132,7 @@ impl<'de, R: Read> RootDeserializer<R> {
 }
 
 impl<'de, R: Read, B: BufferedXmlReader<R>> Deserializer<R, B> {
-    fn child<'a>(&'a mut self) -> Deserializer<R, ChildXmlBuffer<'a, R>> {
+    fn child(&mut self) -> Deserializer<R, ChildXmlBuffer<R>> {
         let Deserializer {
             buffered_reader,
             depth,
@@ -229,7 +229,7 @@ impl<'de, R: Read, B: BufferedXmlReader<R>> Deserializer<R, B> {
             }
 
             expect!(this.next()?, XmlEvent::Characters(s) => {
-                return Ok(s)
+                Ok(s)
             })
         })
     }
