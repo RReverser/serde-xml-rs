@@ -58,19 +58,18 @@
 //!     source: String,
 //! }
 //!
-//! fn main() {
-//!     let src = r#"<?xml version="1.0" encoding="UTF-8"?><Item><name>Banana</name><source>Store</source></Item>"#;
-//!     let should_be = Item {
-//!         name: "Banana".to_string(),
-//!         source: "Store".to_string(),
-//!     };
+//! let src = r#"<?xml version="1.0" encoding="UTF-8"?><Item><name>Banana</name><source>Store</source></Item>"#;
+//! let should_be = Item {
+//!     name: "Banana".to_string(),
+//!     source: "Store".to_string(),
+//! };
 //!
-//!     let item: Item = from_str(src).unwrap();
-//!     assert_eq!(item, should_be);
+//! let item: Item = from_str(src).unwrap();
+//! assert_eq!(item, should_be);
 //!
-//!     let reserialized_item = to_string(&item).unwrap();
-//!     assert_eq!(src, reserialized_item);
-//! }
+//! let reserialized_item = to_string(&item).unwrap();
+//! assert_eq!(src, reserialized_item);
+//!
 //! ```
 //!
 //! ## Tag contents
@@ -167,20 +166,19 @@
 //!     source: String,
 //! }
 //!
-//! fn main() {
-//!     let src = r#"<Item><name>  Banana  </name><source>Store</source></Item>"#;
-//!     let should_be = Item {
-//!         name: "  Banana  ".to_string(),
-//!         source: "Store".to_string(),
-//!     };
+//! let src = r#"<Item><name>  Banana  </name><source>Store</source></Item>"#;
+//! let should_be = Item {
+//!     name: "  Banana  ".to_string(),
+//!     source: "Store".to_string(),
+//! };
 //!
-//!     let config = ParserConfig::new()
-//!         .trim_whitespace(false)
-//!         .whitespace_to_characters(true);
-//!     let event_reader = EventReader::new_with_config(src.as_bytes(), config);
-//!     let item = Item::deserialize(&mut Deserializer::new(event_reader)).unwrap();
-//!     assert_eq!(item, should_be);
-//! }
+//! let config = ParserConfig::new()
+//!     .trim_whitespace(false)
+//!     .whitespace_to_characters(true);
+//! let event_reader = EventReader::new_with_config(src.as_bytes(), config);
+//! let item = Item::deserialize(&mut Deserializer::new(event_reader)).unwrap();
+//! assert_eq!(item, should_be);
+//!
 //! ```
 //!
 

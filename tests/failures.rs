@@ -20,13 +20,8 @@ fn simple_struct_from_attributes_should_fail() {
     "##;
 
     let item: Result<Item, _> = from_str(s);
-    match item {
-        Ok(_) => assert!(false),
-        Err(e) => {
-            info!("simple_struct_from_attributes_should_fail(): {}", e);
-            assert!(true)
-        }
-    }
+    let err = item.unwrap_err();
+    info!("simple_struct_from_attributes_should_fail(): {}", err);
 }
 
 #[test]
@@ -39,11 +34,6 @@ fn multiple_roots_attributes_should_fail() {
     "##;
 
     let item: Result<Vec<Item>, _> = from_str(s);
-    match item {
-        Ok(_) => assert!(false),
-        Err(e) => {
-            info!("multiple_roots_attributes_should_fail(): {}", e);
-            assert!(true)
-        }
-    }
+    let err = item.unwrap_err();
+    info!("multiple_roots_attributes_should_fail(): {}", err);
 }

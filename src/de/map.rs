@@ -29,8 +29,8 @@ impl<'a, R: 'a + Read, B: BufferedXmlReader<R>> MapAccess<'a, R, B> {
         MapAccess {
             attrs: attrs.into_iter(),
             next_attr_value: None,
-            de: de,
-            inner_value: inner_value,
+            de,
+            inner_value,
         }
     }
 }

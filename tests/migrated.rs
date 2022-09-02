@@ -55,10 +55,7 @@ where
     T: PartialEq + Debug + ser::Serialize + de::Deserialize<'de>,
 {
     for &s in errors {
-        assert!(match from_str::<T>(s) {
-            Err(Error::Syntax { source: _ }) => true,
-            _ => false,
-        });
+        matches!(from_str::<T>(s), Err(Error::Syntax { source: _ }));
     }
 }
 
