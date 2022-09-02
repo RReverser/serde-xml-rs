@@ -1,7 +1,7 @@
 mod common;
 
 use common::init_logger;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_xml_rs::{from_str, Deserializer};
 
 #[derive(Debug, Deserialize, PartialEq)]
@@ -377,4 +377,31 @@ fn nested_collection_repeated_elements() {
     let actual = OuterCollection::deserialize(&mut de).unwrap();
 
     assert_eq!(should_be, actual);
+}
+
+#[test]
+fn attributes_respect_the_original_position() {
+    #[derive(Serialize)]
+    struct OrderedAttributes {
+        #[serde(rename = "@name")]
+        name: &'static str,
+        #[serde(rename = "@position")]
+        position: u64,
+        #[serde(rename = "@size")]
+        size: u64,
+        #[serde(rename = "@active")]
+        active: bool,
+    }
+
+    for _ in 0..10 {
+        let input = OrderedAttributes {
+            name: "han shot",
+            position: 1,
+            size: 1,
+            active: true,
+        };
+        let expected =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?><OrderedAttributes name=\"han shot\" position=\"1\" size=\"1\" active=\"true\" />";
+        assert_eq!(expected, serde_xml_rs::to_string(&input).unwrap())
+    }
 }

@@ -9,9 +9,10 @@ use self::{
     tuple::TupleSerializer,
 };
 use crate::error::{Error, Result};
+use indexmap::IndexMap as HashMap;
 use log::debug;
 use serde::ser::Serialize;
-use std::{collections::HashMap, io::Write};
+use std::io::Write;
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 
 /// A convenience method for serializing some object to a buffer.
