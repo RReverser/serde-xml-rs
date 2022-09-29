@@ -374,7 +374,11 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
     }
 
     fn serialize_struct(self, name: &'static str, _len: usize) -> Result<Self::SerializeStruct> {
-        self.open_root_tag(name)?;
+        if self.root {
+            self.open_root_tag(name)?;
+        } else {
+            self.open_tag(name)?;
+        }
 
         debug!("Struct {}", name);
         Ok(StructSerializer::new(self, false))

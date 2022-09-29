@@ -8,6 +8,12 @@ struct Item {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
+struct Items {
+    #[serde(rename = "$value")]
+    items: Vec<Item>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 enum Node {
     Boolean(bool),
     Identifier { value: String, index: u32 },
@@ -33,6 +39,29 @@ fn basic_struct() {
 
     let reserialized_item = to_string(&item).unwrap();
     assert_eq!(src, reserialized_item);
+}
+
+#[test]
+fn round_trip_list_of_structs() {
+    let src = r#"<?xml version="1.0" encoding="UTF-8"?><Items><Item><name>Apple</name><source>Store</source></Item><Item><name>Orange</name><source>Store</source></Item></Items>"#;
+    let should_be = Items {
+        items: vec![
+            Item {
+                name: "Apple".to_string(),
+                source: "Store".to_string(),
+            },
+            Item {
+                name: "Orange".to_string(),
+                source: "Store".to_string(),
+            }
+        ]
+    };
+
+    let items: Items = from_str(src).unwrap();
+    assert_eq!(items, should_be);
+
+    let reserialized_items = to_string(&items).unwrap();
+    assert_eq!(src, reserialized_items);
 }
 
 #[test]
