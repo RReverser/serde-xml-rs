@@ -10,8 +10,9 @@ use self::{
 };
 use crate::error::{Error, Result};
 use log::debug;
+use paste::paste;
 use serde::ser::Serialize;
-use std::{collections::HashMap, io::Write};
+use std::{collections::HashMap, io::Write, str::from_utf8_unchecked};
 use xml::writer::{EmitterConfig, EventWriter, XmlEvent};
 
 /// A convenience method for serializing some object to a buffer.
@@ -194,59 +195,41 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
     type SerializeStruct = StructSerializer<'ser, W>;
     type SerializeStructVariant = StructSerializer<'ser, W>;
 
+    #[inline]
     fn serialize_bool(self, v: bool) -> Result<Self::Ok> {
-        self.serialize_str(&v.to_string())
+        let s = if v {
+            b"true" as &[u8]
+        } else {
+            b"false" as &[u8]
+        };
+        self.serialize_bytes(s)
     }
 
-    fn serialize_i8(self, v: i8) -> Result<Self::Ok> {
-        self.serialize_i64(i64::from(v))
-    }
+    // some magic macros to short the code, could improve when concat_idents stable
+    serialize_integers! {8, 16, 32, 64}
 
-    fn serialize_i16(self, v: i16) -> Result<Self::Ok> {
-        self.serialize_i64(i64::from(v))
-    }
-
-    fn serialize_i32(self, v: i32) -> Result<Self::Ok> {
-        self.serialize_i64(i64::from(v))
-    }
-
-    fn serialize_i64(self, v: i64) -> Result<Self::Ok> {
-        self.serialize_str(&v.to_string())
-    }
-
-    fn serialize_u8(self, v: u8) -> Result<Self::Ok> {
-        self.serialize_u64(u64::from(v))
-    }
-
-    fn serialize_u16(self, v: u16) -> Result<Self::Ok> {
-        self.serialize_u64(u64::from(v))
-    }
-
-    fn serialize_u32(self, v: u32) -> Result<Self::Ok> {
-        self.serialize_u64(u64::from(v))
-    }
-
-    fn serialize_u64(self, v: u64) -> Result<Self::Ok> {
-        let must_close_tag = self.build_start_tag()?;
-        self.characters(&v.to_string())?;
-        if must_close_tag {
-            self.end_tag()?;
-        }
-        Ok(())
-    }
-
+    #[inline]
     fn serialize_f32(self, v: f32) -> Result<Self::Ok> {
-        self.serialize_f64(f64::from(v))
+        let mut buffer = ryu::Buffer::new();
+        let s = buffer.format_finite(v);
+        self.serialize_str(s)
     }
 
+    #[inline]
     fn serialize_f64(self, v: f64) -> Result<Self::Ok> {
-        self.serialize_str(&v.to_string())
+        let mut buffer = ryu::Buffer::new();
+        let s = buffer.format_finite(v);
+        self.serialize_str(s)
     }
 
+    #[inline]
     fn serialize_char(self, v: char) -> Result<Self::Ok> {
-        self.serialize_str(&v.to_string())
+        // A char encoded as UTF-8 takes 4 bytes at most.
+        let mut buf = [0; 4];
+        self.serialize_str(v.encode_utf8(&mut buf))
     }
 
+    #[inline]
     fn serialize_str(self, v: &str) -> Result<Self::Ok> {
         let must_close_tag = self.build_start_tag()?;
         self.characters(v)?;
@@ -256,8 +239,11 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
         Ok(())
     }
 
-    fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok> {
-        unimplemented!()
+    #[inline]
+    fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok> {
+        // UTF-8 parsing error should be handled by crate users
+        let s = unsafe { from_utf8_unchecked(v) };
+        self.serialize_str(s)
     }
 
     fn serialize_none(self) -> Result<Self::Ok> {

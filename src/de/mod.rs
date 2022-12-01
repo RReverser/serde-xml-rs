@@ -1,6 +1,7 @@
 use std::{io::Read, marker::PhantomData};
 
 use log::trace;
+use paste::paste;
 use serde::de::{self, Unexpected};
 use serde::forward_to_deserialize_any;
 use xml::name::OwnedName;
@@ -235,15 +236,6 @@ impl<'de, R: Read, B: BufferedXmlReader<R>> Deserializer<R, B> {
     }
 }
 
-macro_rules! deserialize_type {
-    ($deserialize:ident => $visit:ident) => {
-        fn $deserialize<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-            let value = self.prepare_parse_type::<V>()?.parse()?;
-            visitor.$visit(value)
-        }
-    };
-}
-
 impl<'de, 'a, R: Read, B: BufferedXmlReader<R>> de::Deserializer<'de>
     for &'a mut Deserializer<R, B>
 {
@@ -271,16 +263,7 @@ impl<'de, 'a, R: Read, B: BufferedXmlReader<R>> de::Deserializer<'de>
         })
     }
 
-    deserialize_type!(deserialize_i8 => visit_i8);
-    deserialize_type!(deserialize_i16 => visit_i16);
-    deserialize_type!(deserialize_i32 => visit_i32);
-    deserialize_type!(deserialize_i64 => visit_i64);
-    deserialize_type!(deserialize_u8 => visit_u8);
-    deserialize_type!(deserialize_u16 => visit_u16);
-    deserialize_type!(deserialize_u32 => visit_u32);
-    deserialize_type!(deserialize_u64 => visit_u64);
-    deserialize_type!(deserialize_f32 => visit_f32);
-    deserialize_type!(deserialize_f64 => visit_f64);
+    deserialize_type! {i8, i16, i32, i64, u8, u16, u32, u64, f32, f64}
 
     fn deserialize_bool<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
         if let XmlEvent::StartElement { .. } = *self.peek()? {
