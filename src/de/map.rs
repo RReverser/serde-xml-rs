@@ -89,18 +89,6 @@ impl<'de, 'a, R: 'a + Read, B: BufferedXmlReader<R>> de::MapAccess<'de> for MapA
 
 struct AttrValueDeserializer(String);
 
-macro_rules! deserialize_type_attr {
-    ($($type:ty), *) => {
-        paste! {
-            $(
-                fn [<deserialize_ $type>]<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-                    visitor.[<visit_ $type>](self.0.parse()?)
-                }
-            )*
-        }
-    };
-}
-
 impl<'de> de::Deserializer<'de> for AttrValueDeserializer {
     type Error = Error;
 

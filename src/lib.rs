@@ -184,6 +184,8 @@
 //! ```
 //!
 
+#[macro_use]
+mod macros;
 pub mod de;
 mod error;
 pub mod ser;

@@ -236,19 +236,6 @@ impl<'de, R: Read, B: BufferedXmlReader<R>> Deserializer<R, B> {
     }
 }
 
-macro_rules! deserialize_type {
-    ($($type:ty), *) => {
-        paste! {
-            $(
-                fn [<deserialize_ $type>]<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-                    let value = self.prepare_parse_type::<V>()?.parse()?;
-                    visitor.[<visit_ $type>](value)
-                }
-            )*
-        }
-    };
-}
-
 impl<'de, 'a, R: Read, B: BufferedXmlReader<R>> de::Deserializer<'de>
     for &'a mut Deserializer<R, B>
 {
