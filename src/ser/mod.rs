@@ -400,6 +400,11 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
 mod tests {
     use super::*;
     use serde::Serialize;
+    use simple_logger::SimpleLogger;
+
+    fn init_logger() {
+        SimpleLogger::new().with_utc_timestamps().init().unwrap();
+    }
 
     #[test]
     fn test_serialize_struct() {
@@ -446,5 +451,118 @@ mod tests {
 
         let got = String::from_utf8(buffer).unwrap();
         assert_eq!(got, should_be);
+    }
+
+    #[test]
+    fn test_serialize_tuple() {
+        #[derive(Serialize)]
+        struct A {
+            a: (f64, f64),
+        }
+
+        let should_be = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><A><a>0.2 0.3</a></A>";
+        let a = A { a: (0.2, 0.3) };
+        let got = to_string(&a).unwrap();
+        assert_eq!(got, should_be);
+    }
+
+    #[test]
+    fn test_serialize_attrs() {
+        #[derive(Serialize)]
+        struct A {
+            #[serde(rename = "@b", default)]
+            b: String,
+        }
+
+        let should_be = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><A b=\"42\" />";
+        let a = A { b: "42".to_owned() };
+        let got = to_string(&a).unwrap();
+        assert_eq!(got, should_be);
+    }
+    #[test]
+    fn test_serialize_nested_structs() {
+        #[derive(Debug, Serialize, PartialEq)]
+        struct Outer {
+            a: Inner,
+        }
+
+        #[derive(Debug, Serialize, PartialEq)]
+        struct Inner {
+            name: String,
+        }
+
+        let coll = Outer {
+            a: Inner {
+                name: "42".to_owned(),
+            },
+        };
+
+        let should_be =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Outer><a><name>42</name></a></Outer>";
+        let got = to_string(&coll).unwrap();
+        assert_eq!(got, should_be);
+    }
+
+    #[test]
+    fn test_serialize_nested_collection() {
+        init_logger();
+
+        #[derive(Debug, Serialize, PartialEq)]
+        struct OuterCollection {
+            a: Vec<A>,
+            b: Vec<B>,
+        }
+
+        #[derive(Debug, Serialize, PartialEq)]
+        struct A {
+            // TODO: This makes it fail with yet another error
+            // #[serde(rename = "@name", default)]
+            name: String,
+        }
+        #[derive(Debug, Serialize, PartialEq)]
+        struct B {
+            name: String,
+        }
+
+        let coll = OuterCollection {
+            a: vec![
+                A {
+                    name: "42".to_owned(),
+                },
+                A {
+                    name: "43".to_owned(),
+                },
+            ],
+            b: vec![B {
+                name: "44".to_owned(),
+            }],
+        };
+
+        let should_be = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+                         <OuterCollection>
+                            <a name=\"42\" />
+                            <a name=\"42\" />
+                            <b>
+                                <name>44</name>
+                            </b>
+                         </OuterCollection>";
+        //let should_be = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><OuterCollection><a><name>42</name></a><a><name>43</name></a></OuterCollection>";
+        let got = to_string(&coll).unwrap();
+        assert_eq!(got, should_be);
+    }
+
+    #[test]
+    fn test_serialize_vector() {
+        #[derive(Debug, Serialize, PartialEq)]
+        struct OuterCollection {
+            a: Vec<String>,
+        }
+
+        let coll = OuterCollection {
+            a: vec!["42".to_owned()],
+        };
+
+        let str = to_string(&coll).unwrap();
+        println!("str={:?}", str);
     }
 }
