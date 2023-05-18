@@ -1,6 +1,8 @@
-# serde-xml-rs
+# Why this fork?
 
-[![Build Status](https://travis-ci.org/RReverser/serde-xml-rs.svg?branch=master)](https://travis-ci.org/RReverser/serde-xml-rs)
+This fork fixed `vec` deserialization. Based on https://github.com/RReverser/serde-xml-rs/pull/199
+
+# serde-xml-new
 
 `xml-rs` based deserializer for Serde (compatible with 1.0)
 

@@ -31,7 +31,8 @@ impl<'ser, W: 'ser + Write> serde::ser::SerializeSeq for SeqSeralizer<'ser, W> {
     }
 
     fn end(self) -> Result<()> {
-        self.ser.abandon_tag()?;
+        // TODO: Commenting this out fixes it, but unsure why
+        // self.ser.abandon_tag()?;
         Ok(())
     }
 }
