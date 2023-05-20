@@ -363,6 +363,9 @@ impl<'de, 'a, R: Read, B: BufferedXmlReader<R>> de::Deserializer<'de>
         _variants: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value> {
+        if let XmlEvent::StartElement { .. } = *self.peek()? {
+            self.unset_map_value();
+        }
         self.read_inner_value::<V, V::Value, _>(|this| visitor.visit_enum(EnumAccess::new(this)))
     }
 
