@@ -297,10 +297,18 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
         _variant_index: u32,
         variant: &'static str,
     ) -> Result<Self::Ok> {
-        debug!("Unit variant {}::{}", name, variant);
-        self.start_tag(variant, HashMap::new())?;
-        self.serialize_unit()?;
-        self.end_tag()?;
+        let need_outer_end = self.build_start_tag()?;
+        if let Some(stripped) = variant.strip_prefix("$") {
+            debug!("Unit variant (plain) {}", stripped);
+            self.characters(stripped)?;
+        } else {
+            debug!("Unit variant {}::{}", name, variant);
+            self.start_tag(variant, HashMap::new())?;
+            self.end_tag()?;
+        }
+        if need_outer_end {
+            self.end_tag()?
+        };
         Ok(())
     }
 
@@ -442,6 +450,51 @@ mod tests {
             let mut ser = Serializer::new(&mut buffer);
             let node = Node::Boolean(true);
             node.serialize(&mut ser).unwrap();
+        }
+
+        let got = String::from_utf8(buffer).unwrap();
+        assert_eq!(got, should_be);
+    }
+
+    #[test]
+    fn test_serialize_unit_enum() {
+        #[derive(Serialize)]
+        #[allow(dead_code)]
+        enum PlainValue {
+            #[serde(rename = "$FOO")]
+            Foo,
+            #[serde(rename = "$BAR")]
+            Bar,
+            #[serde(rename = "$BAZ")]
+            Baz,
+        }
+
+        #[derive(Serialize)]
+        #[allow(dead_code)]
+        enum Value {
+            Foo,
+            Bar,
+            Baz,
+        }
+
+        #[derive(Serialize)]
+        #[allow(dead_code)]
+        struct Outer {
+            plain_value: PlainValue,
+            value: Value,
+        }
+
+        let mut buffer = Vec::new();
+        let should_be =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Outer><plain_value>FOO</plain_value><value><Foo /></value></Outer>";
+
+        {
+            let mut ser = Serializer::new(&mut buffer);
+            let outer = Outer {
+                plain_value: PlainValue::Foo,
+                value: Value::Foo,
+            };
+            outer.serialize(&mut ser).unwrap();
         }
 
         let got = String::from_utf8(buffer).unwrap();
