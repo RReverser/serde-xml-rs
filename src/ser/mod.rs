@@ -87,7 +87,7 @@ impl<W> Serializer<W>
 where
     W: Write,
 {
-    fn new_from_writer(writer: EventWriter<W>) -> Self {
+    pub fn new_from_writer(writer: EventWriter<W>) -> Self {
         Self {
             writer,
             root: true,
