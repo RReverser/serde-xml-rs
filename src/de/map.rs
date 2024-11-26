@@ -44,8 +44,9 @@ impl<'de, 'a, R: 'a + Read, B: BufferedXmlReader<R>> de::MapAccess<'de> for MapA
             // Read all attributes first
             Some(OwnedAttribute { name, value }) => {
                 self.next_attr_value = Some(value);
-                seed.deserialize(name.local_name.into_deserializer())
-                    .map(Some)
+                let attr_name =
+                    name.prefix.map(|p| p + ":").unwrap_or(String::new()) + &name.local_name;
+                seed.deserialize(attr_name.into_deserializer()).map(Some)
             }
             None => match *self.de.peek()? {
                 XmlEvent::StartElement { ref name, .. } => seed
