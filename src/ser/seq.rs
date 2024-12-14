@@ -21,12 +21,9 @@ impl<'ser, W: 'ser + Write> serde::ser::SerializeSeq for SeqSeralizer<'ser, W> {
     where
         T: ?Sized + Serialize,
     {
-        let must_close_tag = self.ser.build_start_tag()?;
+        let seq_tag = self.ser.current_tag();
         value.serialize(&mut *self.ser)?;
-        if must_close_tag {
-            self.ser.end_tag()?;
-            self.ser.reopen_tag()?;
-        }
+        self.ser.open_tag(&seq_tag)?;
         Ok(())
     }
 

@@ -146,4 +146,63 @@ mod ser {
             format!(r#"<?xml version="1.0" encoding="UTF-8"?>{}"#, expected)
         );
     }
+
+    #[derive(Serialize, Debug)]
+    #[serde(rename = "bar")]
+    struct DummyAttributeVec<T> {
+        bla: Vec<DummyAttribute<T>>,
+    }
+
+    #[rstest]
+    #[case(r#"<bar><bla value="apple" /><bla value="banana" /></bar>"#, vec!["apple", "banana"])]
+    fn attribute_vec_ok(_logger: (), #[case] expected: &str, #[case] value: Vec<&str>) {
+        let actual = to_string(&DummyAttributeVec {
+            bla: vec![
+                DummyAttribute { value: value[0] },
+                DummyAttribute { value: value[1] },
+            ],
+        })
+        .unwrap();
+        assert_eq!(
+            actual,
+            format!(r#"<?xml version="1.0" encoding="UTF-8"?>{}"#, expected)
+        );
+    }
+
+    #[derive(Serialize, Debug)]
+    #[serde(rename = "bar")]
+    struct DummyAttributeDummyVec<T> {
+        bla: Vec<DummyAttributeDummy<T>>,
+    }
+
+    #[derive(Serialize, Debug)]
+    #[serde(rename = "bla")]
+    struct DummyAttributeDummy<T> {
+        #[serde(rename = "@attr")]
+        attr: T,
+        #[serde(rename = "foo")]
+        dummy: Dummy<T>,
+    }
+
+    #[rstest]
+    #[case(r#"<bar><bla attr="apple"><foo>apple</foo></bla><bla attr="banana"><foo>banana</foo></bla></bar>"#, vec!["apple", "banana"])]
+    fn attribute_vec2_ok(_logger: (), #[case] expected: &str, #[case] value: Vec<&str>) {
+        let actual = to_string(&DummyAttributeDummyVec {
+            bla: vec![
+                DummyAttributeDummy {
+                    attr: value[0],
+                    dummy: Dummy { value: value[0] },
+                },
+                DummyAttributeDummy {
+                    attr: value[1],
+                    dummy: Dummy { value: value[1] },
+                },
+            ],
+        })
+        .unwrap();
+        assert_eq!(
+            actual,
+            format!(r#"<?xml version="1.0" encoding="UTF-8"?>{}"#, expected)
+        );
+    }
 }
