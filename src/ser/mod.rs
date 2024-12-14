@@ -436,7 +436,7 @@ mod tests {
         }
 
         let mut buffer = Vec::new();
-        let should_be = "<?xml version=\"1.0\" encoding=\"utf-8\"?><Boolean>true</Boolean>";
+        let should_be = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Boolean>true</Boolean>";
 
         {
             let mut ser = Serializer::new(&mut buffer);
