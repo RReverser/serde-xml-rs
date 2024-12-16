@@ -26,7 +26,7 @@ impl<'ser, W: Write> serde::ser::SerializeMap for MapSerializer<'ser, W> {
     where
         T: ?Sized + Serialize,
     {
-        self.ser.open_tag(&to_plain_string(key)?)?;
+        self.ser.open_tag(&to_plain_string(key)?.unwrap())?;
         Ok(())
     }
 
@@ -65,20 +65,22 @@ impl<'ser, W: 'ser + Write> StructSerializer<'ser, W> {
     {
         if key.starts_with("@") {
             debug!("attribute {}", key);
-            self.ser.add_attr(&key[1..], to_plain_string(value)?)
+            if let Some(string_value) = to_plain_string(value)? {
+                self.ser.add_attr(&key[1..], string_value)?
+            }
+            // key was not present
         } else if key == "$value" {
             self.ser.build_start_tag()?;
             debug!("body");
             value.serialize(&mut *self.ser)?;
-            Ok(())
         } else {
             self.ser.build_start_tag()?;
             self.ser.open_tag(key)?;
             debug!("field {}", key);
             value.serialize(&mut *self.ser)?;
             debug!("end field");
-            Ok(())
         }
+        Ok(())
     }
 
     fn after_fields(self) -> Result<()> {

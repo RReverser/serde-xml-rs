@@ -136,10 +136,21 @@ mod ser {
     #[case::string(r#"<bla value="" />"#, "".to_string())]
     #[case::bool(r#"<bla value="true" />"#, true)]
     #[case::bool(r#"<bla value="false" />"#, false)]
+    #[case::option(r#"<bla value="apple" />"#, Some("apple".to_string()))]
     fn attribute_ok<T>(_logger: (), #[case] expected: &str, #[case] value: T)
     where
         T: Serialize + Debug,
     {
+        let actual = to_string(&DummyAttribute { value }).unwrap();
+        assert_eq!(
+            actual,
+            format!(r#"<?xml version="1.0" encoding="UTF-8"?>{}"#, expected)
+        );
+    }
+
+    #[rstest]
+    #[case::option(r#"<bla />"#, None)]
+    fn attribute_none_ok(_logger: (), #[case] expected: &str, #[case] value: Option<String>) {
         let actual = to_string(&DummyAttribute { value }).unwrap();
         assert_eq!(
             actual,
