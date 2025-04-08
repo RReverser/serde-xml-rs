@@ -64,8 +64,7 @@ fn round_trip_list_of_enums() {
 fn whitespace_preserving_config() {
     // Test a configuration which does not clip whitespace from tags
 
-    let src = r#"
-    <?xml version="1.0" encoding="UTF-8"?>
+    let src = r#"<?xml version="1.0" encoding="UTF-8"?>
     <Item>
         <name>  space banana  </name>
         <source>   fantasy costco   </source>
