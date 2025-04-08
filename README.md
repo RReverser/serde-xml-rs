@@ -17,7 +17,7 @@ struct Item {
 }
 
 fn main() {
-    let src = r#"<Item><name>Banana</name><source>Store</source></Item>"#;
+    let src = r#"<?xml version="1.0" encoding="UTF-8"?><Item><name>Banana</name><source>Store</source></Item>"#;
     let should_be = Item {
         name: "Banana".to_string(),
         source: "Store".to_string(),
