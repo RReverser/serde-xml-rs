@@ -378,3 +378,8 @@ fn nested_collection_repeated_elements() {
 
     assert_eq!(should_be, actual);
 }
+
+
+#[test]
+fn useless_test() {
+}
