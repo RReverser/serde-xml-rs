@@ -61,7 +61,7 @@ pub struct ChildXmlBuffer<'parent, R: Read> {
     cursor: usize,
 }
 
-impl<'parent, R: Read> ChildXmlBuffer<'parent, R> {
+impl<R: Read> ChildXmlBuffer<'_, R> {
     /// Advance the child buffer without marking an event as "used"
     pub fn skip(&mut self) {
         debug_assert!(
@@ -73,7 +73,7 @@ impl<'parent, R: Read> ChildXmlBuffer<'parent, R> {
     }
 }
 
-impl<'parent, R: Read> BufferedXmlReader<R> for ChildXmlBuffer<'parent, R> {
+impl<R: Read> BufferedXmlReader<R> for ChildXmlBuffer<'_, R> {
     /// Consumed XML events in a child buffer are marked as "used"
     fn next(&mut self) -> Result<XmlEvent> {
         loop {

@@ -269,9 +269,9 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
         Ok(())
     }
 
-    fn serialize_some<T: ?Sized>(self, value: &T) -> Result<Self::Ok>
+    fn serialize_some<T>(self, value: &T) -> Result<Self::Ok>
     where
-        T: Serialize,
+        T: ?Sized + Serialize,
     {
         debug!("Some");
         value.serialize(self)
@@ -304,15 +304,15 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
         Ok(())
     }
 
-    fn serialize_newtype_struct<T: ?Sized>(self, name: &'static str, value: &T) -> Result<Self::Ok>
+    fn serialize_newtype_struct<T>(self, name: &'static str, value: &T) -> Result<Self::Ok>
     where
-        T: Serialize,
+        T: ?Sized + Serialize,
     {
         debug!("Newtype struct {}", name);
         value.serialize(self)
     }
 
-    fn serialize_newtype_variant<T: ?Sized>(
+    fn serialize_newtype_variant<T>(
         self,
         name: &'static str,
         _variant_index: u32,
@@ -320,7 +320,7 @@ impl<'ser, W: Write> serde::ser::Serializer for &'ser mut Serializer<W> {
         value: &T,
     ) -> Result<Self::Ok>
     where
-        T: Serialize,
+        T: ?Sized + Serialize,
     {
         let must_close_tag = self.build_start_tag()?;
 

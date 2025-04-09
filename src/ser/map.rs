@@ -18,7 +18,7 @@ impl<'ser, W: 'ser + Write> MapSerializer<'ser, W> {
     }
 }
 
-impl<'ser, W: Write> serde::ser::SerializeMap for MapSerializer<'ser, W> {
+impl<W: Write> serde::ser::SerializeMap for MapSerializer<'_, W> {
     type Ok = ();
     type Error = Error;
 
