@@ -4,24 +4,32 @@ use serde::ser::{Impossible, Serialize};
 
 use crate::error::{Error, Result};
 
-pub fn to_plain_string<T>(value: &T) -> Result<String>
+pub fn to_plain_string<T>(value: &T) -> Result<Option<String>>
 where
     T: ?Sized + Serialize,
 {
     let mut writer = Vec::with_capacity(128);
-    value.serialize(&mut PlainStringSerializer::new(&mut writer))?;
+    let mut pss = PlainStringSerializer::new(&mut writer);
+    value.serialize(&mut pss)?;
 
-    let string = String::from_utf8(writer)?;
-    Ok(string)
+    if !pss.present {
+        // String does not present
+        return Ok(None);
+    }
+    Ok(Some(String::from_utf8(writer)?))
 }
 
 struct PlainStringSerializer<W: Write> {
     writer: W,
+    present: bool,
 }
 
 impl<W: Write> PlainStringSerializer<W> {
     fn new(writer: W) -> Self {
-        PlainStringSerializer { writer }
+        PlainStringSerializer {
+            writer,
+            present: true,
+        }
     }
 
     fn characters(&mut self, s: &str) -> Result<()> {
@@ -99,18 +107,19 @@ impl<'ser, W: 'ser + Write> serde::ser::Serializer for &'ser mut PlainStringSeri
     }
 
     fn serialize_none(self) -> Result<Self::Ok> {
-        unimplemented!()
+        self.serialize_unit()
     }
 
-    fn serialize_some<T: ?Sized>(self, _value: &T) -> Result<Self::Ok>
+    fn serialize_some<T: ?Sized>(self, value: &T) -> Result<Self::Ok>
     where
         T: Serialize,
     {
-        unimplemented!()
+        value.serialize(self)
     }
 
     fn serialize_unit(self) -> Result<Self::Ok> {
-        unimplemented!()
+        self.present = false;
+        Ok(())
     }
 
     fn serialize_unit_struct(self, _name: &'static str) -> Result<Self::Ok> {
