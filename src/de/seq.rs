@@ -26,7 +26,7 @@ pub enum SeqType {
 impl<'a, R: 'a + Read> SeqAccess<'a, R> {
     pub fn new(mut de: ChildDeserializer<'a, R>, max_size: Option<usize>) -> Self {
         let seq_type = if de.unset_map_value() {
-            debug_expect!(de.peek(), Ok(&XmlEvent::StartElement { ref name, .. }) => {
+            debug_expect!(de.peek(), Ok(XmlEvent::StartElement { name, .. }) => {
                 SeqType::ByElementName {
                     expected_name: name.local_name.clone(),
                     search_non_contiguous: de.non_contiguous_seq_elements
@@ -106,10 +106,8 @@ impl<'de, 'a, R: 'a + Read> de::SeqAccess<'de> for SeqAccess<'a, R> {
                 let next_element = self.de.peek()?;
 
                 match next_element {
-                    XmlEvent::EndElement { .. } | XmlEvent::EndDocument => return Ok(None),
-                    _ => {
-                        return seed.deserialize(&mut self.de).map(Some);
-                    }
+                    XmlEvent::EndElement { .. } | XmlEvent::EndDocument => Ok(None),
+                    _ => seed.deserialize(&mut self.de).map(Some),
                 }
             }
         }

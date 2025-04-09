@@ -73,7 +73,7 @@ pub struct Deserializer<
     marker: PhantomData<R>,
 }
 
-impl<'de, R: Read> RootDeserializer<R> {
+impl<R: Read> RootDeserializer<R> {
     pub fn new(reader: EventReader<R>) -> Self {
         let buffered_reader = RootXmlBuffer::new(reader);
 
@@ -131,8 +131,8 @@ impl<'de, R: Read> RootDeserializer<R> {
     }
 }
 
-impl<'de, R: Read, B: BufferedXmlReader<R>> Deserializer<R, B> {
-    fn child<'a>(&'a mut self) -> Deserializer<R, ChildXmlBuffer<'a, R>> {
+impl<R: Read, B: BufferedXmlReader<R>> Deserializer<R, B> {
+    fn child(&mut self) -> Deserializer<R, ChildXmlBuffer<R>> {
         let Deserializer {
             buffered_reader,
             depth,
@@ -187,10 +187,7 @@ impl<'de, R: Read, B: BufferedXmlReader<R>> Deserializer<R, B> {
     /// `f` is expected to consume the entire inner contents of the element. The cursor will be moved to the end of the
     /// element.
     /// If `!self.is_map_value`: `f` will be performed without additional checks/advances for an outer XML element.
-    fn read_inner_value<V: de::Visitor<'de>, T, F: FnOnce(&mut Self) -> Result<T>>(
-        &mut self,
-        f: F,
-    ) -> Result<T> {
+    fn read_inner_value<T, F: FnOnce(&mut Self) -> Result<T>>(&mut self, f: F) -> Result<T> {
         if self.unset_map_value() {
             debug_expect!(self.next(), Ok(XmlEvent::StartElement { name, .. }) => {
                 let result = f(self)?;
@@ -216,11 +213,11 @@ impl<'de, R: Read, B: BufferedXmlReader<R>> Deserializer<R, B> {
         })
     }
 
-    fn prepare_parse_type<V: de::Visitor<'de>>(&mut self) -> Result<String> {
+    fn prepare_parse_type(&mut self) -> Result<String> {
         if let XmlEvent::StartElement { .. } = *self.peek()? {
             self.set_map_value()
         }
-        self.read_inner_value::<V, String, _>(|this| {
+        self.read_inner_value::<String, _>(|this| {
             if let XmlEvent::EndElement { .. } = *this.peek()? {
                 return Err(Error::UnexpectedToken {
                     token: "EndElement".into(),
@@ -229,7 +226,7 @@ impl<'de, R: Read, B: BufferedXmlReader<R>> Deserializer<R, B> {
             }
 
             expect!(this.next()?, XmlEvent::Characters(s) => {
-                return Ok(s)
+                Ok(s)
             })
         })
     }
@@ -238,15 +235,13 @@ impl<'de, R: Read, B: BufferedXmlReader<R>> Deserializer<R, B> {
 macro_rules! deserialize_type {
     ($deserialize:ident => $visit:ident) => {
         fn $deserialize<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
-            let value = self.prepare_parse_type::<V>()?.parse()?;
+            let value = self.prepare_parse_type()?.parse()?;
             visitor.$visit(value)
         }
     };
 }
 
-impl<'de, 'a, R: Read, B: BufferedXmlReader<R>> de::Deserializer<'de>
-    for &'a mut Deserializer<R, B>
-{
+impl<'de, R: Read, B: BufferedXmlReader<R>> de::Deserializer<'de> for &mut Deserializer<R, B> {
     type Error = Error;
 
     forward_to_deserialize_any! {
@@ -286,7 +281,7 @@ impl<'de, 'a, R: Read, B: BufferedXmlReader<R>> de::Deserializer<'de>
         if let XmlEvent::StartElement { .. } = *self.peek()? {
             self.set_map_value()
         }
-        self.read_inner_value::<V, V::Value, _>(|this| {
+        self.read_inner_value::<V::Value, _>(|this| {
             if let XmlEvent::EndElement { .. } = *this.peek()? {
                 return visitor.visit_bool(false);
             }
@@ -321,7 +316,7 @@ impl<'de, 'a, R: Read, B: BufferedXmlReader<R>> de::Deserializer<'de>
         if let XmlEvent::StartElement { .. } = *self.peek()? {
             self.set_map_value()
         }
-        self.read_inner_value::<V, V::Value, _>(
+        self.read_inner_value::<V::Value, _>(
             |this| expect!(this.peek()?, &XmlEvent::EndElement { .. } => visitor.visit_unit()),
         )
     }
@@ -363,14 +358,14 @@ impl<'de, 'a, R: Read, B: BufferedXmlReader<R>> de::Deserializer<'de>
         _variants: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value> {
-        self.read_inner_value::<V, V::Value, _>(|this| visitor.visit_enum(EnumAccess::new(this)))
+        self.read_inner_value::<V::Value, _>(|this| visitor.visit_enum(EnumAccess::new(this)))
     }
 
     fn deserialize_string<V: de::Visitor<'de>>(self, visitor: V) -> Result<V::Value> {
         if let XmlEvent::StartElement { .. } = *self.peek()? {
             self.set_map_value()
         }
-        self.read_inner_value::<V, V::Value, _>(|this| {
+        self.read_inner_value::<V::Value, _>(|this| {
             if let XmlEvent::EndElement { .. } = *this.peek()? {
                 return visitor.visit_str("");
             }

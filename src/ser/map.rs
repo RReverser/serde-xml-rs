@@ -18,7 +18,7 @@ impl<'ser, W: 'ser + Write> MapSerializer<'ser, W> {
     }
 }
 
-impl<'ser, W: Write> serde::ser::SerializeMap for MapSerializer<'ser, W> {
+impl<W: Write> serde::ser::SerializeMap for MapSerializer<'_, W> {
     type Ok = ();
     type Error = Error;
 
@@ -63,9 +63,9 @@ impl<'ser, W: 'ser + Write> StructSerializer<'ser, W> {
     where
         T: ?Sized + Serialize,
     {
-        if key.starts_with("@") {
-            debug!("attribute {}", key);
-            self.ser.add_attr(&key[1..], to_plain_string(value)?)
+        if let Some(key) = key.strip_prefix('@') {
+            debug!("attribute @{}", key);
+            self.ser.add_attr(key, to_plain_string(value)?)
         } else if key == "$value" {
             self.ser.build_start_tag()?;
             debug!("body");

@@ -102,9 +102,9 @@ impl<'ser, W: 'ser + Write> serde::ser::Serializer for &'ser mut PlainStringSeri
         unimplemented!()
     }
 
-    fn serialize_some<T: ?Sized>(self, _value: &T) -> Result<Self::Ok>
+    fn serialize_some<T>(self, _value: &T) -> Result<Self::Ok>
     where
-        T: Serialize,
+        T: ?Sized + Serialize,
     {
         unimplemented!()
     }
@@ -126,18 +126,14 @@ impl<'ser, W: 'ser + Write> serde::ser::Serializer for &'ser mut PlainStringSeri
         unimplemented!()
     }
 
-    fn serialize_newtype_struct<T: ?Sized>(
-        self,
-        _name: &'static str,
-        _value: &T,
-    ) -> Result<Self::Ok>
+    fn serialize_newtype_struct<T>(self, _name: &'static str, _value: &T) -> Result<Self::Ok>
     where
-        T: Serialize,
+        T: ?Sized + Serialize,
     {
         unimplemented!()
     }
 
-    fn serialize_newtype_variant<T: ?Sized>(
+    fn serialize_newtype_variant<T>(
         self,
         _name: &'static str,
         _variant_index: u32,
@@ -145,7 +141,7 @@ impl<'ser, W: 'ser + Write> serde::ser::Serializer for &'ser mut PlainStringSeri
         _value: &T,
     ) -> Result<Self::Ok>
     where
-        T: Serialize,
+        T: ?Sized + Serialize,
     {
         unimplemented!()
     }
