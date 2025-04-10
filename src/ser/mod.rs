@@ -132,11 +132,6 @@ where
         Ok(())
     }
 
-    fn reopen_tag(&mut self) -> Result<()> {
-        self.current_tag_attrs = Some(HashMap::new());
-        Ok(())
-    }
-
     fn abandon_tag(&mut self) -> Result<()> {
         self.current_tag = "".into();
         self.current_tag_attrs = None;
