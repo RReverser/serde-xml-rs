@@ -85,7 +85,7 @@
 //!
 //! #[derive(Debug, Serialize, Deserialize, PartialEq)]
 //! struct Content {
-//!     #[serde(rename = "$value")]
+//!     #[serde(rename = "#text")]
 //!     value: String
 //! }
 //!
@@ -103,10 +103,7 @@
 //! # use serde_xml_rs::{from_str, to_string};
 //!
 //! #[derive(Debug, Serialize, Deserialize, PartialEq)]
-//! struct PlateAppearance {
-//!     #[serde(rename = "$value")]
-//!     events: Vec<Event>
-//! }
+//! struct PlateAppearance(Vec<Event>);
 //!
 //! #[derive(Debug, Serialize, Deserialize, PartialEq)]
 //! #[serde(rename_all = "kebab-case")]
@@ -117,8 +114,11 @@
 //!
 //! #[derive(Debug, Serialize, Deserialize, PartialEq)]
 //! struct Pitch {
+//!     #[serde(rename = "@speed")]
 //!     speed: u32,
+//!     #[serde(rename = "@type")]
 //!     r#type: PitchType,
+//!     #[serde(rename = "@outcome")]
 //!     outcome: PitchOutcome,
 //! }
 //!
@@ -130,7 +130,12 @@
 //!
 //! #[derive(Debug, Serialize, Deserialize, PartialEq)]
 //! struct Runner {
-//!     from: Base, to: Option<Base>, outcome: RunnerOutcome,
+//!     #[serde(rename = "@from")]
+//!     from: Base,
+//!     #[serde(rename = "@to")]
+//!     to: Option<Base>,
+//!     #[serde(rename = "@outcome")]
+//!     outcome: RunnerOutcome,
 //! }
 //!
 //! #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -149,7 +154,7 @@
 //!           <pitch speed="88" type="Curve" outcome="Hit" />
 //!         </plate-appearance>"#;
 //!     let plate_appearance: PlateAppearance = from_str(document).unwrap();
-//!     assert_eq!(plate_appearance.events[0], Event::Pitch(Pitch { speed: 95, r#type: PitchType::FourSeam, outcome: PitchOutcome::Ball }));
+//!     assert_eq!(plate_appearance.0[0], Event::Pitch(Pitch { speed: 95, r#type: PitchType::FourSeam, outcome: PitchOutcome::Ball }));
 //! }
 //! ```
 //!
@@ -182,14 +187,17 @@
 //! ```
 //!
 
+pub mod config;
 pub mod de;
 mod error;
 pub mod ser;
+#[cfg(test)]
+mod test;
 
+pub use crate::config::SerdeXml;
 pub use crate::de::{from_reader, from_str, Deserializer};
 pub use crate::error::Error;
 pub use crate::ser::{to_string, to_writer, Serializer};
-pub use xml::reader::{EventReader, ParserConfig};
 
 #[doc = include_str!("../README.md")]
 #[cfg(doctest)]

@@ -1,19 +1,145 @@
-use super::{plain::to_plain_string, Serializer};
-use crate::error::{Error, Result};
-use log::debug;
-use serde::ser::Serialize;
+use super::{
+    child::ChildSerializer,
+    plain::PlainTextSerializer,
+    writer::{Attribute, Writer},
+};
+use crate::{
+    config::{CONTENT, TEXT},
+    error::{Error, Result},
+};
 use std::io::Write;
 
-pub struct MapSerializer<'ser, W: 'ser + Write> {
-    ser: &'ser mut Serializer<W>,
-    must_close_tag: bool,
+pub struct StructSerializer<'a, W> {
+    writer: &'a mut Writer<W>,
+    name: String,
+    parent_name: Option<String>,
+    attributes: Vec<Attribute>,
+    parent_element_written: bool,
+    start_element_written: bool,
 }
 
-impl<'ser, W: 'ser + Write> MapSerializer<'ser, W> {
-    pub fn new(ser: &'ser mut Serializer<W>, must_close_tag: bool) -> Self {
-        MapSerializer {
-            ser,
-            must_close_tag,
+impl<'a, W> StructSerializer<'a, W> {
+    pub fn new(writer: &'a mut Writer<W>, name: String) -> Self {
+        Self {
+            writer,
+            name,
+            parent_name: None,
+            attributes: Vec::new(),
+            parent_element_written: false,
+            start_element_written: false,
+        }
+    }
+
+    pub fn new_variant(
+        writer: &'a mut Writer<W>,
+        parent_name: Option<String>,
+        name: String,
+    ) -> Self {
+        Self {
+            writer,
+            name,
+            parent_name,
+            attributes: Vec::new(),
+            parent_element_written: false,
+            start_element_written: false,
+        }
+    }
+}
+
+impl<W: Write> StructSerializer<'_, W> {
+    fn ensure_parent_element_written(&mut self) -> Result<()> {
+        if let Some(parent_name) = &self.parent_name {
+            if !self.parent_element_written {
+                self.writer.start_element(parent_name)?;
+                self.parent_element_written = true;
+            }
+        }
+        Ok(())
+    }
+
+    fn ensure_start_element_written(&mut self) -> Result<()> {
+        if !self.start_element_written {
+            self.writer
+                .start_element_with_attributes(&self.name, &self.attributes)?;
+            self.start_element_written = true;
+        }
+        Ok(())
+    }
+}
+
+impl<W: Write> serde::ser::SerializeStruct for StructSerializer<'_, W> {
+    type Ok = ();
+    type Error = Error;
+
+    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<()>
+    where
+        T: ?Sized + serde::Serialize,
+    {
+        self.ensure_parent_element_written()?;
+        if let Some(name) = key.strip_prefix("@") {
+            if self.start_element_written {
+                Err(Error::AttributesMustComeBeforeElements {
+                    element_name: self.name.to_string(),
+                    attribute_name: key,
+                })
+            } else {
+                let value = value.serialize(PlainTextSerializer)?;
+                self.attributes.push(Attribute { name, value });
+                Ok(())
+            }
+        } else {
+            self.ensure_start_element_written()?;
+            if key == TEXT {
+                self.writer
+                    .characters(value.serialize(PlainTextSerializer)?)?;
+            } else if key == CONTENT {
+                value.serialize(ChildSerializer::new(self.writer, None))?;
+            } else {
+                value.serialize(ChildSerializer::new(self.writer, Some(key.to_string())))?;
+            }
+            Ok(())
+        }
+    }
+
+    fn end(mut self) -> Result<Self::Ok> {
+        self.ensure_parent_element_written()?;
+        self.ensure_start_element_written()?;
+        self.writer.end_element()?;
+        if self.parent_name.is_some() {
+            self.writer.end_element()?;
+        }
+        Ok(())
+    }
+}
+
+impl<W: Write> serde::ser::SerializeStructVariant for StructSerializer<'_, W> {
+    type Ok = ();
+    type Error = Error;
+
+    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<()>
+    where
+        T: ?Sized + serde::Serialize,
+    {
+        <StructSerializer<W> as serde::ser::SerializeStruct>::serialize_field(self, key, value)
+    }
+
+    fn end(self) -> Result<Self::Ok> {
+        <StructSerializer<W> as serde::ser::SerializeStruct>::end(self)
+    }
+}
+
+pub struct MapSerializer<'a, W> {
+    writer: &'a mut Writer<W>,
+    element_name: String,
+    should_end_element: bool,
+}
+
+impl<'a, W> MapSerializer<'a, W> {
+    pub fn new(writer: &'a mut Writer<W>, should_end_element: bool) -> Self {
+        Self {
+            writer,
+            element_name: "".to_string(),
+            should_end_element,
         }
     }
 }
@@ -24,101 +150,31 @@ impl<W: Write> serde::ser::SerializeMap for MapSerializer<'_, W> {
 
     fn serialize_key<T>(&mut self, key: &T) -> Result<()>
     where
-        T: ?Sized + Serialize,
+        T: ?Sized + serde::Serialize,
     {
-        self.ser.open_tag(&to_plain_string(key)?)?;
+        self.element_name = key.serialize(PlainTextSerializer)?;
         Ok(())
     }
 
     fn serialize_value<T>(&mut self, value: &T) -> Result<()>
     where
-        T: ?Sized + Serialize,
+        T: ?Sized + serde::Serialize,
     {
-        value.serialize(&mut *self.ser)?;
-        Ok(())
-    }
-
-    fn end(self) -> Result<()> {
-        if self.must_close_tag {
-            self.ser.end_tag()?;
-        }
-        Ok(())
-    }
-}
-
-pub struct StructSerializer<'ser, W: 'ser + Write> {
-    ser: &'ser mut Serializer<W>,
-    must_close_tag: bool,
-}
-
-impl<'ser, W: 'ser + Write> StructSerializer<'ser, W> {
-    pub fn new(ser: &'ser mut Serializer<W>, must_close_tag: bool) -> Self {
-        StructSerializer {
-            ser,
-            must_close_tag,
-        }
-    }
-
-    fn serialize_struct_field<T>(&mut self, key: &'static str, value: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
-    {
-        if let Some(key) = key.strip_prefix('@') {
-            debug!("attribute @{}", key);
-            self.ser.add_attr(key, to_plain_string(value)?)
-        } else if key == "$value" {
-            self.ser.build_start_tag()?;
-            debug!("body");
-            value.serialize(&mut *self.ser)?;
-            Ok(())
+        let element_name = std::mem::replace(&mut self.element_name, "".to_string());
+        println!("TRACE {}", element_name == TEXT);
+        if element_name == TEXT {
+            self.writer
+                .characters(value.serialize(PlainTextSerializer)?)?;
         } else {
-            self.ser.build_start_tag()?;
-            self.ser.open_tag(key)?;
-            debug!("field {}", key);
-            value.serialize(&mut *self.ser)?;
-            debug!("end field");
-            Ok(())
-        }
-    }
-
-    fn after_fields(self) -> Result<()> {
-        self.ser.build_start_tag()?;
-        self.ser.end_tag()?;
-        if self.must_close_tag {
-            self.ser.end_tag()?;
+            value.serialize(ChildSerializer::new(self.writer, Some(element_name)))?;
         }
         Ok(())
     }
-}
 
-impl<'ser, W: 'ser + Write> serde::ser::SerializeStruct for StructSerializer<'ser, W> {
-    type Ok = ();
-    type Error = Error;
-
-    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
-    {
-        self.serialize_struct_field(key, value)
-    }
-
-    fn end(self) -> Result<()> {
-        self.after_fields()
-    }
-}
-
-impl<'ser, W: 'ser + Write> serde::ser::SerializeStructVariant for StructSerializer<'ser, W> {
-    type Ok = ();
-    type Error = Error;
-
-    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
-    {
-        self.serialize_struct_field(key, value)
-    }
-
-    fn end(self) -> Result<()> {
-        self.after_fields()
+    fn end(self) -> Result<Self::Ok> {
+        if self.should_end_element {
+            self.writer.end_element()?;
+        }
+        Ok(())
     }
 }
