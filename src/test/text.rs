@@ -10,32 +10,65 @@ mod given_struct_with_single_attribute_and_text {
     struct Document {
         #[serde(rename = "@id")]
         id: u32,
-        #[serde(rename = "#text")]
+        #[serde(rename = "#text", default)]
         content: String,
     }
 
-    #[fixture]
-    fn text() -> &'static str {
-        r#"<?xml version="1.0" encoding="UTF-8"?><document id="123">abc</document>"#
-    }
+    mod and_non_empty_content {
+        use super::*;
 
-    #[fixture]
-    fn value() -> Document {
-        Document {
-            id: 123,
-            content: "abc".to_string(),
+        #[fixture]
+        fn text() -> &'static str {
+            r#"<?xml version="1.0" encoding="UTF-8"?><document id="123">abc</document>"#
+        }
+
+        #[fixture]
+        fn value() -> Document {
+            Document {
+                id: 123,
+                content: "abc".to_string(),
+            }
+        }
+
+        #[rstest]
+        #[test_log::test]
+        fn when_deserialize(text: &str, value: Document) {
+            assert_eq!(from_str::<Document>(text).unwrap(), value);
+        }
+
+        #[rstest]
+        #[test_log::test]
+        fn when_serialize(text: &str, value: Document) {
+            assert_eq!(to_string(&value).unwrap(), text);
         }
     }
 
-    #[rstest]
-    #[test_log::test]
-    fn when_deserialize(text: &str, value: Document) {
-        assert_eq!(from_str::<Document>(text).unwrap(), value);
-    }
+    mod and_empty_content {
+        use super::*;
 
-    #[rstest]
-    #[test_log::test]
-    fn when_serialize(text: &str, value: Document) {
-        assert_eq!(to_string(&value).unwrap(), text);
+        #[fixture]
+        fn text() -> &'static str {
+            r#"<?xml version="1.0" encoding="UTF-8"?><document id="123"></document>"#
+        }
+
+        #[fixture]
+        fn value() -> Document {
+            Document {
+                id: 123,
+                content: "".to_string(),
+            }
+        }
+
+        #[rstest]
+        #[test_log::test]
+        fn when_deserialize(text: &str, value: Document) {
+            assert_eq!(from_str::<Document>(text).unwrap(), value);
+        }
+
+        #[rstest]
+        #[test_log::test]
+        fn when_serialize(text: &str, value: Document) {
+            assert_eq!(to_string(&value).unwrap(), text);
+        }
     }
 }
