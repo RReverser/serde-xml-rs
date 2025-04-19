@@ -1,6 +1,6 @@
 # serde-xml-rs
 
-[![Build Status](https://travis-ci.org/RReverser/serde-xml-rs.svg?branch=master)](https://travis-ci.org/RReverser/serde-xml-rs)
+[![Rust](https://github.com/RReverser/serde-xml-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/RReverser/serde-xml-rs/actions/workflows/rust.yml)
 
 `xml-rs` based serializer and deserializer for Serde (compatible with 1.0)
 
