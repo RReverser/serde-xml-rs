@@ -1,7 +1,7 @@
 use super::{
     child::ChildDeserializer,
     plain::PlainTextDeserializer,
-    reader::{Attribute, ChildReader, Element, Event, Reader},
+    reader::{Attribute, ChildReader, Event, Reader},
 };
 use crate::{
     config::{CONTENT, TEXT},
@@ -14,7 +14,7 @@ use std::{io::Read, iter::Peekable};
 pub struct MapAccess<'a, R: Read> {
     reader: ChildReader<'a, R>,
     attributes: Peekable<std::vec::IntoIter<Attribute>>,
-    capture_content: bool,
+    fields: &'static [&'static str],
 }
 
 impl<'a, R: Read> MapAccess<'a, R> {
@@ -22,9 +22,10 @@ impl<'a, R: Read> MapAccess<'a, R> {
         Self {
             reader,
             attributes: vec![].into_iter().peekable(),
-            capture_content: false,
+            fields: &[],
         }
     }
+
     pub fn new_struct(
         reader: ChildReader<'a, R>,
         attributes: Vec<Attribute>,
@@ -33,8 +34,12 @@ impl<'a, R: Read> MapAccess<'a, R> {
         Self {
             reader,
             attributes: attributes.into_iter().peekable(),
-            capture_content: fields.contains(&CONTENT),
+            fields,
         }
+    }
+
+    fn is_content(&self, element_name: &str) -> bool {
+        !self.fields.contains(&element_name) && self.fields.contains(&CONTENT)
     }
 }
 
@@ -50,15 +55,18 @@ impl<'de, R: Read> serde::de::MapAccess<'de> for MapAccess<'_, R> {
             trace!("attribute {}", attr.qname());
             seed.deserialize(format!("@{}", attr.qname()).into_deserializer())
                 .map(Some)
-        } else if self.capture_content {
-            trace!("#content");
-            seed.deserialize(CONTENT.into_deserializer()).map(Some)
         } else {
             match self.reader.peek()? {
                 Event::StartElement(element) => {
-                    trace!("element '{}'", element.name);
-                    seed.deserialize(element.qname().as_str().into_deserializer())
-                        .map(Some)
+                    let element_name = element.qname();
+                    if self.is_content(&element_name) {
+                        trace!("#content");
+                        seed.deserialize(CONTENT.into_deserializer()).map(Some)
+                    } else {
+                        trace!("element '{}'", element_name);
+                        seed.deserialize(element_name.as_str().into_deserializer())
+                            .map(Some)
+                    }
                 }
                 Event::Text(_) => {
                     trace!("{}", TEXT);
@@ -75,17 +83,18 @@ impl<'de, R: Read> serde::de::MapAccess<'de> for MapAccess<'_, R> {
     {
         if let Some(attr) = self.attributes.next() {
             seed.deserialize(PlainTextDeserializer::new(&attr.value))
-        } else if self.capture_content {
-            self.capture_content = false;
-            seed.deserialize(ChildDeserializer::new(self.reader.child()))
         } else {
             match self.reader.peek()? {
-                Event::StartElement(Element { name, .. }) => {
-                    let name = name.to_string();
-                    seed.deserialize(ChildDeserializer::new_with_element_name(
-                        self.reader.child(),
-                        name.to_string(),
-                    ))
+                Event::StartElement(element) => {
+                    let element_name = element.qname();
+                    if self.is_content(&element_name) {
+                        seed.deserialize(ChildDeserializer::new(self.reader.child()))
+                    } else {
+                        seed.deserialize(ChildDeserializer::new_with_element_name(
+                            self.reader.child(),
+                            element_name,
+                        ))
+                    }
                 }
                 Event::Text(_) => {
                     seed.deserialize(PlainTextDeserializer::new(&self.reader.chars()?))

@@ -1,6 +1,6 @@
 use super::{
     child::ChildDeserializer,
-    reader::{ChildReader, Element, Event, Reader},
+    reader::{ChildReader, Event, Reader},
 };
 use crate::error::{Error, Result};
 use log::trace;
@@ -27,12 +27,16 @@ impl<'de, R: Read> serde::de::SeqAccess<'de> for SeqAccess<'_, R> {
     where
         T: serde::de::DeserializeSeed<'de>,
     {
-        trace!("next element");
+        trace!(
+            "next element {:?} {:?}",
+            &self.element_name,
+            self.reader.peek()?
+        );
         let overlapping_sequences = self.reader.overlapping_sequences;
         loop {
             match (&self.element_name, self.reader.peek()?) {
-                (Some(element_name), Event::StartElement(Element { name, .. }))
-                    if name == element_name =>
+                (Some(element_name), Event::StartElement(element))
+                    if &element.qname() == element_name =>
                 {
                     break seed
                         .deserialize(ChildDeserializer::new_with_element_name(
@@ -46,11 +50,16 @@ impl<'de, R: Read> serde::de::SeqAccess<'de> for SeqAccess<'_, R> {
                     self.reader.fast_forward()?;
                 }
                 (None, Event::StartElement(_)) => {
-                    break seed
-                        .deserialize(ChildDeserializer::new(self.reader.child()))
-                        .map(Some);
+                    break match seed.deserialize(ChildDeserializer::new(self.reader.child())) {
+                        Ok(r) => Ok(Some(r)),
+                        Err(Error::Custom(_) | Error::Unexpected { .. }) => Ok(None),
+                        Err(e) => Err(e),
+                    }
                 }
-                _ => break Ok(None),
+                _ => {
+                    trace!("end sequence");
+                    break Ok(None);
+                }
             }
         }
     }
