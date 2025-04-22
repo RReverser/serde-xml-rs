@@ -27,11 +27,7 @@ impl<'de, R: Read> serde::de::SeqAccess<'de> for SeqAccess<'_, R> {
     where
         T: serde::de::DeserializeSeed<'de>,
     {
-        trace!(
-            "next element {:?} {:?}",
-            &self.element_name,
-            self.reader.peek()?
-        );
+        trace!("next element");
         let overlapping_sequences = self.reader.overlapping_sequences;
         loop {
             match (&self.element_name, self.reader.peek()?) {
