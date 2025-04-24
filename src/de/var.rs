@@ -4,7 +4,10 @@ use super::{
     plain::PlainTextDeserializer,
     reader::{ChildReader, Event, Reader},
 };
-use crate::error::{Error, Result};
+use crate::{
+    config::TEXT,
+    error::{Error, Result},
+};
 use log::trace;
 use serde::de::{value::StrDeserializer, IntoDeserializer};
 use std::io::Read;
@@ -29,6 +32,7 @@ impl<'de, 'a, R: Read> serde::de::EnumAccess<'de> for EnumAccess<'a, R> {
     {
         let element_name = match self.reader.peek()? {
             Event::StartElement(element) => element.qname(),
+            Event::Text(_) => TEXT.to_string(),
             event => {
                 return Err(Error::Unexpected {
                     expected: "start of element",
@@ -68,15 +72,19 @@ impl<'de, R: Read> serde::de::VariantAccess<'de> for VariantAccess<'_, R> {
         Ok(())
     }
 
-    fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value>
+    fn newtype_variant_seed<T>(mut self, seed: T) -> Result<T::Value>
     where
         T: serde::de::DeserializeSeed<'de>,
     {
         trace!("newtype variant");
-        seed.deserialize(ChildDeserializer::new_with_element_name(
-            self.reader,
-            self.element_name,
-        ))
+        if self.element_name == TEXT {
+            seed.deserialize(PlainTextDeserializer::new(&self.reader.chars()?))
+        } else {
+            seed.deserialize(ChildDeserializer::new_with_element_name(
+                self.reader,
+                self.element_name,
+            ))
+        }
     }
 
     fn tuple_variant<V>(mut self, _len: usize, visitor: V) -> Result<V::Value>

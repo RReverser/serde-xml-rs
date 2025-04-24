@@ -27,7 +27,9 @@ impl<W: Write> SerializeTuple for TupleSerializer<'_, W> {
     where
         T: ?Sized + serde::Serialize,
     {
-        self.buffer.push(value.serialize(PlainTextSerializer)?);
+        if let Some(text) = value.serialize(PlainTextSerializer)? {
+            self.buffer.push(text);
+        }
         Ok(())
     }
 

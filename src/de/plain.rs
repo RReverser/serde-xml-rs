@@ -89,11 +89,7 @@ impl<'de> serde::de::Deserializer<'de> for PlainTextDeserializer<'_> {
     where
         V: Visitor<'de>,
     {
-        if self.text.is_empty() {
-            visitor.visit_none()
-        } else {
-            visitor.visit_some(self)
-        }
+        visitor.visit_some(self)
     }
 
     fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value>
@@ -212,11 +208,11 @@ impl<'de> serde::de::VariantAccess<'de> for PlainTextDeserializer<'_> {
         Ok(())
     }
 
-    fn newtype_variant_seed<T>(self, _seed: T) -> Result<T::Value>
+    fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value>
     where
         T: serde::de::DeserializeSeed<'de>,
     {
-        Err(Error::Unsupported("newtype variant in text"))
+        seed.deserialize(self)
     }
 
     fn tuple_variant<V>(self, _len: usize, _visitor: V) -> Result<V::Value>

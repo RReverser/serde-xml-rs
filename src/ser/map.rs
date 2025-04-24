@@ -83,15 +83,17 @@ impl<W: Write> serde::ser::SerializeStruct for StructSerializer<'_, W> {
                     attribute_name: key,
                 })
             } else {
-                let value = value.serialize(PlainTextSerializer)?;
-                self.attributes.push(Attribute { name, value });
+                if let Some(value) = value.serialize(PlainTextSerializer)? {
+                    self.attributes.push(Attribute { name, value });
+                }
                 Ok(())
             }
         } else {
             self.ensure_start_element_written()?;
             if key == TEXT {
-                self.writer
-                    .characters(value.serialize(PlainTextSerializer)?)?;
+                if let Some(value) = value.serialize(PlainTextSerializer)? {
+                    self.writer.characters(value)?;
+                }
             } else if key == CONTENT {
                 value.serialize(ChildSerializer::new(self.writer, None))?;
             } else {
@@ -152,7 +154,12 @@ impl<W: Write> serde::ser::SerializeMap for MapSerializer<'_, W> {
     where
         T: ?Sized + serde::Serialize,
     {
-        self.element_name = key.serialize(PlainTextSerializer)?;
+        self.element_name = key
+            .serialize(PlainTextSerializer)?
+            .ok_or(Error::Unexpected {
+                expected: "key",
+                but_got: "Option::None".to_string(),
+            })?;
         Ok(())
     }
 
@@ -163,8 +170,9 @@ impl<W: Write> serde::ser::SerializeMap for MapSerializer<'_, W> {
         let element_name = std::mem::replace(&mut self.element_name, "".to_string());
         println!("TRACE {}", element_name == TEXT);
         if element_name == TEXT {
-            self.writer
-                .characters(value.serialize(PlainTextSerializer)?)?;
+            if let Some(text) = value.serialize(PlainTextSerializer)? {
+                self.writer.characters(text)?;
+            }
         } else {
             value.serialize(ChildSerializer::new(self.writer, Some(element_name)))?;
         }

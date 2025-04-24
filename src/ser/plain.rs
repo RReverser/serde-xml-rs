@@ -4,7 +4,7 @@ use serde::Serializer;
 pub struct PlainTextSerializer;
 
 impl Serializer for PlainTextSerializer {
-    type Ok = String;
+    type Ok = Option<String>;
     type Error = Error;
 
     type SerializeSeq = PlainTextSeqSerializer;
@@ -16,64 +16,64 @@ impl Serializer for PlainTextSerializer {
     type SerializeStructVariant = serde::ser::Impossible<Self::Ok, Self::Error>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok> {
-        Ok(v.to_string())
+        Ok(Some(v.to_string()))
     }
 
     fn serialize_i8(self, v: i8) -> Result<Self::Ok> {
-        Ok(v.to_string())
+        Ok(Some(v.to_string()))
     }
 
     fn serialize_i16(self, v: i16) -> Result<Self::Ok> {
-        Ok(v.to_string())
+        Ok(Some(v.to_string()))
     }
 
     fn serialize_i32(self, v: i32) -> Result<Self::Ok> {
-        Ok(v.to_string())
+        Ok(Some(v.to_string()))
     }
 
     fn serialize_i64(self, v: i64) -> Result<Self::Ok> {
-        Ok(v.to_string())
+        Ok(Some(v.to_string()))
     }
 
     fn serialize_u8(self, v: u8) -> Result<Self::Ok> {
-        Ok(v.to_string())
+        Ok(Some(v.to_string()))
     }
 
     fn serialize_u16(self, v: u16) -> Result<Self::Ok> {
-        Ok(v.to_string())
+        Ok(Some(v.to_string()))
     }
 
     fn serialize_u32(self, v: u32) -> Result<Self::Ok> {
-        Ok(v.to_string())
+        Ok(Some(v.to_string()))
     }
 
     fn serialize_u64(self, v: u64) -> Result<Self::Ok> {
-        Ok(v.to_string())
+        Ok(Some(v.to_string()))
     }
 
     fn serialize_f32(self, v: f32) -> Result<Self::Ok> {
-        Ok(v.to_string())
+        Ok(Some(v.to_string()))
     }
 
     fn serialize_f64(self, v: f64) -> Result<Self::Ok> {
-        Ok(v.to_string())
+        Ok(Some(v.to_string()))
     }
 
     fn serialize_char(self, v: char) -> Result<Self::Ok> {
-        Ok(v.to_string())
+        Ok(Some(v.to_string()))
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok> {
-        Ok(v.to_string())
+        Ok(Some(v.to_string()))
     }
 
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok> {
         let s = String::from_utf8(v.to_vec())?;
-        Ok(s)
+        Ok(Some(s))
     }
 
     fn serialize_none(self) -> Result<Self::Ok> {
-        Ok("".to_string())
+        Ok(None)
     }
 
     fn serialize_some<T>(self, value: &T) -> Result<Self::Ok>
@@ -84,11 +84,11 @@ impl Serializer for PlainTextSerializer {
     }
 
     fn serialize_unit(self) -> Result<Self::Ok> {
-        Ok("".to_string())
+        Ok(Some("".to_string()))
     }
 
     fn serialize_unit_struct(self, _name: &'static str) -> Result<Self::Ok> {
-        Ok("".to_string())
+        Ok(Some("".to_string()))
     }
 
     fn serialize_unit_variant(
@@ -97,7 +97,7 @@ impl Serializer for PlainTextSerializer {
         _variant_index: u32,
         variant: &'static str,
     ) -> Result<Self::Ok> {
-        Ok(variant.to_string())
+        Ok(Some(variant.to_string()))
     }
 
     fn serialize_newtype_struct<T>(self, _name: &'static str, value: &T) -> Result<Self::Ok>
@@ -176,24 +176,26 @@ impl PlainTextSeqSerializer {
 }
 
 impl serde::ser::SerializeSeq for PlainTextSeqSerializer {
-    type Ok = String;
+    type Ok = Option<String>;
     type Error = Error;
 
     fn serialize_element<T>(&mut self, value: &T) -> Result<()>
     where
         T: ?Sized + serde::Serialize,
     {
-        self.buffer.push(value.serialize(PlainTextSerializer)?);
+        if let Some(value) = value.serialize(PlainTextSerializer)? {
+            self.buffer.push(value);
+        }
         Ok(())
     }
 
     fn end(self) -> Result<Self::Ok> {
-        Ok(self.buffer.join(" "))
+        Ok(Some(self.buffer.join(" ")))
     }
 }
 
 impl serde::ser::SerializeTuple for PlainTextSeqSerializer {
-    type Ok = String;
+    type Ok = Option<String>;
     type Error = Error;
 
     fn serialize_element<T>(&mut self, value: &T) -> Result<()>
@@ -209,7 +211,7 @@ impl serde::ser::SerializeTuple for PlainTextSeqSerializer {
 }
 
 impl serde::ser::SerializeTupleStruct for PlainTextSeqSerializer {
-    type Ok = String;
+    type Ok = Option<String>;
     type Error = Error;
 
     fn serialize_field<T>(&mut self, value: &T) -> Result<()>
