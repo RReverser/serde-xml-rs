@@ -1,7 +1,7 @@
 use crate::{config::Namespaces, error::Result};
 use log::trace;
 use std::io::Write;
-use xml::{common::XmlVersion, writer::XmlEvent, EventWriter};
+use xml::{writer::XmlEvent, EventWriter};
 
 #[derive(Debug, PartialEq)]
 pub struct Attribute {
