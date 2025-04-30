@@ -438,4 +438,34 @@ mod tests {
         let got = String::from_utf8(buffer).unwrap();
         assert_eq!(got, should_be);
     }
+
+    #[test]
+    fn test_serialize_struct_no_declaration() {
+        // Verify that document declaration obeys the EmitterConfig.
+
+        #[derive(Serialize)]
+        struct Person {
+            name: String,
+            age: u32,
+        }
+
+        let bob = Person {
+            name: "Bob".to_string(),
+            age: 42,
+        };
+        let should_be = "<Person><name>Bob</name><age>42</age></Person>";
+        let mut buffer = Vec::new();
+
+        let writer = EmitterConfig::new()
+            .write_document_declaration(false)
+            .create_writer(&mut buffer);
+
+        {
+            let mut ser = Serializer::new_from_writer(writer);
+            bob.serialize(&mut ser).unwrap();
+        }
+
+        let got = String::from_utf8(buffer).unwrap();
+        assert_eq!(got, should_be);
+    }
 }
