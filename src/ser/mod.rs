@@ -109,18 +109,9 @@ where
         self.next(XmlEvent::characters(s))
     }
 
-    fn start_document(&mut self) -> Result<()> {
-        self.next(XmlEvent::StartDocument {
-            encoding: Default::default(),
-            standalone: Default::default(),
-            version: xml::common::XmlVersion::Version10,
-        })
-    }
-
     fn open_root_tag(&mut self, name: &'static str) -> Result<()> {
         if self.root {
             self.root = false;
-            self.start_document()?;
             self.open_tag(name)?;
         }
         Ok(())
