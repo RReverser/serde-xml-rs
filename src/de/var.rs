@@ -1,91 +1,116 @@
+use super::{
+    child::ChildDeserializer,
+    map::MapAccess,
+    plain::PlainTextDeserializer,
+    reader::{ChildReader, Event, Reader},
+};
+use crate::{
+    config::TEXT,
+    error::{Error, Result},
+};
+use log::trace;
+use serde::de::{value::StrDeserializer, IntoDeserializer};
 use std::io::Read;
 
-use serde::de::{self, Deserializer as SerdeDeserializer, IntoDeserializer};
-use xml::name::OwnedName;
-use xml::reader::XmlEvent;
-
-use crate::de::Deserializer;
-use crate::error::{Error, Result};
-use crate::expect;
-
-use super::buffer::BufferedXmlReader;
-
-pub struct EnumAccess<'a, R: Read, B: BufferedXmlReader<R>> {
-    de: &'a mut Deserializer<R, B>,
+pub struct EnumAccess<'a, R: Read> {
+    reader: ChildReader<'a, R>,
 }
 
-impl<'a, R: 'a + Read, B: BufferedXmlReader<R>> EnumAccess<'a, R, B> {
-    pub fn new(de: &'a mut Deserializer<R, B>) -> Self {
-        EnumAccess { de }
+impl<'a, R: Read> EnumAccess<'a, R> {
+    pub fn new(reader: ChildReader<'a, R>) -> Self {
+        Self { reader }
     }
 }
 
-impl<'de, 'a, R: 'a + Read, B: BufferedXmlReader<R>> de::EnumAccess<'de> for EnumAccess<'a, R, B> {
+impl<'de, 'a, R: Read> serde::de::EnumAccess<'de> for EnumAccess<'a, R> {
     type Error = Error;
-    type Variant = VariantAccess<'a, R, B>;
+    type Variant = VariantAccess<'a, R>;
 
-    fn variant_seed<V: de::DeserializeSeed<'de>>(
-        self,
-        seed: V,
-    ) -> Result<(V::Value, VariantAccess<'a, R, B>)> {
-        let name = expect!(
-            self.de.peek()?,
-
-            &XmlEvent::Characters(ref name) |
-            &XmlEvent::StartElement { name: OwnedName { local_name: ref name, .. }, .. } => {
-                seed.deserialize(name.as_str().into_deserializer())
+    fn variant_seed<V>(mut self, seed: V) -> Result<(V::Value, Self::Variant)>
+    where
+        V: serde::de::DeserializeSeed<'de>,
+    {
+        let element_name = match self.reader.peek()? {
+            Event::StartElement(element) => element.qname(),
+            Event::Text(_) => TEXT.to_string(),
+            event => {
+                return Err(Error::Unexpected {
+                    expected: "start of element",
+                    but_got: event.to_string(),
+                });
             }
+        };
+        trace!("enum variant {element_name}");
+        let name = seed.deserialize::<StrDeserializer<Self::Error>>(
+            element_name.as_str().into_deserializer(),
         )?;
-        self.de.set_map_value();
-        Ok((name, VariantAccess::new(self.de)))
+        Ok((name, VariantAccess::new(self.reader, element_name)))
     }
 }
 
-pub struct VariantAccess<'a, R: Read, B: BufferedXmlReader<R>> {
-    de: &'a mut Deserializer<R, B>,
+pub struct VariantAccess<'a, R: Read> {
+    reader: ChildReader<'a, R>,
+    element_name: String,
 }
 
-impl<'a, R: 'a + Read, B: BufferedXmlReader<R>> VariantAccess<'a, R, B> {
-    pub fn new(de: &'a mut Deserializer<R, B>) -> Self {
-        VariantAccess { de }
+impl<'a, R: Read> VariantAccess<'a, R> {
+    pub fn new(reader: ChildReader<'a, R>, element_name: String) -> Self {
+        Self {
+            reader,
+            element_name,
+        }
     }
 }
 
-impl<'de, 'a, R: 'a + Read, B: BufferedXmlReader<R>> de::VariantAccess<'de>
-    for VariantAccess<'a, R, B>
-{
+impl<'de, R: Read> serde::de::VariantAccess<'de> for VariantAccess<'_, R> {
     type Error = Error;
 
-    fn unit_variant(self) -> Result<()> {
-        self.de.unset_map_value();
-        match self.de.next()? {
-            XmlEvent::StartElement {
-                name, attributes, ..
-            } => {
-                if attributes.is_empty() {
-                    self.de.expect_end_element(name)
-                } else {
-                    Err(de::Error::invalid_length(attributes.len(), &"0"))
-                }
-            }
-            XmlEvent::Characters(_) => Ok(()),
-            _ => unreachable!(),
+    fn unit_variant(mut self) -> Result<()> {
+        trace!("unit variant");
+        self.reader.start_element()?;
+        self.reader.end_element()?;
+        Ok(())
+    }
+
+    fn newtype_variant_seed<T>(mut self, seed: T) -> Result<T::Value>
+    where
+        T: serde::de::DeserializeSeed<'de>,
+    {
+        trace!("newtype variant");
+        if self.element_name == TEXT {
+            seed.deserialize(PlainTextDeserializer::new(&self.reader.chars()?))
+        } else {
+            seed.deserialize(ChildDeserializer::new_with_element_name(
+                self.reader,
+                self.element_name,
+            ))
         }
     }
 
-    fn newtype_variant_seed<T: de::DeserializeSeed<'de>>(self, seed: T) -> Result<T::Value> {
-        seed.deserialize(&mut *self.de)
+    fn tuple_variant<V>(mut self, _len: usize, visitor: V) -> Result<V::Value>
+    where
+        V: serde::de::Visitor<'de>,
+    {
+        trace!("tuple variant");
+        self.reader.start_element()?;
+        let text = self.reader.chars()?;
+        let value = visitor.visit_seq(PlainTextDeserializer::new(&text))?;
+        self.reader.end_element()?;
+        Ok(value)
     }
 
-    fn tuple_variant<V: de::Visitor<'de>>(self, len: usize, visitor: V) -> Result<V::Value> {
-        self.de.deserialize_tuple(len, visitor)
-    }
-
-    fn struct_variant<V: de::Visitor<'de>>(
-        self,
-        _fields: &'static [&'static str],
-        visitor: V,
-    ) -> Result<V::Value> {
-        self.de.deserialize_map(visitor)
+    fn struct_variant<V>(mut self, fields: &'static [&'static str], visitor: V) -> Result<V::Value>
+    where
+        V: serde::de::Visitor<'de>,
+    {
+        trace!("struct variant");
+        let element = self.reader.start_element()?;
+        let value = visitor.visit_map(MapAccess::new_struct(
+            self.reader.child(),
+            element.attributes,
+            fields,
+        ))?;
+        self.reader.end_element()?;
+        Ok(value)
     }
 }

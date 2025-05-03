@@ -1,37 +1,35 @@
-use super::Serializer;
 use crate::error::{Error, Result};
-use serde::ser::Serialize;
+use serde::ser::SerializeSeq;
 use std::io::Write;
 
-pub struct SeqSeralizer<'ser, W: 'ser + Write> {
-    ser: &'ser mut Serializer<W>,
+use super::{child::ChildSerializer, writer::Writer};
+
+pub struct SequenceSerializer<'a, W> {
+    writer: &'a mut Writer<W>,
+    element_name: Option<String>,
 }
 
-impl<'ser, W: 'ser + Write> SeqSeralizer<'ser, W> {
-    pub fn new(ser: &'ser mut Serializer<W>) -> Self {
-        SeqSeralizer { ser }
+impl<'a, W: Write> SequenceSerializer<'a, W> {
+    pub fn new(writer: &'a mut Writer<W>, element_name: Option<String>) -> Self {
+        Self {
+            writer,
+            element_name,
+        }
     }
 }
 
-impl<'ser, W: 'ser + Write> serde::ser::SerializeSeq for SeqSeralizer<'ser, W> {
+impl<W: Write> SerializeSeq for SequenceSerializer<'_, W> {
     type Ok = ();
     type Error = Error;
 
     fn serialize_element<T>(&mut self, value: &T) -> Result<()>
     where
-        T: ?Sized + Serialize,
+        T: ?Sized + serde::Serialize,
     {
-        let must_close_tag = self.ser.build_start_tag()?;
-        value.serialize(&mut *self.ser)?;
-        if must_close_tag {
-            self.ser.end_tag()?;
-            self.ser.reopen_tag()?;
-        }
-        Ok(())
+        value.serialize(ChildSerializer::new(self.writer, self.element_name.clone()))
     }
 
-    fn end(self) -> Result<()> {
-        self.ser.abandon_tag()?;
+    fn end(self) -> Result<Self::Ok> {
         Ok(())
     }
 }

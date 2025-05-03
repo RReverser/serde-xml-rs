@@ -1,11 +1,14 @@
 [package]
-authors = ["Ingvar Stepanyan <me@rreverser.com>"]
+authors = [
+    "Ingvar Stepanyan <me@rreverser.com>",
+    "William Bartlett <bartlettstarman@gmail.com>",
+]
 description = "xml-rs based deserializer for Serde (compatible with 1.0)"
 license = "MIT"
 name = "serde-xml-rs"
 repository = "https://github.com/RReverser/serde-xml-rs"
-version = "0.7.1"
-edition = "2018"
+version = "0.8.0"
+edition = "2021"
 
 [dependencies]
 log = "0.4"
@@ -15,7 +18,9 @@ thiserror = "1.0"
 
 [dev-dependencies]
 serde = { version = "1.0", features = ["derive"] }
-simple_logger = "2.1"
-docmatic = "0.1"
-rstest = "0.12"
+rstest = "0.25"
 indoc = "2.0.6"
+test-log = "0.2.17"
+serde_bytes = "0.11.17"
+serde-query = "0.2.0"
+chrono = { version = "0.4.40", default-features = false, features = ["serde"] }

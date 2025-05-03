@@ -1,113 +1,51 @@
-use serde::de::Error as DeError;
-use serde::ser::Error as SerError;
-use std::fmt::Display;
-use thiserror::Error;
-
-#[derive(Debug, Error)]
-pub enum Error {
-    #[error("Expected token {token}, found {found}")]
-    UnexpectedToken { token: String, found: String },
-    #[error("custom: {field}")]
-    Custom { field: String },
-    #[error("unsupported operation: '{operation}'")]
-    UnsupportedOperation { operation: String },
-
-    #[error("IO error: {source}")]
-    Io {
-        #[from]
-        source: ::std::io::Error,
-    },
-
-    #[error("FromUtf8Error: {source}")]
-    FromUtf8Error {
-        #[from]
-        source: ::std::string::FromUtf8Error,
-    },
-
-    #[error("ParseIntError: {source}")]
-    ParseIntError {
-        #[from]
-        source: ::std::num::ParseIntError,
-    },
-
-    #[error("ParseFloatError: {source}")]
-    ParseFloatError {
-        #[from]
-        source: ::std::num::ParseFloatError,
-    },
-
-    #[error("ParseBoolError: {source}")]
-    ParseBoolError {
-        #[from]
-        source: ::std::str::ParseBoolError,
-    },
-
-    #[error("Syntax: {source}")]
-    Syntax {
-        #[from]
-        source: ::xml::reader::Error,
-    },
-
-    #[error("Writer: {source}")]
-    Writer {
-        #[from]
-        source: ::xml::writer::Error,
-    },
-}
-
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[macro_export]
-macro_rules! expect {
-    ($actual: expr, $($expected: pat)|+ => $if_ok: expr) => {
-        match $actual {
-            $($expected)|+ => $if_ok,
-            actual => Err($crate::Error::UnexpectedToken {
-                token: stringify!($($expected)|+).to_string(),
-                found: format!("{:?}",actual)
-            }) as Result<_>
-        }
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("Unsupported operation {0}")]
+    Unsupported(&'static str),
+    #[error("Expected {expected} but got {but_got}")]
+    Unexpected {
+        expected: &'static str,
+        but_got: String,
+    },
+    #[error(
+        "In '{element_name}', attribute '{attribute_name}' comes after at least one element. All attributes must come before any elements."
+    )]
+    AttributesMustComeBeforeElements {
+        element_name: String,
+        attribute_name: &'static str,
+    },
+    #[error("Custom: {0}")]
+    Custom(String),
+    #[error("Reader: {0}")]
+    Reader(#[from] xml::reader::Error),
+    #[error("Writer: {0}")]
+    Writer(#[from] xml::writer::Error),
+    #[error("UTF-8: {0}")]
+    FromUtf8(#[from] std::string::FromUtf8Error),
+    #[error("Parse: {0}")]
+    ParseBool(#[from] std::str::ParseBoolError),
+    #[error("Parse int: {0}")]
+    ParseInt(#[from] std::num::ParseIntError),
+    #[error("Parse float: {0}")]
+    ParseFloat(#[from] std::num::ParseFloatError),
+}
+
+impl serde::de::Error for Error {
+    fn custom<T>(msg: T) -> Self
+    where
+        T: std::fmt::Display,
+    {
+        Self::Custom(msg.to_string())
     }
 }
 
-#[cfg(debug_assertions)]
-#[macro_export]
-macro_rules! debug_expect {
-    ($actual: expr, $($expected: pat)|+ => $if_ok: expr) => {
-        match $actual {
-            $($expected)|+ => $if_ok,
-            actual => panic!(
-                "Internal error: Expected token {}, found {:?}",
-                stringify!($($expected)|+),
-                actual
-            )
-        }
-    }
-}
-
-#[cfg(not(debug_assertions))]
-#[macro_export]
-macro_rules! debug_expect {
-    ($actual: expr, $($expected: pat)|+ => $if_ok: expr) => {
-        match $actual {
-            $($expected)|+ => $if_ok,
-            _ => unreachable!()
-        }
-    }
-}
-
-impl DeError for Error {
-    fn custom<T: Display>(msg: T) -> Self {
-        Error::Custom {
-            field: msg.to_string(),
-        }
-    }
-}
-
-impl SerError for Error {
-    fn custom<T: Display>(msg: T) -> Self {
-        Error::Custom {
-            field: msg.to_string(),
-        }
+impl serde::ser::Error for Error {
+    fn custom<T>(msg: T) -> Self
+    where
+        T: std::fmt::Display,
+    {
+        Self::Custom(msg.to_string())
     }
 }

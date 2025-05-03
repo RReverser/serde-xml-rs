@@ -1,91 +1,80 @@
+use super::{plain::PlainTextSerializer, writer::Writer};
+use crate::error::{Error, Result};
+use serde::ser::{SerializeTuple, SerializeTupleStruct, SerializeTupleVariant};
 use std::io::Write;
 
-use serde::ser::Serialize;
-
-use super::Serializer;
-use crate::error::{Error, Result};
-
-pub struct TupleSerializer<'ser, W: 'ser + Write> {
-    ser: &'ser mut Serializer<W>,
-    must_close_tag: bool,
-    first: bool,
+pub struct TupleSerializer<'a, W> {
+    writer: &'a mut Writer<W>,
+    buffer: Vec<String>,
+    should_end_element: bool,
 }
 
-impl<'ser, W: 'ser + Write> TupleSerializer<'ser, W> {
-    pub fn new(ser: &'ser mut Serializer<W>, must_close_tag: bool) -> Self {
+impl<'a, W> TupleSerializer<'a, W> {
+    pub fn new(writer: &'a mut Writer<W>, should_end_element: bool) -> Self {
         Self {
-            ser,
-            must_close_tag,
-            first: true,
+            writer,
+            buffer: Vec::new(),
+            should_end_element,
         }
-    }
-
-    fn serialize_item<T>(&mut self, value: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
-    {
-        if self.first {
-            self.first = false;
-        } else {
-            self.ser.characters(" ")?;
-        }
-        value.serialize(&mut *self.ser)?;
-        Ok(())
-    }
-
-    fn after_items(self) -> Result<()> {
-        if self.must_close_tag {
-            self.ser.end_tag()?;
-        }
-        Ok(())
     }
 }
 
-impl<'ser, W: 'ser + Write> serde::ser::SerializeTupleVariant for TupleSerializer<'ser, W> {
-    type Ok = ();
-    type Error = Error;
-
-    fn serialize_field<T>(&mut self, value: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
-    {
-        self.serialize_item(value)
-    }
-
-    fn end(self) -> Result<()> {
-        self.ser.end_tag()?;
-        self.after_items()
-    }
-}
-
-impl<'ser, W: 'ser + Write> serde::ser::SerializeTupleStruct for TupleSerializer<'ser, W> {
-    type Ok = ();
-    type Error = Error;
-
-    fn serialize_field<T>(&mut self, value: &T) -> Result<()>
-    where
-        T: ?Sized + Serialize,
-    {
-        self.serialize_item(value)
-    }
-
-    fn end(self) -> Result<()> {
-        self.after_items()
-    }
-}
-
-impl<'ser, W: 'ser + Write> serde::ser::SerializeTuple for TupleSerializer<'ser, W> {
+impl<W: Write> SerializeTuple for TupleSerializer<'_, W> {
     type Ok = ();
     type Error = Error;
 
     fn serialize_element<T>(&mut self, value: &T) -> Result<()>
     where
-        T: ?Sized + Serialize,
+        T: ?Sized + serde::Serialize,
     {
-        self.serialize_item(value)
+        if let Some(text) = value.serialize(PlainTextSerializer)? {
+            self.buffer.push(text);
+        }
+        Ok(())
     }
 
-    fn end(self) -> Result<()> {
-        self.after_items()
+    fn end(self) -> Result<Self::Ok> {
+        self.writer.characters(self.buffer.join(" ").as_str())?;
+        if self.should_end_element {
+            self.writer.end_element()?;
+        }
+        Ok(())
+    }
+}
+
+impl<W: Write> SerializeTupleStruct for TupleSerializer<'_, W> {
+    type Ok = ();
+    type Error = Error;
+
+    fn serialize_field<T>(&mut self, value: &T) -> Result<()>
+    where
+        T: ?Sized + serde::Serialize,
+    {
+        <Self as SerializeTuple>::serialize_element(self, value)
+    }
+
+    fn end(self) -> Result<Self::Ok> {
+        <Self as SerializeTuple>::end(self)
+    }
+}
+
+impl<W: Write> SerializeTupleVariant for TupleSerializer<'_, W> {
+    type Ok = ();
+    type Error = Error;
+
+    fn serialize_field<T>(&mut self, value: &T) -> Result<()>
+    where
+        T: ?Sized + serde::Serialize,
+    {
+        <Self as SerializeTuple>::serialize_element(self, value)
+    }
+
+    fn end(self) -> Result<Self::Ok> {
+        self.writer.characters(self.buffer.join(" ").as_str())?;
+        self.writer.end_element()?;
+        if self.should_end_element {
+            self.writer.end_element()?;
+        }
+        Ok(())
     }
 }

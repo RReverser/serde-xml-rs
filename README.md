@@ -1,8 +1,8 @@
 # serde-xml-rs
 
-[![Build Status](https://travis-ci.org/RReverser/serde-xml-rs.svg?branch=master)](https://travis-ci.org/RReverser/serde-xml-rs)
+[![Rust](https://github.com/RReverser/serde-xml-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/RReverser/serde-xml-rs/actions/workflows/rust.yml)
 
-`xml-rs` based deserializer for Serde (compatible with 1.0)
+`xml-rs` based serializer and deserializer for Serde (compatible with 1.0)
 
 ## Example usage
 
@@ -30,3 +30,11 @@ fn main() {
     assert_eq!(src, reserialized_item);
 }
 ```
+
+## Breaking changes in version 0.8.0
+
+Notably:
+- The `$value` name has been changed to `#content` (could become configurable in the future).
+- Fields that are deserialized from attributes must now have a name that starts with a `@`. This aligns with what was introduced in the serializer.
+
+See MIGRATION.md for more details, and tips on how to migrate.
