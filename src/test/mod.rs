@@ -1,6 +1,7 @@
 mod attributes;
 mod choice_sequence;
 mod choices;
+mod comments;
 mod doctype;
 mod ignore;
 mod ill_formed;
