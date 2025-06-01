@@ -168,7 +168,6 @@ impl<W: Write> serde::ser::SerializeMap for MapSerializer<'_, W> {
         T: ?Sized + serde::Serialize,
     {
         let element_name = std::mem::replace(&mut self.element_name, "".to_string());
-        println!("TRACE {}", element_name == TEXT);
         if element_name == TEXT {
             if let Some(text) = value.serialize(PlainTextSerializer)? {
                 self.writer.characters(text)?;
