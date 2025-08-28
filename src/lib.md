@@ -1005,3 +1005,12 @@ let item = Item::deserialize(&mut Deserializer::new(event_reader)).unwrap();
 assert_eq!(item, should_be);
 
 ```
+
+# Supported Encodings
+
+This crate relies on the `xml` crate for parsing XML.
+It therefore supports the same encodings, namely:
+- UTF-8 and UTF-16 (minimum requirement for the XML standard)
+  - The UTF-16 file must contain a byte-order mark
+- ISO-8859-1
+- ASCII
