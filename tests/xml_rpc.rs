@@ -86,4 +86,3 @@ fn given_method_reponse_when_deserialize_ok(
     let file = File::open(path).unwrap();
     let _value: MethodResponse = from_reader(file).unwrap();
 }
-//
