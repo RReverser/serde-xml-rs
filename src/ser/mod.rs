@@ -86,6 +86,11 @@ impl<W: Write> Serializer<W> {
         Self::from_config(SerdeXml::default(), writer)
     }
 
+
+    pub fn into_inner(self) -> W {
+        self.writer.into_inner()
+    }
+
     pub(crate) fn from_config(config: SerdeXml, sink: W) -> Self {
         Self {
             writer: Writer::new(config.emitter.create_writer(sink), config.namespaces),

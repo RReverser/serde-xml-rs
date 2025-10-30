@@ -56,4 +56,8 @@ impl<W: Write> Writer<W> {
         self.xml_writer.write(XmlEvent::Characters(text.as_ref()))?;
         Ok(())
     }
+
+    pub fn into_inner(self) -> W {
+        self.xml_writer.into_inner()
+    }
 }
