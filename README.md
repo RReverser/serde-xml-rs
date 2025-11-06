@@ -1,3 +1,5 @@
+# Forked to add an into_inner() method
+
 # serde-xml-rs
 
 [![Rust](https://github.com/RReverser/serde-xml-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/RReverser/serde-xml-rs/actions/workflows/rust.yml)
