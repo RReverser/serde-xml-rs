@@ -1,7 +1,7 @@
+use rstest::rstest;
 use serde::Serialize;
 use serde_xml_rs::Serializer;
 use std::io::Write;
-use rstest::rstest;
 
 #[derive(Serialize)]
 #[serde(rename = "root")]
