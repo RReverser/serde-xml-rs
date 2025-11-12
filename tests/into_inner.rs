@@ -24,7 +24,10 @@ fn test_serialize_and_get_buffer_back() {
     let recovered_buffer = serializer.into_inner();
 
     let xml_string = String::from_utf8(recovered_buffer).unwrap();
-    assert_eq!(xml_string, r#"<?xml version="1.0" encoding="UTF-8"?><root><value>test</value></root>"#);
+    assert_eq!(
+        xml_string,
+        r#"<?xml version="1.0" encoding="UTF-8"?><root><value>test</value></root>"#
+    );
 }
 
 #[rstest]
@@ -49,4 +52,3 @@ fn test_continue_writing_after_serialization() {
 <!-- comment -->"#
     );
 }
-
