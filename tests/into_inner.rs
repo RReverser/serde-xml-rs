@@ -1,6 +1,7 @@
 use serde::Serialize;
 use serde_xml_rs::Serializer;
 use std::io::Write;
+use rstest::rstest;
 
 #[derive(Serialize)]
 #[serde(rename = "root")]
@@ -8,7 +9,8 @@ struct Document {
     value: String,
 }
 
-#[test]
+#[rstest]
+#[test_log::test]
 fn test_serialize_and_get_buffer_back() {
     let buffer = Vec::new();
     let mut serializer = Serializer::new_from_writer(buffer);
@@ -25,7 +27,8 @@ fn test_serialize_and_get_buffer_back() {
     assert_eq!(xml_string, r#"<?xml version="1.0" encoding="UTF-8"?><root><value>test</value></root>"#);
 }
 
-#[test]
+#[rstest]
+#[test_log::test]
 fn test_continue_writing_after_serialization() {
     let buffer = Vec::new();
     let mut serializer = Serializer::new_from_writer(buffer);
