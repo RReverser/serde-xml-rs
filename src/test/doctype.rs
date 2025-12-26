@@ -24,7 +24,7 @@ fn value() -> Envelope {
 )]
 #[case(
     r#"<?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE Envelope[]>
+            <!DOCTYPE Envelope []>
             <Envelope>
             <subject>Reference rates</subject>
             </Envelope>"#
@@ -33,7 +33,7 @@ fn value() -> Envelope {
     r#"<?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE Envelope [
                 <!ELEMENT subject (#PCDATA)>
-            ] >
+            ]>
             <Envelope>
             <subject>Reference rates</subject>
             </Envelope>"#
