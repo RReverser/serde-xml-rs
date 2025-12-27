@@ -85,7 +85,7 @@ pub trait Reader<R: Read> {
     /// Consume the next event
     fn next(&mut self) -> Result<Event>;
     /// Create a child buffer whose cursor starts at the same position as this buffer.
-    fn child(&mut self) -> ChildReader<R>;
+    fn child(&mut self) -> ChildReader<'_, R>;
 
     /// Consume the next event as a string
     fn chars(&mut self) -> Result<String> {
@@ -161,7 +161,7 @@ impl<R: Read> RootReader<R> {
 }
 
 impl<R: Read> Reader<R> for RootReader<R> {
-    fn child(&mut self) -> ChildReader<R> {
+    fn child(&mut self) -> ChildReader<'_, R> {
         ChildReader {
             xml_reader: &mut self.xml_reader,
             lookahead: &mut self.lookahead,
@@ -274,7 +274,7 @@ impl<R: Read> Reader<R> for ChildReader<'_, R> {
         self.take_nth(self.cursor)
     }
 
-    fn child(&mut self) -> ChildReader<R> {
+    fn child(&mut self) -> ChildReader<'_, R> {
         ChildReader {
             xml_reader: self.xml_reader,
             lookahead: self.lookahead,
