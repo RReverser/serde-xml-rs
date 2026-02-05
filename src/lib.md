@@ -250,6 +250,35 @@ let value = Document(true);
 
 </td>
 </tr>
+<tr>
+<td>
+
+```xml
+<Document>false</Document>
+```
+
+```xml
+<Document>0</Document>
+```
+
+</td>
+<td>
+
+```rust
+# let text = r#"<?xml version="1.0" encoding="UTF-8"?><Document>false</Document>"#;
+# use serde::{Serialize, Deserialize};
+# #[derive(Debug, PartialEq)]
+#[derive(Serialize, Deserialize)]
+# struct Document(bool);
+
+let value = Document(false);
+
+# assert_eq!(serde_xml_rs::from_str::<Document>(text).unwrap(), value);
+# assert_eq!(serde_xml_rs::to_string(&value).unwrap(), text);
+```
+
+</td>
+</tr>
 <tr><th colspan="2">char</th></tr>
 <tr>
 <td>
@@ -269,34 +298,6 @@ let value = Document(true);
 struct Document(char);
 
 let value = Document('a');
-
-# assert_eq!(serde_xml_rs::from_str::<Document>(text).unwrap(), value);
-# assert_eq!(serde_xml_rs::to_string(&value).unwrap(), text);
-```
-
-</td>
-</tr>
-<tr>
-<td>
-
-```xml
-<Document>false</Document>
-```
-```xml
-<Document>0</Document>
-```
-
-</td>
-<td>
-
-```rust
-# let text = r#"<?xml version="1.0" encoding="UTF-8"?><Document>false</Document>"#;
-# use serde::{Serialize, Deserialize};
-# #[derive(Debug, PartialEq)]
-#[derive(Serialize, Deserialize)]
-# struct Document(bool);
-
-let value = Document(false);
 
 # assert_eq!(serde_xml_rs::from_str::<Document>(text).unwrap(), value);
 # assert_eq!(serde_xml_rs::to_string(&value).unwrap(), text);
