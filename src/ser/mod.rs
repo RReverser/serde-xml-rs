@@ -42,6 +42,26 @@ pub fn to_string<S: Serialize>(value: &S) -> Result<String> {
     Ok(String::from_utf8(buffer)?)
 }
 
+/// A convenience method for serializing to a [String] with a custom [`Serialize`] function.
+/// 
+/// # Example
+/// 
+/// ```
+/// # use serde::ser::{Serialize, Serializer,  SerializeStructVariant as _};
+/// # use serde_xml_rs::to_string_with;
+/// let serialized = to_string_with(|serializer| {
+///     let mut s = serializer.serialize_struct("person", 2)?;
+///     s.serialize_field("name", "joe")?;
+///     s.serialize_field("age", &42)?;
+///     s.end()
+/// }).unwrap();
+/// 
+/// assert_eq!(serialized, r#"<?xml version="1.0" encoding="UTF-8"?><person><name>joe</name><age>42</age></person>"#);
+/// ```
+pub fn to_string_with(serialize: impl FnOnce(&mut Serializer<&mut Vec<u8>>) -> Result<()>) -> Result<String> {
+    SerdeXml::default().to_string_with(serialize)
+}
+
 /// A convenience method for serializing some object to a buffer.
 ///
 /// # Examples
@@ -68,6 +88,25 @@ pub fn to_string<S: Serialize>(value: &S) -> Result<String> {
 pub fn to_writer<W: Write, S: Serialize>(writer: W, value: &S) -> Result<()> {
     let mut serializer = Serializer::from_config(SerdeXml::default(), writer);
     value.serialize(&mut serializer)
+}
+
+/// A convenience method for serializing to a [writer][Write] with a custom [`Serialize`] function.
+/// 
+/// # Example
+/// 
+/// ```no_run
+/// # use serde::ser::{Serialize, Serializer, SerializeStructVariant as _};
+/// # use serde_xml_rs::to_writer_with;
+/// let mut file = std::fs::File::options().write(true).open("file.xml").unwrap();
+/// let serialized = to_writer_with(&mut file, |serializer| {
+///     let mut s = serializer.serialize_struct("person", 2)?;
+///     s.serialize_field("name", "joe")?;
+///     s.serialize_field("age", &42)?;
+///     s.end()
+/// }).unwrap(); // <?xml version="1.0" encoding="UTF-8"?><person><name>joe</name><age>42</age></person>"
+/// ```
+pub fn to_writer_with<W: Write>(writer: W, serialize: impl FnOnce(&mut Serializer<W>) -> Result<()>) -> Result<()> {
+    SerdeXml::default().to_writer_with(writer, serialize)
 }
 
 /// An XML `Serializer`.

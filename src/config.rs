@@ -95,13 +95,30 @@ impl SerdeXml {
         self.from_reader(s.as_bytes())
     }
 
+    /// Same as [`crate::from_str_with`], but uses the config `self`.
+    pub fn from_str_with<T>(self, s: &str, deserialize: impl FnOnce(&mut Deserializer<&[u8]>) -> Result<T>) -> Result<T> {
+        self.from_reader_with(s.as_bytes(), deserialize)
+    }
+
     pub fn from_reader<'de, T: Deserialize<'de>, R: Read>(self, reader: R) -> Result<T> {
         T::deserialize(&mut Deserializer::from_config(self, reader))
+    }
+
+    /// Same as [`crate::from_reader_with`], but uses the config `self`.
+    pub fn from_reader_with<R: Read, T>(self, reader: R, deserialize: impl FnOnce(&mut Deserializer<R>) -> Result<T>) -> Result<T> {
+        deserialize(&mut Deserializer::from_config(self, reader))
     }
 
     pub fn to_string<S: Serialize>(self, value: &S) -> Result<String> {
         let mut buffer = Vec::new();
         self.to_writer(&mut buffer, value)?;
+        Ok(String::from_utf8(buffer)?)
+    }
+
+    /// Same as [`crate::to_string_with`], but uses the config `self`.
+    pub fn to_string_with(self, serialize: impl FnOnce(&mut Serializer<&mut Vec<u8>>) -> Result<()>) -> Result<String> {
+        let mut buffer = Vec::new();
+        self.to_writer_with(&mut buffer, serialize)?;
         Ok(String::from_utf8(buffer)?)
     }
 
@@ -112,6 +129,11 @@ impl SerdeXml {
     {
         let mut s = Serializer::from_config(self, writer);
         value.serialize(&mut s)
+    }
+
+    /// Same as [`crate::to_writer_with`], but uses the config `self`.
+    pub fn to_writer_with<W: Write>(self, writer: W, serialize: impl FnOnce(&mut Serializer<W>) -> Result<()>) -> Result<()> {
+        serialize(&mut Serializer::new_from_writer(writer))
     }
 }
 
