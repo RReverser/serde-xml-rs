@@ -42,6 +42,42 @@ pub fn from_str<'de, T: Deserialize<'de>>(s: &str) -> Result<T> {
     from_reader(s.as_bytes())
 }
 
+/// A convenience method for deserializing from a [string][str] with a custom [`Deserialize`] function.
+/// 
+/// See how to [manually implement `Deserialize`](https://serde.rs/impl-deserialize.html).
+/// 
+/// # Example
+/// 
+/// ```no_run
+/// # use serde::{Deserialize, de::{Deserializer, Visitor}};
+/// # use serde_xml_rs::from_str_with;
+/// let s = r##"<item><name>hello</name><source>world.rs</source></item>"##;
+/// let item: (String, String) = from_str_with(s, |deserializer| {
+///     #[derive(Deserialize)]
+///     #[serde(field_identifier, rename_all = "lowercase")]
+///     enum Field { Name, Source }
+/// 
+///     struct ItemVisitor;
+///     impl<'de> Visitor<'de> for ItemVisitor {
+///         type Value = (String, String);
+/// 
+///         fn expecting(&self, _: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+///             // ...
+///             # Ok(())
+///         }
+///         // ...
+///     }
+///    
+///     deserializer.deserialize_struct("item", &["name", "source"], ItemVisitor)
+/// }).unwrap();
+/// 
+/// assert_eq!(item.0, "hello");
+/// assert_eq!(item.1, "world.rs");
+/// ```
+pub fn from_str_with<T>(s: &str, deserialize: impl FnOnce(&mut Deserializer<&[u8]>) -> Result<T>) -> Result<T> {
+    from_reader_with(s.as_bytes(), deserialize)
+}
+
 /// A convenience method for deserialize some object from a reader.
 ///
 /// ```rust
@@ -60,6 +96,43 @@ pub fn from_str<'de, T: Deserialize<'de>>(s: &str) -> Result<T> {
 /// ```
 pub fn from_reader<'de, T: Deserialize<'de>, R: Read>(reader: R) -> Result<T> {
     T::deserialize(&mut Deserializer::from_config(SerdeXml::default(), reader))
+}
+
+/// A convenience method for deserializing from some [reader][Read] with a custom [`Deserialize`] function.
+/// 
+/// See how to [manually implement `Deserialize`](https://serde.rs/impl-deserialize.html).
+/// 
+/// # Example
+///
+/// ```no_run
+/// # use serde::{Deserialize, de::{Deserializer, Visitor}};
+/// # use serde_xml_rs::from_reader_with;
+/// let file = std::fs::File::open("file.xml").unwrap(); // <item><name>hello</name><source>world.rs</source></item>
+/// let item: (String, String) = from_reader_with(&file, |deserializer| {
+///     #[derive(Deserialize)]
+///     #[serde(field_identifier, rename_all = "lowercase")]
+///     enum Field { Name, Source }
+/// 
+///     struct ItemVisitor;
+///     impl<'de> Visitor<'de> for ItemVisitor {
+///         type Value = (String, String);
+/// 
+///         fn expecting(&self, _: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+///             // ...
+///             # Ok(())
+///         }
+/// 
+///         // ...
+///     }
+///    
+///     deserializer.deserialize_struct("item", &["name", "source"], ItemVisitor)
+/// }).unwrap();
+/// 
+/// assert_eq!(item.0, "hello");
+/// assert_eq!(item.1, "world.rs");
+/// ```
+pub fn from_reader_with<R: Read, T>(reader: R, deserialize: impl FnOnce(&mut Deserializer<R>) -> Result<T>) -> Result<T> {
+    SerdeXml::default().from_reader_with(reader, deserialize)
 }
 
 pub struct Deserializer<R: Read> {
